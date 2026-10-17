@@ -1,0 +1,47 @@
+schema_version: 1
+chapters:
+- slug: divisibility-theory-in-the-integers
+  lean_namespace: DivisibilityTheoryInTheIntegers
+  title: Divisibility Theory in the Integers
+- slug: primes-and-their-distribution
+  lean_namespace: PrimesAndTheirDistribution
+  title: Primes and Their Distribution
+- slug: the-theory-of-congruences
+  lean_namespace: TheTheoryOfCongruences
+  title: The Theory of Congruences
+- slug: fermats-theorem
+  lean_namespace: FermatsTheorem
+  title: Fermat's Theorem
+- slug: number-theoretic-functions
+  lean_namespace: NumberTheoreticFunctions
+  title: Number-Theoretic Functions
+- slug: eulers-generalization-of-fermats-theorem
+  lean_namespace: EulersGeneralizationOfFermatsTheorem
+  title: Euler's Generalization of Fermat's Theorem
+- slug: primitive-roots-and-indices
+  lean_namespace: PrimitiveRootsAndIndices
+  title: Primitive Roots and Indices
+- slug: the-quadratic-reciprocity-law
+  lean_namespace: TheQuadraticReciprocityLaw
+  title: The Quadratic Reciprocity Law
+- slug: introduction-to-cryptography
+  lean_namespace: IntroductionToCryptography
+  title: Introduction to Cryptography
+- slug: numbers-of-special-form
+  lean_namespace: NumbersOfSpecialForm
+  title: Numbers of Special Form
+- slug: certain-nonlinear-diophantine-equations
+  lean_namespace: CertainNonlinearDiophantineEquations
+  title: Certain Nonlinear Diophantine Equations
+- slug: representation-of-integers-as-sums-of-squares
+  lean_namespace: RepresentationOfIntegersAsSumsOfSquares
+  title: Representation of Integers as Sums of Squares
+- slug: fibonacci-numbers
+  lean_namespace: FibonacciNumbers
+  title: Fibonacci Numbers
+- slug: continued-fractions
+  lean_namespace: ContinuedFractions
+  title: Continued Fractions
+- slug: some-modern-developments
+  lean_namespace: SomeModernDevelopments
+  title: Some Modern Developments

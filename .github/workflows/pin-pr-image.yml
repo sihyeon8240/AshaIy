@@ -1,0 +1,63 @@
+name: Publish and pin PR toolchain image
+
+on:
+  workflow_run:
+    workflows: [Build textbooks]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pin-pr-image-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  pin:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    concurrency:
+      group: toolchain-image-publication
+      cancel-in-progress: false
+      queue: max
+    permissions:
+      actions: read
+      contents: write
+      packages: write
+      pull-requests: read
+    steps:
+      # Keep privileged code on main; PR files are read as data only.
+      - name: Checkout trusted publication code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Load trusted repository configuration
+        id: config
+        run: ./scripts/export-config.sh
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ steps.config.outputs.python }}
+          cache: pip
+          cache-dependency-path: .github/requirements-ci.txt
+      - run: >-
+          python3 -m pip install --disable-pip-version-check
+          --requirement .github/requirements-ci.txt
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish verified candidates and append the image pin
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: python3 scripts/image-candidate.py publish-pr

@@ -1,0 +1,5 @@
+.git
+.cache
+build
+vscode-build
+lean/.lake

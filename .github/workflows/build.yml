@@ -1,0 +1,548 @@
+name: Build textbooks
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  source:
+    name: Source and repository checks
+    outputs:
+      image_changed: ${{ steps.changes.outputs.image_changed }}
+    env:
+      PYTHONPYCACHEPREFIX: ${{ github.workspace }}/.cache/python
+      MATHLIB_CACHE_DIR: ${{ github.workspace }}/.cache/mathlib
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - id: changes
+        name: Classify changed files
+        env:
+          BASE_SHA: >-
+            ${{
+              github.event_name == 'pull_request'
+              && github.event.pull_request.base.sha
+              || github.event.before
+            }}
+        shell: bash
+        run: |
+          python3 scripts/ci-check-scope.py --base "$BASE_SHA" --format github >> "$GITHUB_OUTPUT"
+      - name: Load repository configuration
+        id: config
+        run: ./scripts/export-config.sh
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ steps.config.outputs.python }}
+          cache: pip
+          cache-dependency-path: .github/requirements-ci.txt
+      - name: Install repository check dependencies
+        run: |
+          if ! command -v rg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install --no-install-recommends --yes ripgrep
+          fi
+          command -v rg
+      - run: >-
+          python3 -m pip install --disable-pip-version-check
+          --requirement .github/requirements-ci.txt
+      # Dependency archives are large; source edits must not duplicate them.
+      - name: Restore Lean dependencies
+        if: steps.changes.outputs.lean == 'true'
+        id: lean-dependencies
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: lean/.lake/packages
+          key: lean-dependencies-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json', 'lean/lakefile.toml') }}
+      - name: Restore Lean build outputs
+        if: steps.changes.outputs.lean == 'true'
+        id: lean-build
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: lean/.lake/build
+          key: lean-build-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json', 'lean/lakefile.toml') }}-${{ hashFiles('lean/Textbooks.lean', 'lean/Textbooks/**/*.lean') }}
+          restore-keys: |
+            lean-build-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json', 'lean/lakefile.toml') }}-
+      - name: Set up the pinned Lean toolchain
+        if: steps.changes.outputs.lean == 'true'
+        uses: leanprover/lean-action@24581d74d674803a25a81b10b059c5c0cdd344c6 # v1
+        with:
+          auto-config: false
+          lake-package-directory: lean
+          use-github-cache: false
+          use-mathlib-cache: true
+      - name: Check proofs and repository sources
+        env:
+          LEAN_MODE: ${{ steps.changes.outputs.lean == 'true' && 'build' || 'links' }}
+        run: ./scripts/ashaiy ci-source --lean-mode "$LEAN_MODE"
+      - name: Python formatting and lint
+        run: ./scripts/ashaiy format py --check
+      - name: Unit tests
+        run: ./scripts/ashaiy test
+      - name: YAML and JSON syntax
+        if: steps.changes.outputs.structured == 'true'
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          import yaml
+          for path in sorted(Path('.github').rglob('*.yml')):
+              yaml.safe_load(path.read_text(encoding='utf-8'))
+              print(path)
+          yaml.safe_load(Path('CITATION.cff').read_text(encoding='utf-8'))
+          json.loads(Path('.devcontainer/devcontainer.json').read_text(encoding='utf-8'))
+          PY
+      - name: GitHub Actions semantics
+        if: steps.changes.outputs.structured == 'true'
+        run: ./scripts/check-actions.sh
+      # PRs can restore main's caches without creating PR-scoped copies.
+      - name: Save Lean dependencies
+        if: >-
+          steps.changes.outputs.lean == 'true' &&
+          github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+          steps.lean-dependencies.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: lean/.lake/packages
+          key: ${{ steps.lean-dependencies.outputs.cache-primary-key }}
+      - name: Save Lean build outputs
+        if: >-
+          steps.changes.outputs.lean == 'true' &&
+          github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+          steps.lean-build.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: lean/.lake/build
+          key: ${{ steps.lean-build.outputs.cache-primary-key }}
+  image-validation:
+    name: Validate toolchain candidate
+    needs: source
+    if: github.event_name == 'pull_request' && needs.source.outputs.image_changed == 'true'
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    uses: ./.github/workflows/prepare-image.yml
+    with:
+      ref: ${{ github.sha }}
+  main-image:
+    name: Prepare main toolchain image
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    uses: ./.github/workflows/prepare-image.yml
+    with:
+      ref: ${{ github.sha }}
+  latex:
+    name: Source formatting
+    needs: prepare-image
+    if: ${{ !cancelled() && needs.prepare-image.result == 'success' }}
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Restore LaTeX formatting checks
+        id: latex-format-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/latexindent
+          key: latexindent-v2-${{ runner.os }}-${{ runner.arch }}-${{ needs.prepare-image.outputs.digest }}-${{ hashFiles('scripts/format-tex.sh', 'scripts/format-tex-file.sh', 'scripts/normalize-eof.sh', 'config/latexindent.yaml') }}-${{ hashFiles('**/*.tex', '**/*.sty') }}
+          restore-keys: |
+            latexindent-v2-${{ runner.os }}-${{ runner.arch }}-${{ needs.prepare-image.outputs.digest }}-${{ hashFiles('scripts/format-tex.sh', 'scripts/format-tex-file.sh', 'scripts/normalize-eof.sh', 'config/latexindent.yaml') }}-
+      - uses: ./.github/actions/run-toolchain
+        with:
+          image: ${{ needs.prepare-image.outputs.image }}
+          digest: ${{ needs.prepare-image.outputs.digest }}
+          artifact: ${{ needs.prepare-image.outputs.artifact }}
+          token: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.token || '' }}
+          run: |
+            git config --global --add safe.directory "$(pwd)"
+            ./scripts/ashaiy format sh --check
+            ./scripts/ashaiy format tex --check
+      - name: Save LaTeX formatting checks
+        if: >-
+          github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+          steps.latex-format-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/latexindent
+          key: ${{ steps.latex-format-cache.outputs.cache-primary-key }}
+  check:
+    name: Check sources
+    needs: [source, latex, image-validation]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Verify source and formatting checks passed
+        env:
+          SOURCE_RESULT: ${{ needs.source.result }}
+          LATEX_RESULT: ${{ needs.latex.result }}
+          IMAGE_RESULT: ${{ needs.image-validation.result }}
+        shell: bash
+        run: |
+          if [[ "$SOURCE_RESULT" != success || "$LATEX_RESULT" != success ]]; then
+            echo "::error::Source checks: $SOURCE_RESULT; formatting checks: $LATEX_RESULT"
+            exit 1
+          fi
+          if [[ "$IMAGE_RESULT" != success && "$IMAGE_RESULT" != skipped ]]; then
+            echo "::error::Toolchain candidate validation ended with: $IMAGE_RESULT"
+            exit 1
+          fi
+          echo "Source, LaTeX, and requested image checks passed."
+  prepare-image:
+    name: Select tested toolchain image
+    needs: [source, image-validation, main-image]
+    if: >-
+      always() && !cancelled() && needs.source.result == 'success' &&
+      (needs.image-validation.result == 'success' || needs.image-validation.result == 'skipped') &&
+      (needs.main-image.result == 'success' || needs.main-image.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      digest: ${{ steps.image.outputs.digest }}
+      artifact: ${{ steps.image.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Load repository configuration
+        id: config
+        run: ./scripts/export-config.sh
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ steps.config.outputs.python }}
+          cache: pip
+          cache-dependency-path: .github/requirements-ci.txt
+      - run: >-
+          python3 -m pip install --disable-pip-version-check
+          --requirement .github/requirements-ci.txt
+      - name: Authenticate image lookup for same-repository runs
+        if: >-
+          needs.image-validation.result == 'skipped' && needs.main-image.result == 'skipped' &&
+          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Select the prepared or published image
+        id: image
+        env:
+          PREPARED_IMAGE: ${{ needs.image-validation.outputs.image || needs.main-image.outputs.image }}
+          PREPARED_DIGEST: ${{ needs.image-validation.outputs.digest || needs.main-image.outputs.digest }}
+          PREPARED_ARTIFACT: ${{ needs.image-validation.outputs.artifact || needs.main-image.outputs.artifact }}
+        run: |
+          if [[ -n "$PREPARED_IMAGE" ]]; then
+            {
+              echo "image=$PREPARED_IMAGE"
+              echo "digest=$PREPARED_DIGEST"
+              echo "artifact=$PREPARED_ARTIFACT"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          ./scripts/check-image-reference.py
+          input_hash="$(python3 scripts/image_policy.py hash)"
+          tag="${IMAGE_NAME}:texlive-${input_hash}"
+          IMAGE_REF="$tag" REQUIRE_IMAGE=true ./scripts/check-image-tag.sh
+          digest="$(docker buildx imagetools inspect "$tag" --format '{{.Manifest.Digest}}')"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          image="${IMAGE_NAME}@${digest}"
+          IMAGE_REF="$image" REQUIRE_IMAGE=true ./scripts/check-image-tag.sh
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "digest=${image##*@sha256:}" >> "$GITHUB_OUTPUT"
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      release_matrix: ${{ steps.releases.outputs.matrix }}
+      release_count: ${{ steps.releases.outputs.count }}
+      matrix: ${{ steps.books.outputs.matrix }}
+      count: ${{ steps.books.outputs.count }}
+      site_changed: ${{ steps.books.outputs.site_changed }}
+      snapshot_changed: ${{ steps.books.outputs.snapshot_changed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - name: Load repository configuration
+        id: config
+        run: ./scripts/export-config.sh
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ steps.config.outputs.python }}
+          cache: pip
+          cache-dependency-path: .github/requirements-ci.txt
+      - run: >-
+          python3 -m pip install --disable-pip-version-check
+          --requirement .github/requirements-ci.txt
+      - name: Validate manifest before creating the matrix
+        run: python3 scripts/books.py validate
+      - id: releases
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            echo 'matrix={"book":[]}' >> "$GITHUB_OUTPUT"
+            echo 'count=0' >> "$GITHUB_OUTPUT"
+          else
+            options=(--base "$BASE_SHA" --summary "$GITHUB_STEP_SUMMARY")
+            if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
+              options+=(--check-remote-tags)
+            fi
+            python3 scripts/releases.py plan "${options[@]}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Read last snapshot source
+        if: github.event_name == 'push'
+        id: snapshot
+        run: ./scripts/snapshot-base.sh
+      - name: Create cumulative build matrix
+        id: books
+        env:
+          RELEASE_MATRIX: ${{ steps.releases.outputs.matrix }}
+          BASE_SHA: >-
+            ${{
+              github.event_name == 'push'
+              && steps.snapshot.outputs.base
+              || (
+                github.event_name == 'pull_request'
+                && github.event.pull_request.base.sha
+                || ''
+              )
+            }}
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == workflow_dispatch ]]; then
+            python3 scripts/affected-books.py --all --format github >> "$GITHUB_OUTPUT"
+          else
+            python3 scripts/affected-books.py --base "$BASE_SHA" --format github >> "$GITHUB_OUTPUT"
+          fi
+  book:
+    needs: [prepare-image, plan]
+    if: >-
+      !cancelled() && needs.prepare-image.result == 'success' &&
+      needs.plan.result == 'success' && needs.plan.outputs.count != '0'
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    name: Build ${{ matrix.book }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Identify the build inputs
+        id: inputs
+        env:
+          DIGEST: ${{ needs.prepare-image.outputs.digest }}
+          BOOK: ${{ matrix.book }}
+        run: |
+          mkdir -p "build/$BOOK"
+          echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
+          echo "image=$DIGEST" >> "$GITHUB_OUTPUT"
+      - name: Reuse a verified PDF from the merged pull request
+        id: reuse
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE: ${{ needs.prepare-image.outputs.image }}
+          BOOK: ${{ matrix.book }}
+        run: python3 scripts/verified-build.py restore --book "$BOOK" --image "$IMAGE"
+      - name: Restore LaTeX build outputs
+        id: latex-build-cache
+        if: steps.reuse.outputs.reused != 'true'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/${{ matrix.book }}
+          key: latex-v1-${{ runner.os }}-${{ runner.arch }}-${{ matrix.book }}-${{ steps.inputs.outputs.image }}-${{ steps.inputs.outputs.tree }}
+          restore-keys: |
+            latex-v1-${{ runner.os }}-${{ runner.arch }}-${{ matrix.book }}-${{ steps.inputs.outputs.image }}-
+      - name: Build and strictly check in the prepared image
+        if: steps.reuse.outputs.reused != 'true'
+        uses: ./.github/actions/run-toolchain
+        with:
+          image: ${{ needs.prepare-image.outputs.image }}
+          digest: ${{ needs.prepare-image.outputs.digest }}
+          artifact: ${{ needs.prepare-image.outputs.artifact }}
+          token: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.token || '' }}
+          run: |
+            ./scripts/build-book.sh "${{ matrix.book }}"
+            python3 scripts/check-log.py --strict "build/${{ matrix.book }}/book.log"
+      - name: Save LaTeX build outputs
+        if: >-
+          github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+          steps.reuse.outputs.reused != 'true' &&
+          steps.latex-build-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/${{ matrix.book }}
+          key: ${{ steps.latex-build-cache.outputs.cache-primary-key }}
+      - name: Prepare PDF artifact
+        env:
+          BOOK: ${{ matrix.book }}
+        run: cp "build/$BOOK/book.pdf" "build/$BOOK/$BOOK.pdf"
+      - name: Package the release PDF and checksum
+        if: github.event_name == 'push' && contains(fromJSON(needs.plan.outputs.release_matrix).book, matrix.book)
+        uses: ./.github/actions/run-toolchain
+        with:
+          image: ${{ needs.prepare-image.outputs.image }}
+          digest: ${{ needs.prepare-image.outputs.digest }}
+          artifact: ${{ needs.prepare-image.outputs.artifact }}
+          token: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.token || '' }}
+          run: ./scripts/package-book.sh "${{ matrix.book }}" "build/release/${{ matrix.book }}"
+      - name: Record the original release package identity
+        if: github.event_name == 'push' && contains(fromJSON(needs.plan.outputs.release_matrix).book, matrix.book)
+        env:
+          BOOK: ${{ matrix.book }}
+        run: python3 scripts/release-package.py --book "$BOOK" --directory "build/release/$BOOK"
+      - name: Preserve the release package for publication and retries
+        if: github.event_name == 'push' && contains(fromJSON(needs.plan.outputs.release_matrix).book, matrix.book)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ${{ matrix.book }}-release
+          path: build/release/${{ matrix.book }}/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Record the verified build
+        if: github.event_name == 'pull_request' && needs.prepare-image.outputs.artifact == ''
+        env:
+          IMAGE: ${{ needs.prepare-image.outputs.image }}
+          BOOK: ${{ matrix.book }}
+        run: python3 scripts/verified-build.py record --book "$BOOK" --image "$IMAGE"
+      - name: Upload verified build for reuse after merge
+        if: github.event_name == 'pull_request' && needs.prepare-image.outputs.artifact == ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ${{ matrix.book }}-verified-build
+          path: |
+            build/${{ matrix.book }}/book.pdf
+            build/${{ matrix.book }}/book.log
+            build/${{ matrix.book }}/verified-build.json
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ${{ matrix.book }}-pdf
+          path: build/${{ matrix.book }}/${{ matrix.book }}.pdf
+          if-no-files-found: error
+          retention-days: 14
+  build-check:
+    name: Verify textbook builds
+    needs: [prepare-image, plan, book]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Verify all requested textbook builds passed
+        env:
+          PREPARE_RESULT: ${{ needs.prepare-image.result }}
+          PLAN_RESULT: ${{ needs.plan.result }}
+          BOOK_RESULT: ${{ needs.book.result }}
+          BOOK_COUNT: ${{ needs.plan.outputs.count }}
+        shell: bash
+        run: |
+          if [[ "$PREPARE_RESULT" != success ]]; then
+            echo "::error::Toolchain image preparation ended with: $PREPARE_RESULT"
+            exit 1
+          fi
+          if [[ "$PLAN_RESULT" != success ]]; then
+            echo "::error::Build planning ended with: $PLAN_RESULT"
+            exit 1
+          fi
+          if [[ ! "$BOOK_COUNT" =~ ^[0-9]+$ ]]; then
+            echo "::error::Invalid textbook build count: ${BOOK_COUNT:-<empty>}"
+            exit 1
+          fi
+          if (( BOOK_COUNT == 0 )); then
+            expected=skipped
+          else
+            expected=success
+          fi
+          if [[ "$BOOK_RESULT" != "$expected" ]]; then
+            echo "::error::Textbook builds ended with: $BOOK_RESULT; expected: $expected"
+            exit 1
+          fi
+  publish:
+    name: Publish latest PDF snapshot
+    concurrency:
+      group: development-pdf-snapshot
+      cancel-in-progress: false
+    needs: [plan, book, check, build-check]
+    if: >-
+      always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/main' &&
+      needs.check.result == 'success' && needs.build-check.result == 'success' &&
+      needs.plan.result == 'success' &&
+      (needs.book.result == 'success' || needs.book.result == 'skipped') &&
+      (needs.plan.outputs.count != '0' || needs.plan.outputs.site_changed == 'true' ||
+      needs.plan.outputs.snapshot_changed == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      current: ${{ steps.publish.outputs.current }}
+      snapshot_sha: ${{ steps.publish.outputs.snapshot_sha }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        if: needs.plan.outputs.count != '0'
+        with:
+          pattern: '*-pdf'
+          path: updated-pdfs
+          merge-multiple: true
+      - id: publish
+        name: Update generated-pdfs snapshot
+        shell: bash
+        run: ./scripts/publish-snapshot.sh
+  pages:
+    needs: [publish, check, build-check]
+    if: >-
+      always() && !cancelled() &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/main' &&
+      needs.check.result == 'success' && needs.build-check.result == 'success' &&
+      (needs.publish.outputs.current == 'true' || needs.publish.result == 'skipped')
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml
+    with:
+      # An empty SHA resolves the existing snapshot once for deployment retries.
+      source_sha: ${{ needs.publish.outputs.current == 'true' && github.sha || '' }}
+      snapshot_sha: ${{ needs.publish.outputs.snapshot_sha }}
+  release:
+    name: Publish reviewed textbook versions
+    needs: [plan, check, build-check, book]
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      needs.plan.outputs.release_count != '0' &&
+      needs.check.result == 'success' && needs.build-check.result == 'success'
+    permissions:
+      contents: write
+      actions: read
+    uses: ./.github/workflows/release.yml
+    with:
+      matrix: ${{ needs.plan.outputs.release_matrix }}

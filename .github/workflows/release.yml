@@ -1,0 +1,46 @@
+name: Release textbooks
+on:
+  workflow_call:
+    inputs:
+      matrix:
+        description: Books enabled for release or with version increases in this main push
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(inputs.matrix) }}
+    concurrency:
+      group: textbook-release-${{ matrix.book }}
+      cancel-in-progress: false
+      queue: max
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - id: config
+        run: ./scripts/export-config.sh
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ steps.config.outputs.python }}
+          cache: pip
+          cache-dependency-path: .github/requirements-ci.txt
+      - run: python3 -m pip install --disable-pip-version-check --requirement .github/requirements-ci.txt
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: ${{ matrix.book }}-release
+          path: build/release/${{ matrix.book }}
+      - name: Publish the validated package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BOOK: ${{ matrix.book }}
+        run: ./scripts/publish-release.sh "$BOOK" "build/release/$BOOK"

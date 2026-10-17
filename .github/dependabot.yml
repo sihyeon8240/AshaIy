@@ -1,0 +1,23 @@
+version: 2
+
+multi-ecosystem-groups:
+  infrastructure:
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    patterns: ["*"]
+    multi-ecosystem-group: "infrastructure"
+
+  - package-ecosystem: "docker"
+    directory: "/.devcontainer"
+    patterns: ["*"]
+    multi-ecosystem-group: "infrastructure"
+
+    # Python image updates require a coordinated manual toolchain update.
+    ignore:
+      - dependency-name: "python"

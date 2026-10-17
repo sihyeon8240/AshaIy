@@ -1,0 +1,32 @@
+schema_version: 1
+chapters:
+- slug: basic-topology
+  lean_namespace: BasicTopology
+  title: Basic Topology
+- slug: sequences-and-series
+  lean_namespace: SequencesAndSeries
+  title: Sequences and Series
+- slug: continuity
+  lean_namespace: Continuity
+  title: Continuity
+- slug: differentiation
+  lean_namespace: Differentiation
+  title: Differentiation
+- slug: the-riemann-stieltjes-integral
+  lean_namespace: TheRiemannStieltjesIntegral
+  title: The Riemann-Stieltjes Integral
+- slug: sequences-and-series-of-functions
+  lean_namespace: SequencesAndSeriesOfFunctions
+  title: Sequences and Series of Functions
+- slug: some-special-functions
+  lean_namespace: SomeSpecialFunctions
+  title: Some Special Functions
+- slug: functions-of-several-variables
+  lean_namespace: FunctionsOfSeveralVariables
+  title: Functions of Several Variables
+- slug: integration-of-differential-forms
+  lean_namespace: IntegrationOfDifferentialForms
+  title: Integration of Differential Forms
+- slug: the-lebesgue-theory
+  lean_namespace: TheLebesgueTheory
+  title: The Lebesgue Theory

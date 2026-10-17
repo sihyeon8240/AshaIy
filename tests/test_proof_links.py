@@ -1,0 +1,423 @@
+"""Regression tests for LaTeX-to-Lean proof linkage."""
+
+from __future__ import annotations
+
+import importlib.util
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from test_support import book_record, manifest_document, write_yaml
+
+ROOT = Path(__file__).resolve().parent.parent
+SPEC = importlib.util.spec_from_file_location(
+    "check_proof_links", ROOT / "scripts/proof_links.py"
+)
+assert SPEC and SPEC.loader
+MODULE = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = MODULE
+SPEC.loader.exec_module(MODULE)
+
+
+class ProofLinkTests(unittest.TestCase):
+    def books(self, *entries: dict[str, object]) -> dict[str, object]:
+        records = []
+        for order, entry in enumerate(entries, 1):
+            slug = str(entry["slug"])
+            records.append(
+                book_record(
+                    **{
+                        "version": "0.1.0",
+                        "label_prefix": slug[:2],
+                        "order": order * 10,
+                        **entry,
+                    }
+                )
+            )
+            book = self.root / "books" / slug / "book.tex"
+            book.parent.mkdir(parents=True, exist_ok=True)
+            book.touch()
+        return manifest_document(records)
+
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        tex = self.root / "books/sample/chapters/start/result.tex"
+        tex.parent.mkdir(parents=True)
+        tex.write_text(
+            r"\begin{theorem}\label{sa:thm:result}Result.\end{theorem}" "\n",
+            encoding="utf-8",
+        )
+        self.write_yaml(
+            "config/books.yml",
+            self.books(
+                {"slug": "sample", "label_prefix": "sa", "lean_module": "Sample"}
+            ),
+        )
+        self.write_yaml(
+            "books/sample/chapters.yml",
+            {
+                "schema_version": 1,
+                "chapters": [
+                    {"slug": "start", "title": "Start", "lean_namespace": "Start"}
+                ],
+            },
+        )
+        self.write_yaml("books/sample/chapters/start/proofs.yml", {"proofs": []})
+        self.entry = {
+            "id": "sa:thm:result",
+            "declaration": "Sample.Start.result",
+        }
+
+    def test_multiple_proofs_reuse_one_source_scan(self) -> None:
+        source = self.root / "books/sample/chapters/start/result.tex"
+        source.write_text(
+            "\\begin{theorem}\\label{sa:thm:result}Result.\\end{theorem}\n"
+            "\\begin{lemma}\\label{sa:lem:other}Other.\\end{lemma}\n",
+            encoding="utf-8",
+        )
+        self.write_yaml(
+            "books/sample/chapters/start/proofs.yml",
+            {
+                "proofs": [
+                    self.entry,
+                    {"id": "sa:lem:other", "declaration": "Sample.Start.other"},
+                ]
+            },
+        )
+        reads = []
+        original = Path.read_text
+
+        def tracked(path, *args, **kwargs):
+            if path == source:
+                reads.append(path)
+            return original(path, *args, **kwargs)
+
+        with patch.object(Path, "read_text", tracked):
+            errors, proofs = MODULE.validate_index(self.root)
+        self.assertEqual(errors, [])
+        self.assertEqual(len(proofs), 2)
+        self.assertEqual(reads, [source])
+
+    def write_yaml(self, path: str, data: object) -> None:
+        write_yaml(self.root / path, data)
+
+    def errors(self, entries: list[object]) -> list[str]:
+        self.write_yaml(
+            "books/sample/chapters/start/proofs.yml",
+            {"proofs": entries},
+        )
+        return MODULE.validate_index(self.root)[0]
+
+    def test_valid_entry(self) -> None:
+        self.assertEqual(self.errors([self.entry]), [])
+
+    def test_shard_identity_is_derived_from_path(self) -> None:
+        self.write_yaml(
+            "books/sample/chapters/start/proofs.yml",
+            {
+                "book": "sample",
+                "chapter": "start",
+                "proofs": [self.entry],
+            },
+        )
+        errors = MODULE.validate_index(self.root)[0]
+        self.assertTrue(
+            any("unknown fields: book, chapter" in error for error in errors)
+        )
+
+    def test_missing_index_is_rejected(self) -> None:
+        path = self.root / "books/sample/chapters/start/proofs.yml"
+        path.unlink()
+        errors, proofs = MODULE.load_proof_index(self.root)
+        self.assertEqual(proofs, [])
+        self.assertTrue(any("YAML file not found" in error for error in errors))
+
+    def test_unregistered_index_is_rejected(self) -> None:
+        for path in (
+            "books/unknown/chapters/start/proofs.yml",
+            "books/sample/chapters/other/proofs.yml",
+            "books/sample/appendices/tables/proofs.yml",
+            "books/sample/proofs.yml",
+            "books/sample/chapters/start/nested/proofs.yml",
+        ):
+            with self.subTest(path=path):
+                self.write_yaml(path, {"proofs": []})
+                errors, _ = MODULE.load_proof_index(self.root)
+                self.assertIn(f"{path}: unregistered proof index", errors)
+                (self.root / path).unlink()
+
+    def test_invalid_index_schema_is_rejected(self) -> None:
+        for data, message in (
+            ([], "root must be a mapping"),
+            ({}, "'proofs' must be a list"),
+            ({"proofs": {}}, "'proofs' must be a list"),
+            ({"proofs": [None]}, "must be a mapping"),
+        ):
+            with self.subTest(data=data):
+                self.write_yaml("books/sample/chapters/start/proofs.yml", data)
+                errors, _ = MODULE.load_proof_index(self.root)
+                self.assertTrue(any(message in error for error in errors))
+
+    def test_indexes_follow_book_and_contents_order(self) -> None:
+        self.write_yaml(
+            "config/books.yml",
+            self.books({"slug": "zulu"}, {"slug": "alpha"}),
+        )
+        (self.root / "books/sample/chapters/start/proofs.yml").unlink()
+        expected = []
+        for slug in ("zulu", "alpha"):
+            self.write_yaml(
+                f"books/{slug}/chapters.yml",
+                {
+                    "schema_version": 1,
+                    "chapters": [
+                        {"slug": "start", "title": "Start", "lean_namespace": "Start"},
+                        {"slug": "next", "title": "Next"},
+                    ],
+                    "appendices": [
+                        {
+                            "slug": "tables",
+                            "title": "Tables",
+                            "lean_namespace": "Tables",
+                        }
+                    ],
+                },
+            )
+            for directory in (
+                "chapters/start",
+                "chapters/next",
+                "appendices/tables",
+            ):
+                path = f"books/{slug}/{directory}/proofs.yml"
+                self.write_yaml(path, {"proofs": [self.entry]})
+                expected.append(path)
+        errors, proofs = MODULE.load_proof_index(self.root)
+        self.assertEqual(errors, [])
+        self.assertEqual([entry["source"] for entry in proofs], expected)
+        self.assertEqual(proofs[-1]["kind"], "appendices")
+
+    def test_duplicate_latex_label_is_rejected(self) -> None:
+        duplicate = self.root / "books/sample/chapters/start/duplicate.tex"
+        duplicate.write_text("\\label{sa:thm:result}\n", encoding="utf-8")
+        errors = self.errors([self.entry])
+        self.assertTrue(any("duplicate LaTeX label" in error for error in errors))
+
+    def test_missing_tex_label_is_rejected(self) -> None:
+        self.entry["id"] = "sa:thm:other"
+        errors = self.errors([self.entry])
+        self.assertTrue(any("label is absent" in error for error in errors))
+
+    def test_commented_label_is_rejected_and_multiline_label_is_accepted(self) -> None:
+        tex = self.root / "books/sample/chapters/start/result.tex"
+        tex.write_text("% \\label{sa:thm:result}\n", encoding="utf-8")
+        self.assertTrue(
+            any("label is absent" in error for error in self.errors([self.entry]))
+        )
+        tex.write_text(
+            "\\begin{theorem}\n\\label\n  {sa:thm:result}\n\\end{theorem}\n",
+            encoding="utf-8",
+        )
+        self.assertEqual(self.errors([self.entry]), [])
+
+    def test_label_must_belong_to_a_result_environment(self) -> None:
+        tex = self.root / "books/sample/chapters/start/result.tex"
+        for body in (
+            r"\section{Heading}\label{sa:thm:result}",
+            r"\begin{definition}\label{sa:thm:result}\end{definition}",
+            r"\begin{theorem}\end{theorem}\label{sa:thm:result}",
+            r"\begin{theorem}\begin{equation}\label{sa:thm:result}"
+            r"\end{equation}\end{theorem}",
+            r"\begin{lean}\begin{theorem}\label{sa:thm:result}"
+            r"\end{theorem}\end{lean}",
+        ):
+            with self.subTest(body=body):
+                tex.write_text(body + "\n")
+                self.assertTrue(
+                    any(
+                        "theorem environment" in error
+                        for error in self.errors([self.entry])
+                    )
+                )
+
+    def test_appendix_shard_owns_its_sources_and_namespace(self) -> None:
+        source = self.root / "books/sample/appendices/tables/result.tex"
+        source.parent.mkdir(parents=True)
+        source.write_text(r"\begin{lemma}\label{sa:lem:extra}Extra.\end{lemma}" + "\n")
+        entry = {"id": "sa:lem:extra", "declaration": "Sample.Appendices.Tables.extra"}
+        self.write_yaml(
+            "books/sample/chapters.yml",
+            {
+                "schema_version": 1,
+                "chapters": [
+                    {"slug": "start", "title": "Start", "lean_namespace": "Start"}
+                ],
+                "appendices": [
+                    {"slug": "tables", "title": "Tables", "lean_namespace": "Tables"}
+                ],
+            },
+        )
+        shard = "books/sample/appendices/tables/proofs.yml"
+        self.write_yaml(shard, {"proofs": [entry]})
+        self.assertEqual(MODULE.validate_index(self.root)[0], [])
+        self.write_yaml(
+            shard, {"proofs": [dict(entry, declaration="Sample.Start.extra")]}
+        )
+        self.assertTrue(
+            any("namespace" in error for error in MODULE.validate_index(self.root)[0])
+        )
+        self.write_yaml(shard, {"proofs": [self.entry]})
+        self.assertTrue(
+            any(
+                "outside shard" in error
+                for error in MODULE.validate_index(self.root)[0]
+            )
+        )
+
+    def test_duplicate_declaration_is_rejected(self) -> None:
+        duplicate = dict(self.entry, id="sa:lem:result")
+        errors = self.errors([self.entry, duplicate])
+        self.assertTrue(any("duplicate Lean declaration" in error for error in errors))
+
+    def test_explicit_tex_path_is_rejected(self) -> None:
+        self.entry["tex"] = "chapters/start/result.tex"
+        errors = self.errors([self.entry])
+        self.assertTrue(any("unknown fields: tex" in error for error in errors))
+
+    def test_shard_owned_entry_fields_are_rejected(self) -> None:
+        self.entry["book"] = "sample"
+        errors = self.errors([self.entry])
+        self.assertTrue(any("shard-owned fields" in error for error in errors))
+
+    def test_label_outside_shard_chapter_is_rejected(self) -> None:
+        original = self.root / "books/sample/chapters/start/result.tex"
+        original.write_text("No label.\n", encoding="utf-8")
+        moved = self.root / "books/sample/chapters/other/result.tex"
+        moved.parent.mkdir(parents=True)
+        moved.write_text("\\label{sa:thm:result}\n", encoding="utf-8")
+        errors = self.errors([self.entry])
+        self.assertTrue(any("outside shard chapter" in error for error in errors))
+
+    def test_book_prefix_and_namespace_are_enforced(self) -> None:
+        self.entry["id"] = "xx:thm:result"
+        self.entry["declaration"] = "Other.Chapter01.result"
+        errors = self.errors([self.entry])
+        self.assertTrue(any("does not use book prefix" in error for error in errors))
+        self.assertTrue(any("outside the book namespace" in error for error in errors))
+
+    def test_legacy_namespace_is_rejected(self) -> None:
+        self.entry["declaration"] = "Textbooks.Sample.Start.result"
+        self.assertTrue(
+            any(
+                "outside the book namespace" in error
+                for error in self.errors([self.entry])
+            )
+        )
+
+    def test_wrong_chapter_namespace_is_rejected(self) -> None:
+        self.entry["declaration"] = "Sample.Next.result"
+        self.assertTrue(
+            any(
+                "outside the book namespace" in error
+                for error in self.errors([self.entry])
+            )
+        )
+
+    def test_topic_layout(self) -> None:
+        lean = self.root / "lean"
+        module = lean / "Textbooks/Sample"
+        module.mkdir(parents=True)
+        (lean / "Textbooks.lean").write_text("import Textbooks.Sample.All\n")
+        entry = module / "All.lean"
+        for path, valid in (
+            ("Start/WellOrdering.lean", True),
+            ("Appendices/Tables/WellOrdering.lean", True),
+            ("Appendix1/WellOrdering.lean", False),
+            ("Chapter01.lean", False),
+            ("WellOrdering.lean", False),
+            ("Chapter1/WellOrdering.lean", False),
+            ("Chapter01/All.lean", False),
+            ("Chapter01/well_ordering.lean", False),
+        ):
+            with self.subTest(path=path):
+                source = module / path
+                source.parent.mkdir(parents=True, exist_ok=True)
+                source.write_text("")
+                imported = ".".join(Path(path).with_suffix("").parts)
+                entry.write_text(f"import Textbooks.Sample.{imported}\n")
+                errors = MODULE.validate_import_boundaries(self.root)
+                if valid:
+                    self.assertEqual(errors, [])
+                else:
+                    self.assertTrue(
+                        any("ChapterName/Topic.lean" in error for error in errors)
+                    )
+                source.unlink()
+
+    def test_unreachable_lean_source_is_rejected(self) -> None:
+        self.write_yaml(
+            "config/books.yml",
+            self.books(
+                {"slug": "sample", "label_prefix": "sa", "lean_module": "Sample"}
+            ),
+        )
+        lean = self.root / "lean"
+        module = lean / "Textbooks/Sample"
+        module.mkdir(parents=True)
+        (lean / "Textbooks.lean").write_text(
+            "import Textbooks.Sample.All\n", encoding="utf-8"
+        )
+        (module / "All.lean").write_text("", encoding="utf-8")
+        (module / "Chapter01").mkdir()
+        (module / "Chapter01/Orphan.lean").write_text("", encoding="utf-8")
+        errors = MODULE.validate_import_boundaries(self.root)
+        self.assertTrue(
+            any("not reachable from Textbooks" in error for error in errors)
+        )
+
+    def test_shared_foundation_source_is_rejected(self) -> None:
+        self.write_yaml(
+            "config/books.yml",
+            self.books(
+                {"slug": "sample", "label_prefix": "sa", "lean_module": "Sample"}
+            ),
+        )
+        foundation = self.root / "lean/Textbooks/Foundation.lean"
+        foundation.parent.mkdir(parents=True)
+        foundation.write_text("", encoding="utf-8")
+        errors = MODULE.validate_import_boundaries(self.root)
+        self.assertTrue(
+            any("outside a registered textbook namespace" in error for error in errors)
+        )
+
+    def test_cross_book_import_is_rejected(self) -> None:
+        self.write_yaml(
+            "config/books.yml",
+            self.books(
+                {
+                    "slug": "analysis",
+                    "label_prefix": "an",
+                    "lean_module": "MathematicalAnalysis",
+                },
+                {
+                    "slug": "algebra",
+                    "label_prefix": "al",
+                    "lean_module": "LinearAlgebra",
+                },
+            ),
+        )
+        textbooks = self.root / "lean/Textbooks"
+        for module in ("MathematicalAnalysis", "LinearAlgebra"):
+            (textbooks / module).mkdir(parents=True)
+        source = textbooks / "MathematicalAnalysis/BasicTopology/WellOrdering.lean"
+        source.parent.mkdir(parents=True)
+        source.write_text("import Textbooks.LinearAlgebra.All\n", encoding="utf-8")
+        errors = MODULE.validate_import_boundaries(self.root)
+        self.assertTrue(any("cross-book import" in error for error in errors))
+
+
+if __name__ == "__main__":
+    unittest.main()

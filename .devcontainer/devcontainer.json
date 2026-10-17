@@ -1,0 +1,52 @@
+{
+  "name": "AshaIy",
+  "image": "ghcr.io/sihyeon8240/ashaiy@sha256:4da93333bcd9c704bc9de50e16fae2e79148619292848c264eb8d5e0e99c9511",
+  "containerEnv": {
+    "PYTHONPYCACHEPREFIX": "${containerWorkspaceFolder}/.cache/python",
+    "MATHLIB_CACHE_DIR": "${containerWorkspaceFolder}/.cache/mathlib",
+    "TEXINPUTS": ".:${containerWorkspaceFolder}/common/styles//:${containerWorkspaceFolder}/common/templates//:",
+    "ASHAIY_ROOT": "${containerWorkspaceFolder}"
+  },
+  "postCreateCommand": "./scripts/setup-cli.sh && ./scripts/check-environment.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "james-yu.latex-workshop",
+        "github.vscode-github-actions",
+        "leanprover.lean4",
+        "ms-python.vscode-pylance",
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "editorconfig.editorconfig",
+        "redhat.vscode-yaml",
+        "mkhl.shfmt"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "/bin/bash"
+          },
+          "zsh": {
+            "path": "/bin/zsh"
+          }
+        },
+        "ruff.path": [
+          "/usr/local/bin/ruff"
+        ]
+      }
+    }
+  },
+  "forwardPorts": [
+    4000
+  ],
+  "portsAttributes": {
+    "4000": {
+      "label": "Site preview",
+      "onAutoForward": "notify"
+    }
+  },
+  "remoteEnv": {
+    "PATH": "${containerWorkspaceFolder}/.cache/bin:${containerEnv:PATH}"
+  }
+}

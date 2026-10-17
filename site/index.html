@@ -1,0 +1,81 @@
+---
+layout: default
+stylesheet: index
+edit_path: site/index.html
+permalink: /
+---
+{% assign books = site.pages | where: "layout", "book" | where: "site", true | sort: "order" %}
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero__content">
+    <p class="eyebrow">Lean · Mathematics · Open access</p>
+    <h1 id="hero-title">{{ site.title | escape }}</h1>
+    <p class="hero__lead">
+      {{ site.description | escape }}
+    </p>
+    <div class="hero__actions">
+      <a class="button button--primary" href="#textbooks">
+        Browse textbooks <span aria-hidden="true">↓</span>
+      </a>
+    </div>
+  </div>
+
+  <nav class="link-grid" aria-label="Project links">
+    <a class="project-link" href="{{ site.github.repository_url | escape }}">
+      <span>GitHub source ↗</span>
+      <span>Browse LaTeX and project files</span>
+    </a>
+    <a class="project-link" href="{{ site.github.repository_url | escape }}/releases">
+      <span>Official releases ↗</span>
+      <span>Browse versioned textbook releases</span>
+    </a>
+    <a class="project-link" href="{{ site.github.repository_url | escape }}/issues/new/choose">
+      <span>Report an error ↗</span>
+      <span>Typos, math errors, and ideas</span>
+    </a>
+    <a class="project-link" href="{{ site.github.repository_url | escape }}/blob/main/LICENSES/CC-BY-4.0.txt">
+      <span>Content license ↗</span>
+      <span>Learn how materials may be reused</span>
+    </a>
+  </nav>
+</section>
+
+<section class="section" id="textbooks" aria-labelledby="textbooks-title">
+  <div class="section-heading">
+    <h2 id="textbooks-title">Textbooks</h2>
+    <p>
+      Select a subject and see the details.
+    </p>
+  </div>
+
+  <div class="book-grid">
+    {% for book in books %}
+      <article class="book-card">
+        <p class="status status--{{ book.status | escape }}">
+          {{ book.status_label | escape }}
+        </p>
+        <h3>{{ book.display_short_title | escape }}</h3>
+        {% capture pdf_url %}{% include pdf-url.html book=book %}{% endcapture %}
+        <div class="book-card__footer">
+          <a
+            class="book-card__action book-card__action--primary"
+            href="{{ pdf_url | escape }}"
+            target="_blank"
+            rel="noopener"
+            aria-label="Read snapshot of {{ book.title | escape }} (opens in a new tab)"
+          >
+            <span>Read snapshot</span>
+            <span aria-hidden="true">↗</span>
+          </a>
+          <a
+            class="book-card__action book-card__action--secondary"
+            href="{{ book.url | relative_url }}"
+            aria-label="View details for {{ book.title | escape }}"
+          >
+            <span>Book details</span>
+            <span class="book-card__action-arrow" aria-hidden="true">→</span>
+          </a>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+</section>

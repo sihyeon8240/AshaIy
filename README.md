@@ -1,0 +1,114 @@
+# AshaIy
+
+This book-oriented monorepo manages mathematics textbooks written in LaTeX as
+versioned works in progress. Textbook content and repository code use different
+licenses; see [Licensing](#licensing).
+
+Every book can continue to change and expand. A successful build confirms that
+the current source compiles, not that its mathematics is complete or free of
+errors.
+
+## Books
+
+[`config/books.yml`](config/books.yml) is the canonical textbook registry. Book-local
+`chapters.yml` and `sections.yml` files are the canonical contents hierarchy and
+generate LaTeX assembly.
+
+## Quick start
+
+Clone the repository and enter it:
+
+```sh
+git clone https://github.com/sihyeon8240/AshaIy.git
+cd AshaIy
+```
+
+With Docker running, open this folder in VS Code with the Dev Containers
+extension and select **Dev Containers: Reopen in Container**. Alternatively,
+run `./scripts/run-container.sh` from a host terminal with Docker installed.
+Inside the container, `ashaiy` runs the CLI from the mounted checkout.
+In the container terminal, run:
+
+```sh
+ashaiy doctor env
+ashaiy book build --book linear-algebra
+```
+
+The PDF is written to `build/linear-algebra/book.pdf`. See the
+[developer workflow](docs/developer-workflow.md#development-environment) for
+toolchain configuration and environment checks.
+
+Linux and WSL2 users can also [install the tools locally](docs/local-development.md)
+and run `./scripts/ashaiy` without Docker. Both paths use the same CLI and build
+configuration; CI and releases use the pinned container environment.
+
+Use `ashaiy --help` for the complete command interface. Common tasks are:
+
+| Task | Command |
+|---|---|
+| Open the toolchain in a terminal | `ashaiy image run` |
+| Build the local toolchain image | `ashaiy image build` |
+| Build one or all enabled books | `ashaiy book build [--book <slug>]` |
+| Build and check selected books' LaTeX logs | `ashaiy book build [--book <slug>] --check [--strict]` |
+| Run complete validation suites | `ashaiy test`, then `ashaiy check all --strict` |
+| Inspect repository or book health | `ashaiy report`, `ashaiy doctor book [--book <slug>]` |
+| Create a textbook | `ashaiy book new --slug <slug> --title "<title>"` |
+
+Choose required checks by
+[change category](docs/CONTRIBUTING.md#validation-by-change-category). See the
+[developer workflow](docs/developer-workflow.md) for formatting, generated
+content, focused checks, CI, and release commands.
+
+## Repository layout
+
+- `books/<slug>/`: independently assembled textbooks, each entered through `book.tex`
+- `common/`: shared LaTeX styles, assets, and book templates
+- `config/`: canonical container image and development toolchain versions
+- `lean/`: formalizations; chapter and appendix `proofs.yml` files link them to textbook statements
+- `scripts/` and `tests/`: repository automation and its tests
+- `site/`: website source; generated book pages are ignored
+- `docs/`: architecture, contribution, authoring, and maintenance guides
+
+CLI build output belongs under ignored `build/`; LaTeX Workshop uses
+ignored `vscode-build/`. See the [repository architecture](docs/ARCHITECTURE.md)
+for file ownership, assembly rules, metadata, and generated files.
+
+## Formal verification
+
+Lean kernel-checks selected statements; it does not certify an entire textbook.
+Verified LaTeX statements are linked to checked declarations through chapter or
+appendix proof-index entries. See the
+[Lean formalization guide](docs/formalization.md) for the trust boundary and
+workflow.
+
+## Contributing
+
+Report errors with the book and source location. Before submitting changes, read
+the [contributing guide](docs/CONTRIBUTING.md); authors should also follow the
+[textbook writing guide](docs/writing-guide.md).
+
+## Licensing
+
+Textbook content is licensed under [CC BY 4.0](LICENSES/CC-BY-4.0.txt).
+Copyright (c) 2026 Muho Choi. This records the license declaration already
+present in the textbook title pages. It does not relicense third-party material
+or establish that every existing passage is original. Third-party names,
+trademarks, and material used under separate terms are excluded from this grant.
+Their inclusion does not imply ownership or authorization. Contributors must
+identify citations and rights for new text, exercises, solutions, and figures.
+
+Repository code and automation are under the [MIT License](LICENSES/MIT.txt),
+including `scripts/`, the
+`scripts/ashaiy`, repository-authored build, validation, distribution and release
+automation, repository-authored workflow and development-environment
+configuration, and `common/styles/`. This does not apply MIT to textbook
+content, trademarks, or third-party material. External dependencies remain under
+their own licenses.
+
+## Documentation
+
+The [documentation map](docs/README.md) directs contributors, authors, and
+maintainers to the authoritative guide for each task. Structural policy lives in
+the [repository architecture](docs/ARCHITECTURE.md), while current book metadata
+and automation flags live in `config/books.yml` and are explained in
+[site metadata](docs/site-metadata.md).

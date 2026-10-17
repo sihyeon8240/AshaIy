@@ -1,0 +1,39 @@
+name: Validate and publish toolchain image
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.devcontainer/Dockerfile'
+      - '.github/actions/load-toolchain/action.yml'
+      - '.github/actions/run-toolchain/action.yml'
+      - '.github/workflows/build-image.yml'
+      - '.github/workflows/build-toolchain.yml'
+      - '.github/workflows/build.yml'
+      - '.github/workflows/pin-pr-image.yml'
+      - '.github/workflows/prepare-image.yml'
+      - 'config/image-build.json'
+      - 'config/toolchain.env'
+      - 'scripts/ashaiy-launcher.sh'
+      - 'scripts/check-toolchain.sh'
+      - 'scripts/github_artifacts.py'
+      - 'scripts/image-candidate.py'
+      - 'scripts/image_policy.py'
+      - 'scripts/image_pr.py'
+      - 'scripts/repository_config.py'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: build-image-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  prepare-image:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    uses: ./.github/workflows/prepare-image.yml
+    with:
+      ref: ${{ github.sha }}

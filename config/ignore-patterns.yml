@@ -1,0 +1,99 @@
+# Patterns retain each consumer's path and glob syntax.
+schema_version: 1
+groups:
+  cleanup-prune-paths:
+    - .git
+    - .cache
+    - build
+    - vscode-build
+    - lean/.lake
+  vscode-search-paths:
+    - build/**
+    - vscode-build/**
+    - .cache/**
+    - lean/.lake/**
+  vscode-watcher-paths:
+    - '**/build/**'
+    - '**/vscode-build/**'
+    - '**/.cache/**'
+    - '**/lean/.lake/**'
+  git-paths:
+    - /.cache/
+    - /vscode-build/
+    - /build/
+    - /lean/.lake/
+    - /site/books/
+  docker-paths:
+    - .git/
+    - build/
+    - vscode-build/
+    - .cache/
+    - lean/.lake/
+    - site/books/
+    - '**/__pycache__/'
+  tree-paths:
+    - vscode-build
+    - build
+    - .git
+    - .vscode
+    - .lake
+    - .cache
+  latex:
+    - '*.pdf'
+    - '*.aux'
+    - '*.bbl'
+    - '*.bcf'
+    - '*.blg'
+    - '*.fdb_latexmk'
+    - '*.fls'
+    - '*.log'
+    - '*.out'
+    - '*.run.xml'
+    - '*.synctex.gz'
+    - '*.toc'
+    - '*.xdv'
+    - '*.lof'
+    - '*.lot'
+    - '*.idx'
+    - '*.ind'
+    - '*.ilg'
+  temporary:
+    - '*.orig'
+    - '*.rej'
+    - '*.bak'
+    - '*.backup'
+    - '*.save'
+    - '*.swp'
+    - '*.swo'
+    - '*~'
+    - .books.yml.*.tmp
+  macos:
+    - .DS_Store
+    - ._*
+    - __MACOSX/
+  python:
+    - '*.pyc'
+profiles:
+  cleanup-files:
+    - latex
+    - temporary
+  cleanup-prune:
+    - cleanup-prune-paths
+  vscode-search:
+    - vscode-search-paths
+  vscode-watcher:
+    - vscode-watcher-paths
+  git:
+    - git-paths
+    - latex
+    - python
+    - temporary
+    - macos
+  docker:
+    - docker-paths
+    - python
+  tree:
+    - tree-paths
+    - latex
+    - temporary
+    - macos

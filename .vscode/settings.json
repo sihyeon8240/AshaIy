@@ -1,0 +1,144 @@
+{
+  "latex-workshop.latex.outDir": "%WORKSPACE_FOLDER%/vscode-build/%RELATIVE_DIR%",
+  "latex-workshop.latex.autoBuild.run": "onSave",
+  "latex-workshop.view.pdf.viewer": "tab",
+  "latex-workshop.latex.recipe.default": "latexmk (LuaLaTeX)",
+  "latex-workshop.latex.tools": [
+    {
+      "name": "latexmk",
+      "command": "bash",
+      "args": [
+        "%WORKSPACE_FOLDER%/scripts/build-vscode.sh",
+        "%OUTDIR%",
+        "%DOC_EXT%"
+      ]
+    },
+    {
+      "name": "latexmk-shell-escape",
+      "command": "bash",
+      "args": [
+        "%WORKSPACE_FOLDER%/scripts/build-vscode.sh",
+        "%OUTDIR%",
+        "%DOC_EXT%",
+        "-shell-escape"
+      ]
+    },
+    {
+      "name": "check-log-strict",
+      "command": "python3",
+      "args": [
+        "%WORKSPACE_FOLDER%/scripts/check-log.py",
+        "--strict",
+        "%OUTDIR%/%DOCFILE%.log"
+      ]
+    }
+  ],
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "latexmk (LuaLaTeX)",
+      "tools": [
+        "latexmk"
+      ]
+    },
+    {
+      "name": "latexmk (LuaLaTeX + shell escape)",
+      "tools": [
+        "latexmk-shell-escape"
+      ]
+    },
+    {
+      "name": "latexmk (LuaLaTeX + strict validation)",
+      "tools": [
+        "latexmk",
+        "check-log-strict"
+      ]
+    },
+    {
+      "name": "latexmk (LuaLaTeX + shell escape + strict validation)",
+      "tools": [
+        "latexmk-shell-escape",
+        "check-log-strict"
+      ]
+    }
+  ],
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "[markdown]": {
+    "files.trimTrailingWhitespace": false
+  },
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+  "[latex]": {
+    "editor.defaultFormatter": "James-Yu.latex-workshop",
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file"
+  },
+  "[shellscript]": {
+    "editor.defaultFormatter": "mkhl.shfmt",
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file",
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  },
+  "latex-workshop.formatting.latex": "latexindent",
+  "latex-workshop.formatting.latexindent.path": "bash",
+  "latex-workshop.formatting.latexindent.args": [
+    "%WORKSPACE_FOLDER%/scripts/format-tex-file.sh",
+    "%TMPFILE%"
+  ],
+  "shfmt.executablePath": "shfmt",
+  "shfmt.executableArgs": [
+    "-ln",
+    "bash",
+    "-i",
+    "2"
+  ],
+  "search.exclude": {
+    "build/**": true,
+    "vscode-build/**": true,
+    ".cache/**": true,
+    "lean/.lake/**": true
+  },
+  "python.testing.unittestEnabled": true,
+  "python.testing.pytestEnabled": false,
+  "python.testing.cwd": "${workspaceFolder}",
+  "python.testing.unittestArgs": [
+    "-v",
+    "-s",
+    "tests",
+    "-p",
+    "test_*.py"
+  ],
+  "files.watcherExclude": {
+    "**/build/**": true,
+    "**/vscode-build/**": true,
+    "**/.cache/**": true,
+    "**/lean/.lake/**": true
+  },
+  "yaml.schemas": {
+    "./config/schemas/books.schema.json": [
+      "/config/books.yml"
+    ],
+    "./config/schemas/chapters.schema.json": [
+      "/books/*/chapters.yml"
+    ],
+    "./config/schemas/sections.schema.json": [
+      "/books/*/chapters/*/sections.yml",
+      "/books/*/appendices/*/sections.yml"
+    ],
+    "./config/schemas/modules.schema.json": [
+      "/lean/Textbooks/**/modules.yml"
+    ],
+    "./config/schemas/latexindent.schema.json": [
+      "/config/latexindent.yaml"
+    ]
+  },
+  "ruff.configuration": "${workspaceFolder}/config/pyproject.toml"
+}

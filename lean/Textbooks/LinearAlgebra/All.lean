@@ -1,0 +1,37 @@
+-- Generated from Lean module manifests; do not edit.
+
+import Textbooks.LinearAlgebra.VectorSpaces.VectorSpaces
+import Textbooks.LinearAlgebra.VectorSpaces.Bases
+import Textbooks.LinearAlgebra.VectorSpaces.Exchange
+import Textbooks.LinearAlgebra.VectorSpaces.Dimension
+import Textbooks.LinearAlgebra.VectorSpaces.DirectSums
+import Textbooks.LinearAlgebra.VectorSpaces.Products
+
+import Textbooks.LinearAlgebra.Matrices.MatrixSpace
+import Textbooks.LinearAlgebra.Matrices.Multiplication
+import Textbooks.LinearAlgebra.Matrices.LinearEquations
+
+import Textbooks.LinearAlgebra.LinearMappings.Mappings
+import Textbooks.LinearAlgebra.LinearMappings.LinearMappings
+import Textbooks.LinearAlgebra.LinearMappings.KernelImage
+import Textbooks.LinearAlgebra.LinearMappings.RankNullity
+import Textbooks.LinearAlgebra.LinearMappings.Composition
+import Textbooks.LinearAlgebra.LinearMappings.Geometry
+import Textbooks.LinearAlgebra.LinearMappings.Isomorphisms
+
+import Textbooks.LinearAlgebra.LinearMapsAndMatrices.MatrixMaps
+import Textbooks.LinearAlgebra.LinearMapsAndMatrices.Representation
+import Textbooks.LinearAlgebra.LinearMapsAndMatrices.ChangeOfBasis
+
+import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.ScalarProducts
+import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.BilinearMatrices
+import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.PositiveDefinite
+import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.HermitianProducts
+import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.CoordinateProducts
+import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.IntegralProducts
+import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.FourierCoefficients
+import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.GramSchmidt
+import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.OrthogonalComplements
+import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.OrthogonalBases
+import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.QuadraticForms
+import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.Sylvester
