@@ -1,0 +1,26 @@
+[tool.ruff]
+cache-dir = ".cache/ruff"
+target-version = "py314"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.coverage.run]
+branch = true
+source = ["${ASHAIY_TEST_ROOT?}/scripts"]
+data_file = "${ASHAIY_TEST_ROOT?}/.cache/coverage/.coverage"
+patch = ["subprocess"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+
+[tool.coverage.html]
+directory = "${ASHAIY_TEST_ROOT?}/.cache/coverage/html"
+
+[tool.basedpyright]
+include = ["../scripts", "../tests"]
+extraPaths = ["..", "../scripts", "../tests"]
+typeCheckingMode = "basic"
+pythonVersion = "3.14"

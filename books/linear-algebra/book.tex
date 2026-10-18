@@ -1,0 +1,48 @@
+% Generated from config/books.yml, chapters.yml, and common/templates/book.tex; do not edit.
+\documentclass[11pt, a4paper, oneside]{book}
+
+\usepackage{textbook}
+\IfFileExists{overrides/style.sty}{\usepackage{overrides/style}}{}
+\addbibresource{references.bib}
+% BEGIN GENERATED METADATA
+\newcommand{\name}{Muho Choi}
+\newcommand{\displaytitle}{Linear Algebra}
+\newcommand{\version}{0.1.0}
+\newcommand{\slug}{linear-algebra}
+\title{\displaytitle}
+\author{\name}
+\hypersetup{pdftitle={\displaytitle},pdfauthor={\name}}
+% END GENERATED METADATA
+
+\begin{document}
+
+\frontmatter
+\InputIfFileExists{overrides/cover.tex}{}{\input{cover}}
+\tableofcontents
+\InputIfFileExists{overrides/preface.tex}{}{\input{preface}}
+
+\mainmatter
+% BEGIN GENERATED CHAPTERS
+\include{chapters/vector-spaces/index}
+\include{chapters/matrices/index}
+\include{chapters/linear-mappings/index}
+\include{chapters/linear-maps-and-matrices/index}
+\include{chapters/scalar-products-and-orthogonality/index}
+\include{chapters/determinants/index}
+\include{chapters/symmetric-hermitian-and-unitary-operators/index}
+\include{chapters/eigenvectors-and-eigenvalues/index}
+\include{chapters/polynomials-and-matrices/index}
+\include{chapters/triangulation-of-matrices-and-linear-maps/index}
+\include{chapters/polynomials-and-primary-decomposition/index}
+\include{chapters/convex-sets/index}
+% END GENERATED CHAPTERS
+
+% BEGIN GENERATED APPENDICES
+% END GENERATED APPENDICES
+
+\backmatter
+
+\nocite{*}
+\printbibliography
+
+\end{document}

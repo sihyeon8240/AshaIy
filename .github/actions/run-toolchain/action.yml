@@ -1,0 +1,52 @@
+name: Run in the tested toolchain
+description: Use a verified run-local image or an immutable registry image
+inputs:
+  image:
+    required: true
+    description: Image reference selected by the preparation job
+  digest:
+    required: true
+    description: Expected index digest or local image ID
+  artifact:
+    required: false
+    default: ''
+    description: Optional run-local AMD64 image artifact
+  token:
+    required: false
+    default: ''
+    description: Optional registry read token for same-repository builds
+  run:
+    required: true
+    description: Commands to execute in the workspace
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/load-toolchain
+      if: inputs.artifact != ''
+      with:
+        artifact: ${{ inputs.artifact }}
+        image: ${{ inputs.image }}
+        digest: ${{ inputs.digest }}
+    - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+      if: inputs.token != '' && inputs.artifact == ''
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ inputs.token }}
+    - name: Execute toolchain commands
+      shell: bash
+      env:
+        TOOLCHAIN_IMAGE: ${{ inputs.image }}
+        TOOLCHAIN_DIGEST: ${{ inputs.digest }}
+        TOOLCHAIN_ARTIFACT: ${{ inputs.artifact }}
+        TOOLCHAIN_COMMANDS: ${{ inputs.run }}
+      run: |
+        if [[ -z "$TOOLCHAIN_ARTIFACT" ]]; then
+          [[ "$TOOLCHAIN_IMAGE" == *@sha256:"$TOOLCHAIN_DIGEST" ]]
+          docker pull "$TOOLCHAIN_IMAGE"
+        fi
+        docker run --rm --platform linux/amd64 --pull=never \
+          -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+          "$TOOLCHAIN_IMAGE" bash -euo pipefail -c \
+          'git config --global --add safe.directory /workspace
+          eval "$1"' -- "$TOOLCHAIN_COMMANDS"

@@ -1,0 +1,62 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{code}[2026/09/18 Breakable Lean code boxes]
+
+\RequirePackage{fontspec}
+\RequirePackage{xcolor}
+\RequirePackage{minted}
+\RequirePackage{tcolorbox}
+\tcbuselibrary{breakable,skins}
+
+% Use only fonts shipped with the supported TeX Live environment. In particular, DejaVu
+% Sans Mono lacks indexed union/intersection glyphs. The fallback supplies missing
+% characters without rewriting checked Lean.
+\directlua{
+  luaotfload.add_fallback("textbookcode", {
+    "file:texgyretermes-math.otf:mode=base;"
+  })
+}
+
+\newfontfamily\textbookcodefont{DejaVuSansMono.ttf}[
+  BoldFont=DejaVuSansMono-Bold.ttf,
+  ItalicFont=DejaVuSansMono-Oblique.ttf,
+  BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,
+  NFSSFamily=textbookcode,
+  Scale=0.85,
+  RawFeature={fallback=textbookcode}
+]
+
+\usemintedstyle{friendly}
+
+\newenvironment{lean}{%
+  \VerbatimEnvironment
+
+  % Finish a pending theorem/proof label before placing a full-width code box.
+  \if@inlabel\noindent\par\fi
+
+  \begin{tcolorbox}[
+      enhanced jigsaw,
+      breakable,
+      lines before break=6,
+      colback=white,
+      colframe=black!25,
+      boxrule=0.4pt,
+      sharp corners,
+      boxsep=0pt,
+      left=3mm,
+      right=3mm,
+      top=3mm,
+      bottom=3mm,
+      before skip=\medskipamount,
+      after skip=0pt
+    ]%
+    \begin{minted}[
+      fontfamily=textbookcode,
+      fontsize=\small,
+      autogobble,
+      breaklines
+    ]{lean4}%
+}{%
+    \end{minted}
+  \end{tcolorbox}%
+  \par\addvspace{\medskipamount}%
+}

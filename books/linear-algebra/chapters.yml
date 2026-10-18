@@ -1,0 +1,38 @@
+schema_version: 1
+chapters:
+- slug: vector-spaces
+  lean_namespace: VectorSpaces
+  title: Vector Spaces
+- slug: matrices
+  lean_namespace: Matrices
+  title: Matrices
+- slug: linear-mappings
+  lean_namespace: LinearMappings
+  title: Linear Mappings
+- slug: linear-maps-and-matrices
+  lean_namespace: LinearMapsAndMatrices
+  title: Linear Maps and Matrices
+- slug: scalar-products-and-orthogonality
+  lean_namespace: ScalarProductsAndOrthogonality
+  title: Scalar Products and Orthogonality
+- slug: determinants
+  lean_namespace: Determinants
+  title: Determinants
+- slug: symmetric-hermitian-and-unitary-operators
+  lean_namespace: SymmetricHermitianAndUnitaryOperators
+  title: Symmetric, Hermitian, and Unitary Operators
+- slug: eigenvectors-and-eigenvalues
+  lean_namespace: EigenvectorsAndEigenvalues
+  title: Eigenvectors and Eigenvalues
+- slug: polynomials-and-matrices
+  lean_namespace: PolynomialsAndMatrices
+  title: Polynomials and Matrices
+- slug: triangulation-of-matrices-and-linear-maps
+  lean_namespace: TriangulationOfMatricesAndLinearMaps
+  title: Triangulation of Matrices and Linear Maps
+- slug: polynomials-and-primary-decomposition
+  lean_namespace: PolynomialsAndPrimaryDecomposition
+  title: Polynomials and Primary Decomposition
+- slug: convex-sets
+  lean_namespace: ConvexSets
+  title: Convex Sets

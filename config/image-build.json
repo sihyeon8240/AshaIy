@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "policy_version": "native-multiarch-v1",
+  "inputs": [
+    ".devcontainer/Dockerfile",
+    "config/toolchain.env",
+    "scripts/check_toolchain.sh",
+    "config/image-build.json",
+    "scripts/ashaiy_launcher.sh"
+  ],
+  "platforms": [
+    {
+      "arch": "amd64",
+      "runner": "ubuntu-24.04"
+    },
+    {
+      "arch": "arm64",
+      "runner": "ubuntu-24.04-arm"
+    }
+  ]
+}

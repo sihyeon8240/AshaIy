@@ -1,0 +1,8 @@
+schema_version: 1
+sections:
+- slug: metric-spaces
+  title: Metric Spaces
+- slug: compact-sets
+  title: Compact Sets
+- slug: connected-sets
+  title: Connected Sets

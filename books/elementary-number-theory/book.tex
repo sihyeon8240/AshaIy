@@ -1,0 +1,51 @@
+% Generated from config/books.yml, chapters.yml, and common/templates/book.tex; do not edit.
+\documentclass[11pt, a4paper, oneside]{book}
+
+\usepackage{textbook}
+\IfFileExists{overrides/style.sty}{\usepackage{overrides/style}}{}
+\addbibresource{references.bib}
+% BEGIN GENERATED METADATA
+\newcommand{\name}{Muho Choi}
+\newcommand{\displaytitle}{Elementary Number Theory}
+\newcommand{\version}{0.1.0}
+\newcommand{\slug}{elementary-number-theory}
+\title{\displaytitle}
+\author{\name}
+\hypersetup{pdftitle={\displaytitle},pdfauthor={\name}}
+% END GENERATED METADATA
+
+\begin{document}
+
+\frontmatter
+\InputIfFileExists{overrides/cover.tex}{}{\input{cover}}
+\tableofcontents
+\InputIfFileExists{overrides/preface.tex}{}{\input{preface}}
+
+\mainmatter
+% BEGIN GENERATED CHAPTERS
+\include{chapters/divisibility-theory-in-the-integers/index}
+\include{chapters/primes-and-their-distribution/index}
+\include{chapters/the-theory-of-congruences/index}
+\include{chapters/fermats-theorem/index}
+\include{chapters/number-theoretic-functions/index}
+\include{chapters/eulers-generalization-of-fermats-theorem/index}
+\include{chapters/primitive-roots-and-indices/index}
+\include{chapters/the-quadratic-reciprocity-law/index}
+\include{chapters/introduction-to-cryptography/index}
+\include{chapters/numbers-of-special-form/index}
+\include{chapters/certain-nonlinear-diophantine-equations/index}
+\include{chapters/representation-of-integers-as-sums-of-squares/index}
+\include{chapters/fibonacci-numbers/index}
+\include{chapters/continued-fractions/index}
+\include{chapters/some-modern-developments/index}
+% END GENERATED CHAPTERS
+
+% BEGIN GENERATED APPENDICES
+% END GENERATED APPENDICES
+
+\backmatter
+
+\nocite{*}
+\printbibliography
+
+\end{document}
