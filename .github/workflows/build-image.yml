@@ -5,6 +5,11 @@ on:
     branches: [main]
     paths:
       - '.devcontainer/Dockerfile'
+      - '.devcontainer/generated/lean.env'
+      - '.devcontainer/generated/python.env'
+      - '.devcontainer/generated/system.env'
+      - '.devcontainer/generated/texlive.env'
+      - '.devcontainer/generated/tools.env'
       - '.github/actions/load-toolchain/action.yml'
       - '.github/actions/run-toolchain/action.yml'
       - '.github/workflows/build-image.yml'

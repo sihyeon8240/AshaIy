@@ -59,6 +59,9 @@ class ConfigurationTests(unittest.TestCase):
             "config/books.yml",
         ):
             shutil.copy(ROOT / relative, root / relative)
+        shutil.copytree(
+            ROOT / ".devcontainer/generated", root / ".devcontainer/generated"
+        )
         shutil.copy(ROOT / "config/toolchain.env", root / "config/toolchain.env")
         shutil.copy(
             ROOT / "config/container-image.txt", root / "config/container-image.txt"
@@ -106,6 +109,25 @@ class ConfigurationTests(unittest.TestCase):
             for workflow, original in runtime_workflows.items():
                 self.assertEqual(workflow.read_bytes(), original)
             self.assertEqual(SYNC.synchronize(root=root, check=True), [])
+
+    def test_tool_versions_only_change_their_installation_group(self) -> None:
+        toolchain = CONFIG.load_toolchain()
+        original = SYNC.rendered_toolchain_groups(ROOT, toolchain)
+        for key, group in (
+            ("RUFF_VERSION", "tools"),
+            ("PYYAML_VERSION", "python"),
+            ("GH_VERSION", "system"),
+            ("TEXLIVE_ARCHIVE_DATE", "texlive"),
+            ("LEAN_TOOLCHAIN", "lean"),
+        ):
+            with self.subTest(key=key):
+                changed = SYNC.rendered_toolchain_groups(
+                    ROOT, {**toolchain, key: "changed"}
+                )
+                self.assertEqual(
+                    [path for path in original if original[path] != changed[path]],
+                    [ROOT / ".devcontainer/generated" / f"{group}.env"],
+                )
 
     def test_invalid_image_policy_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

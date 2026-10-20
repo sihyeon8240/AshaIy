@@ -267,6 +267,12 @@ changes explicitly.
 
 ### Multi-platform toolchain images
 
+`config/toolchain.env` owns tool versions. `ashaiy config generate` derives
+`.devcontainer/generated/*.env` for the system, Python, Lean, binary-tool, and
+TeX Live installation steps. These committed inputs isolate Docker cache
+invalidation; the independent TeX Live stage is reused across other tool updates.
+Register generated image inputs in `config/image-build.json`.
+
 Local containers use `config/container-image.txt`. Main CI prepares and publishes
 its image before use; ordinary PRs resolve their published content tag to an
 immutable index; image-changing PRs use a tested candidate. See

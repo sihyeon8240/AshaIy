@@ -180,6 +180,11 @@ or `strict-pdf-v1` policy when their corresponding semantics change.
 
 ### Multi-platform toolchain images
 
+Image builds restore architecture-specific `buildcache-<arch>` registry caches
+and fall back to the latest image's inline cache. Non-PR builds export all
+intermediate stages with `mode=max`; PR builds only read registry caches.
+This preserves the independent TeX Live installation across tool updates.
+
 The package is `ghcr.io/sihyeon8240/ashaiy`. `build.yml` calls
 `prepare-image.yml`, which derives a content tag and calls `build-toolchain.yml`.
 Main waits for publication before using the immutable index. Ordinary PRs resolve

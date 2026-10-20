@@ -435,8 +435,8 @@ printf '%s\\n' "$MANIFEST"
             names.index("Push the tested image and record its digest"),
         )
         self.assertLess(
-            names.index("Smoke test the image toolchain"),
             names.index("Login to GitHub Container Registry"),
+            names.index("Build image for smoke testing"),
         )
         image_build = next(
             step

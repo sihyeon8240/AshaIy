@@ -6,7 +6,12 @@
     "config/toolchain.env",
     "scripts/check_toolchain.sh",
     "config/image-build.json",
-    "scripts/ashaiy_launcher.sh"
+    "scripts/ashaiy_launcher.sh",
+    ".devcontainer/generated/tools.env",
+    ".devcontainer/generated/system.env",
+    ".devcontainer/generated/texlive.env",
+    ".devcontainer/generated/lean.env",
+    ".devcontainer/generated/python.env"
   ],
   "platforms": [
     {

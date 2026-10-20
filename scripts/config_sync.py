@@ -77,6 +77,36 @@ def rendered_image_filters(root: Path) -> dict[Path, str]:
     return {wrapper: wrapper_text}
 
 
+def rendered_toolchain_groups(root: Path, toolchain: dict[str, str]) -> dict[Path, str]:
+    groups = {
+        "tools": ("ELAN_", "RUFF_", "SHFMT_", "LATEXINDENT_", "SHELLCHECK_"),
+        "system": ("GH_",),
+        "texlive": ("TEXLIVE_",),
+        "lean": ("LEAN_",),
+        "python": (
+            "PYYAML_",
+            "PLAYWRIGHT_",
+            "HYPOTHESIS_",
+            "COVERAGE_",
+            "BASEDPYRIGHT_",
+            "YAMLLINT_",
+            "DJLINT_",
+            "CHECK_JSONSCHEMA_",
+        ),
+    }
+    return {
+        root / ".devcontainer/generated" / f"{group}.env": (
+            "# Generated from config/toolchain.env; do not edit.\n"
+            + "".join(
+                f"{key}={value}\n"
+                for key, value in toolchain.items()
+                if key.startswith(prefixes)
+            )
+        )
+        for group, prefixes in groups.items()
+    }
+
+
 def rendered_consumers(
     root: Path = ROOT, *, image: str | None = None
 ) -> dict[Path, str]:
@@ -157,6 +187,7 @@ def rendered_consumers(
     ignore_updates[settings_path] = json.dumps(settings, indent=2) + "\n"
     return {
         **ignore_updates,
+        **rendered_toolchain_groups(root, toolchain),
         **rendered_image_filters(root),
         root / "common/templates/formalization-versions.tex": formalization_versions(
             root, toolchain["LEAN_VERSION"]
