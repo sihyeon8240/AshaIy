@@ -128,6 +128,7 @@ def test_command(arguments: argparse.Namespace) -> int:
         "-p",
         authoring["test_pattern"],
         "-v",
+        "--buffer",
     ]
     if not arguments.coverage:
         return subprocess.run(

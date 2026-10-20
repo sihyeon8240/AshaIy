@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 from check_quality import check_schemas
@@ -16,6 +18,20 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class SchemaQualityTests(unittest.TestCase):
+    def setUp(self) -> None:
+        original_run = subprocess.run
+
+        def buffered_run(*arguments, **options):
+            result = original_run(*arguments, **options, capture_output=True, text=True)
+            print(result.stdout, end="")
+            print(result.stderr, end="", file=sys.stderr)
+            return result
+
+        # Forward child output to unittest's buffer so failures retain diagnostics.
+        self.enterContext(
+            patch("check_quality.subprocess.run", side_effect=buffered_run)
+        )
+
     def test_nested_manifest_rejects_reserved_module_and_excludes_unselected_files(
         self,
     ):

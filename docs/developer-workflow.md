@@ -141,6 +141,8 @@ Tasks use the public CLI. LaTeX Workshop's default recipe previews PDFs; choose
 its strict recipe or the strict build Task for repository log checks.
 Diagnostics with file locations appear in Problems; other output stays in the
 terminal. Test Explorer discovers `unittest` cases under `tests/`.
+`ashaiy test` buffers test output, showing it only when a test fails; expected
+error diagnostics from passing tests stay hidden. Coverage mode uses the same behavior.
 
 Local schemas provide manifest completion; Python parsers own semantic validation.
 `.vscode/extensions.json` owns extension recommendations. Configuration generation
