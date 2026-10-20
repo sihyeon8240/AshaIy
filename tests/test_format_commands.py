@@ -484,6 +484,28 @@ class FormatTexTests(unittest.TestCase):
             self.assertIn("1 cached", result.stdout)
             self.assertEqual(len(capture.read_text().splitlines()), 4)
 
+            current = next((root / "cache").iterdir())
+            obsolete = root / "cache" / ("0" * 64)
+            obsolete.mkdir()
+            (obsolete / "entry").write_text("old")
+            unrelated = root / "cache" / "keep"
+            unrelated.mkdir()
+            external = root / "external"
+            external.mkdir()
+            (external / "keep").write_text("preserved")
+            link = root / "cache" / ("1" * 64)
+            link.symlink_to(external, target_is_directory=True)
+            self.assertEqual(run().returncode, 0)
+            self.assertTrue(obsolete.exists())
+            result = run("--prune-cache")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("1 cached", result.stdout)
+            self.assertTrue(current.is_dir())
+            self.assertFalse(obsolete.exists())
+            self.assertTrue(unrelated.is_dir())
+            self.assertTrue(link.is_symlink())
+            self.assertEqual((external / "keep").read_text(), "preserved")
+
 
 class FormatShellTests(unittest.TestCase):
     def test_only_repository_shell_scripts_are_checked(self) -> None:

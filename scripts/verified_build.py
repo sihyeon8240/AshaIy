@@ -148,6 +148,11 @@ def restore(expected: dict, directory: Path) -> bool:
         ):
             continue
         head = pull["head"]["sha"]
+        if (
+            api(f"repos/{repository}/git/commits/{head}")["tree"]["sha"]
+            != expected["tree"]
+        ):
+            continue
         runs = api(
             f"repos/{repository}/actions/workflows/build.yml/runs"
             f"?event=pull_request&status=success&head_sha={head}&per_page=30"

@@ -168,6 +168,7 @@ class VerifiedBuildTests(unittest.TestCase):
         archive=None,
         run_update=None,
         log_fails=False,
+        tree=None,
     ):
         data = archive if archive is not None else self.archive()
         pull = {
@@ -188,6 +189,7 @@ class VerifiedBuildTests(unittest.TestCase):
         }
         responses = [
             [pull],
+            {"tree": {"sha": tree or self.expected["tree"]}},
             {"workflow_runs": [{**self.workflow_run, **(run_update or {})}]},
             {"artifacts": [artifact]},
         ]
@@ -224,7 +226,7 @@ class VerifiedBuildTests(unittest.TestCase):
         reused, pdf, calls, commands = self.restore()
         self.assertTrue(reused)
         self.assertEqual(pdf, self.files["book.pdf"])
-        self.assertEqual(calls, 3)
+        self.assertEqual(calls, 4)
         self.assertIn("--strict", commands[-1].args)
 
     def test_unmerged_unrelated_and_fork_prs_never_download(self):
@@ -256,6 +258,13 @@ class VerifiedBuildTests(unittest.TestCase):
         self.assertFalse(self.restore(run_update={"conclusion": "failure"})[0])
         self.assertFalse(self.restore(archive=b"not zip")[0])
         self.assertFalse(self.restore(log_fails=True)[0])
+
+    def test_changed_commit_tree_skips_artifact_lookup_and_download(self):
+        reused, pdf, calls, commands = self.restore(tree="e" * 40)
+        self.assertFalse(reused)
+        self.assertIsNone(pdf)
+        self.assertEqual(calls, 2)
+        self.assertEqual(commands, [])
 
     def test_changed_source_tree_falls_back(self):
         changed = {**self.expected, "tree": "e" * 40}

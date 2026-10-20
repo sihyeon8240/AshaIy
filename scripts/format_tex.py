@@ -104,12 +104,28 @@ def cache_directory(root: Path) -> Path:
     return cache
 
 
-def format_sources(root: Path, *, check: bool, file: Path | None) -> int:
+def prune_cache(cache: Path) -> None:
+    """Remove obsolete generations only when no other formatter is using them."""
+    for entry in cache.parent.iterdir():
+        if (
+            entry != cache
+            and re.fullmatch(r"[0-9a-f]{64}", entry.name)
+            and not entry.is_symlink()
+            and entry.is_dir()
+        ):
+            shutil.rmtree(entry)
+
+
+def format_sources(
+    root: Path, *, check: bool, file: Path | None, prune: bool = False
+) -> int:
     files = selected_files(root, file)
     if shutil.which("latexindent") is None:
         print("error: latexindent is required", file=sys.stderr)
         return 127
     cache = cache_directory(root)
+    if prune:
+        prune_cache(cache)
     print(
         f"[tex] {'checking' if check else 'formatting'} LaTeX source files", flush=True
     )
@@ -152,11 +168,20 @@ def main() -> int:
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--file", type=Path)
     parser.add_argument(
+        "--prune-cache",
+        action="store_true",
+        help="remove obsolete cache generations; avoid concurrent formatter runs",
+    )
+    parser.add_argument(
         "--stdout", type=Path, help="format one file to stdout for the editor"
     )
     args = parser.parse_args()
-    if args.stdout is not None and (args.check or args.file is not None):
-        parser.error("--stdout cannot be combined with --check or --file")
+    if args.stdout is not None and (
+        args.check or args.file is not None or args.prune_cache
+    ):
+        parser.error(
+            "--stdout cannot be combined with --check, --file, or --prune-cache"
+        )
     try:
         if args.stdout is not None:
             sys.stdout.buffer.write(format_file(args.stdout))
@@ -169,7 +194,7 @@ def main() -> int:
             ).strip()
         )
         os.chdir(root)
-        return format_sources(root, check=args.check, file=file)
+        return format_sources(root, check=args.check, file=file, prune=args.prune_cache)
     except subprocess.CalledProcessError as error:
         return error.returncode
     except (OSError, ValueError) as error:

@@ -160,9 +160,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/latexindent
-          key: latexindent-v2-${{ runner.os }}-${{ runner.arch }}-${{ needs.prepare-image.outputs.digest }}-${{ hashFiles('scripts/format_tex.sh', 'scripts/format_tex_file.sh', 'scripts/normalize_eof.sh', 'config/latexindent.yaml') }}-${{ hashFiles('**/*.tex', '**/*.sty') }}
+          key: latexindent-v2-${{ runner.os }}-${{ runner.arch }}-${{ needs.prepare-image.outputs.digest }}-${{ hashFiles('scripts/format_tex.py', 'scripts/normalize_eof.py', 'scripts/format_tex.sh', 'scripts/format_tex_file.sh', 'scripts/normalize_eof.sh', 'config/latexindent.yaml') }}-${{ hashFiles('**/*.tex', '**/*.sty') }}
           restore-keys: |
-            latexindent-v2-${{ runner.os }}-${{ runner.arch }}-${{ needs.prepare-image.outputs.digest }}-${{ hashFiles('scripts/format_tex.sh', 'scripts/format_tex_file.sh', 'scripts/normalize_eof.sh', 'config/latexindent.yaml') }}-
+            latexindent-v2-${{ runner.os }}-${{ runner.arch }}-${{ needs.prepare-image.outputs.digest }}-${{ hashFiles('scripts/format_tex.py', 'scripts/normalize_eof.py', 'scripts/format_tex.sh', 'scripts/format_tex_file.sh', 'scripts/normalize_eof.sh', 'config/latexindent.yaml') }}-
       - uses: ./.github/actions/run-toolchain
         with:
           image: ${{ needs.prepare-image.outputs.image }}
@@ -172,7 +172,7 @@ jobs:
           run: |
             git config --global --add safe.directory "$(pwd)"
             ./scripts/ashaiy format sh --check
-            ./scripts/ashaiy format tex --check
+            python3 scripts/format_tex.py --check --prune-cache
             ./scripts/ashaiy site test
       - name: Upload failed browser trace
         if: failure()
@@ -365,7 +365,7 @@ jobs:
           BOOK: ${{ matrix.book }}
         run: |
           mkdir -p "build/$BOOK"
-          echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
+          echo "sources=$(python3 scripts/book_cache.py "$BOOK")" >> "$GITHUB_OUTPUT"
           echo "image=$DIGEST" >> "$GITHUB_OUTPUT"
       - name: Download PDF validation results from the candidate image job
         if: needs.prepare-image.outputs.artifact != ''
@@ -394,9 +394,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/${{ matrix.book }}
-          key: latex-v1-${{ runner.os }}-${{ runner.arch }}-${{ matrix.book }}-${{ steps.inputs.outputs.image }}-${{ steps.inputs.outputs.tree }}
+          key: latex-v2-${{ runner.os }}-${{ runner.arch }}-${{ matrix.book }}-${{ steps.inputs.outputs.image }}-${{ steps.inputs.outputs.sources }}
           restore-keys: |
-            latex-v1-${{ runner.os }}-${{ runner.arch }}-${{ matrix.book }}-${{ steps.inputs.outputs.image }}-
+            latex-v2-${{ runner.os }}-${{ runner.arch }}-${{ matrix.book }}-${{ steps.inputs.outputs.image }}-
       - name: Build and strictly check in the prepared image
         if: steps.reuse.outputs.reused != 'true'
         uses: ./.github/actions/run-toolchain

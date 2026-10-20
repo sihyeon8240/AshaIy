@@ -141,11 +141,18 @@ these directories are not separately restored by Actions.
 
 Lean caches `.lake` by OS, architecture, toolchain, dependency lock, Lake
 configuration, and Lean sources. LaTeX caches each book's `build/<slug>/` by OS,
-architecture, image digest, and source tree, with fallback only within the same
-book and image. Cache hits run the normal build and strict checks. GitHub
-cache scope means PR caches are generally unavailable to main. Only successful
+architecture, image digest, and committed inputs from `books/<slug>/`, `common/`,
+`config/`, and `scripts/`, with fallback only within the same book and image.
+Shared directories are included conservatively; unrelated books, docs, and site
+changes do not create new PDF cache entries. Cache hits run the normal build and
+strict checks. GitHub cache scope means PR caches are generally unavailable to main. Only successful
 main pushes save Lean and LaTeX caches; PRs restore them without creating
-PR-scoped copies. Formatting cache keys include `config/latexindent.yaml`.
+PR-scoped copies. Formatting cache keys include the Python implementations,
+shell wrappers, and `config/latexindent.yaml`. CI runs
+`python3 scripts/format_tex.py --check --prune-cache` to remove obsolete formatter
+generations before saving. Locally, use this option only without concurrent
+formatter runs; ordinary formatting preserves other generations and unknown
+cache entries.
 
 `scripts/github_artifacts.py` owns shared GitHub transport, successful-run
 eligibility, run/attempt identity, and artifact digest checks. PDF, image, and
@@ -156,7 +163,8 @@ PR run for the merged PR's head in this repository. Reuse requires an identical
 full Git tree (including workflows and build settings), image index digest,
 platform, validation policy, run ID/attempt, and PDF/log checksums. The downloaded
 archive must also match GitHub's artifact digest, and its log is strictly checked
-again. A match skips the TeX container build and republishes the verified PDF as
+again. GitHub commit trees are compared before artifact lookup and download.
+A match skips the TeX container build and republishes the verified PDF as
 the current run's artifact for snapshot publication.
 
 Verified artifacts expire after 14 days. Missing, expired, mismatched, fork,
