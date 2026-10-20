@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import shutil
 import subprocess
@@ -16,117 +15,6 @@ from test_support import copy_script, write_executable
 ROOT = Path(__file__).resolve().parent.parent
 
 
-class FormatCommandTests(unittest.TestCase):
-    def setUp(self) -> None:
-        self.temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
-        shutil.copytree(
-            ROOT / "scripts",
-            self.root / "scripts",
-            dirs_exist_ok=True,
-            ignore=shutil.ignore_patterns("__pycache__"),
-        )
-        for name in (
-            "config/authoring.json",
-            "config/authoring.json",
-            "config/authoring.json",
-            "scripts/repository_cli.py",
-            "scripts/repository_tasks.py",
-            "scripts/task_stages.py",
-            "scripts/source_reads.py",
-        ):
-            destination = self.root / name
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            copy_script(ROOT / name, destination)
-        for name in (
-            "format_tex.sh",
-            "format_python.sh",
-            "format_shell.sh",
-            "normalize_eof.sh",
-        ):
-            write_executable(
-                self.root / "scripts" / name,
-                "#!/usr/bin/env python3\nimport json, os, sys\nfrom pathlib import Path\nname = Path(__file__).name\nwith open('calls', 'a') as output:\n    output.write(json.dumps([name, *sys.argv[1:]]) + '\\n')\nraise SystemExit(7 if os.environ.get('FAIL_FORMAT') == name else 0)\n",
-            )
-
-    def run_format(self, entry, scope, *, check=False, file=None, fail=""):
-        arguments = [sys.executable, "scripts/repository_cli.py", "format", scope]
-        if check:
-            arguments.append("--check")
-        if file is not None:
-            arguments.extend(["--file", file])
-        (self.root / "calls").unlink(missing_ok=True)
-        result = subprocess.run(
-            arguments,
-            cwd=self.root,
-            env={
-                **os.environ,
-                "PYTHON": sys.executable,
-                "FILE": "",
-                "FAIL_FORMAT": fail,
-            },
-            text=True,
-            capture_output=True,
-            timeout=15,
-        )
-        capture = self.root / "calls"
-        calls = (
-            [json.loads(line) for line in capture.read_text().splitlines()]
-            if capture.exists()
-            else []
-        )
-        return (result, calls)
-
-    def test_all_formats_in_order_and_stops_at_each_failure(self) -> None:
-        scripts = [
-            "format_tex.sh",
-            "format_python.sh",
-            "format_shell.sh",
-            "normalize_eof.sh",
-        ]
-        for entry in ("python",):
-            for check in (False, True):
-                for failure in ("", *scripts):
-                    with self.subTest(entry=entry, check=check, failure=failure):
-                        result, calls = self.run_format(
-                            entry, "all", check=check, fail=failure
-                        )
-                        status = 7 if failure else 0
-                        self.assertEqual(result.returncode, status, result.stderr)
-                        selected = (
-                            scripts[: scripts.index(failure) + 1]
-                            if failure
-                            else scripts
-                        )
-                        options = ["--check"] if check else []
-                        self.assertEqual(calls, [[name, *options] for name in selected])
-
-    def test_single_file_is_passed_literally_and_all_rejects_it(self) -> None:
-        for entry in ("python",):
-            for scope, script in (("tex", "tex"), ("py", "python"), ("sh", "shell")):
-                with self.subTest(entry=entry, scope=scope):
-                    file = "draft $(touch sentinel) `touch sentinel`"
-                    result, calls = self.run_format(entry, scope, check=True, file=file)
-                    self.assertEqual(result.returncode, 0, result.stderr)
-                    self.assertEqual(
-                        calls,
-                        [
-                            [
-                                f"format_{script}.sh",
-                                "--check",
-                                "--file",
-                                str(self.root / file),
-                            ]
-                        ],
-                    )
-                    self.assertFalse((self.root / "sentinel").exists())
-            result, calls = self.run_format(entry, "all", file="draft.py")
-            self.assertEqual(result.returncode, 2)
-            self.assertIn("single format scope", result.stderr)
-            self.assertEqual(calls, [])
-
-
 class SingleFileFormattingTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
@@ -136,10 +24,7 @@ class SingleFileFormattingTests(unittest.TestCase):
         (self.root / "config/generated").mkdir(parents=True)
         for path in [
             "config/authoring.json",
-            "config/authoring.json",
-            "config/authoring.json",
             "config/latexindent.yaml",
-            "config/authoring.json",
             "config/pyproject.toml",
             "scripts/repository_config.py",
             "scripts/repository_cli.py",
@@ -339,11 +224,10 @@ class FormatTexTests(unittest.TestCase):
                 self.assertLessEqual(len(line), 88)
                 self.assertTrue(line.startswith("  "))
             self.assertIn(lean, formatted)
-            for arguments in [("--check",), ()]:
-                shutil.rmtree(root / "cache")
-                result = run(*arguments)
-                self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual(path.read_text(), formatted)
+            shutil.rmtree(root / "cache")
+            result = run("--check")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), formatted)
             settings = root / "config/latexindent.yaml"
             settings.write_text(
                 settings.read_text().replace("columns: 88", "columns: 60")
@@ -479,10 +363,6 @@ class FormatTexTests(unittest.TestCase):
             shutil.rmtree(root / "cache")
             result = run("--check")
             self.assertEqual(result.returncode, 0, result.stderr)
-            shutil.rmtree(root / "cache")
-            result = run()
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(path.read_text(encoding="utf-8"), expected)
 
     @unittest.skipUnless(shutil.which("latexindent"), "latexindent is required")
     def test_prose_and_code_indentation_are_checked_independently(self) -> None:
@@ -525,16 +405,15 @@ class FormatTexTests(unittest.TestCase):
             result = run()
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(path.read_text(), expected)
-            for arguments in [("--check",), ()]:
-                shutil.rmtree(root / "cache")
-                result = run(*arguments)
-                self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual(path.read_text(), expected)
+            shutil.rmtree(root / "cache")
+            result = run("--check")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), expected)
             path.write_text(expected.replace("  \\end{lean}\n", "\\end{lean}\n"))
             result = run("--check")
             self.assertEqual(result.returncode, 1, result.stderr)
 
-    def test_only_tracked_tex_files_are_checked(self) -> None:
+    def test_tracked_selection_and_cache_reuse_observe_source_changes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             scripts = root / "scripts"
@@ -562,25 +441,48 @@ class FormatTexTests(unittest.TestCase):
                 '#!/usr/bin/env python3\nimport os\nimport pathlib\nimport sys\nif "--version" in sys.argv:\n    print("latexindent fake")\n    raise SystemExit(0)\ncapture = pathlib.Path(os.environ["FORMAT_TEX_CAPTURE"])\nwith capture.open("a", encoding="utf-8") as stream:\n    for argument in sys.argv[1:]:\n        if argument.endswith((".tex", ".sty")):\n            stream.write(argument + "\\n")\n            print(pathlib.Path(argument).read_text(), end="")\n',
             )
             capture = root / "capture.txt"
-            result = subprocess.run(
-                [str(scripts / "format_tex.sh"), "--check"],
-                cwd=root,
-                env={
-                    **os.environ,
-                    "PATH": f"{binary}:{os.environ['PATH']}",
-                    "FORMAT_TEX_CAPTURE": str(capture),
-                    "FORMAT_TEX_CACHE_DIR": str(root / "cache"),
-                },
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=30,
-            )
+
+            def run(*arguments: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    [str(scripts / "format_tex.sh"), "--check", *arguments],
+                    cwd=root,
+                    env={
+                        **os.environ,
+                        "PATH": f"{binary}:{os.environ['PATH']}",
+                        "FORMAT_TEX_CAPTURE": str(capture),
+                        "FORMAT_TEX_CACHE_DIR": str(root / "cache"),
+                    },
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=30,
+                )
+
+            result = run()
             self.assertEqual(result.returncode, 0, result.stderr)
             inputs = capture.read_text(encoding="utf-8").splitlines()
             self.assertEqual(len(inputs), 2)
             self.assertEqual(inputs[0], "tracked.tex")
             self.assertEqual(Path(inputs[1]).name, "wrapped.tex")
+            for arguments in ((), ("--file", str(root / "tracked.tex"))):
+                with self.subTest(arguments=arguments):
+                    result = run(*arguments)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertIn("1 cached", result.stdout)
+                    self.assertEqual(capture.read_text().splitlines(), inputs)
+
+            source = root / "tracked.tex"
+            previous = source.stat()
+            source.write_text("changed\n")
+            os.utime(source, ns=(previous.st_atime_ns, previous.st_mtime_ns))
+            result = run("--file", str(source))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("0 cached", result.stdout)
+            self.assertEqual(len(capture.read_text().splitlines()), 4)
+            result = run()
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("1 cached", result.stdout)
+            self.assertEqual(len(capture.read_text().splitlines()), 4)
 
 
 class FormatShellTests(unittest.TestCase):

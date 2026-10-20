@@ -79,7 +79,7 @@ def selected_files(root: Path, file: Path | None) -> list[Path]:
         raise ValueError("FILE must not be ignored by Git")
     if result.returncode != 1:
         raise subprocess.CalledProcessError(result.returncode, result.args)
-    return [path]
+    return [path.relative_to(root)]
 
 
 def cache_directory(root: Path) -> Path:
