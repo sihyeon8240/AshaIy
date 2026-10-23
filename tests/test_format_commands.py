@@ -139,12 +139,16 @@ class FormatTexTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "literals.tex"
             path.write_text(
-                "\\begin{proof}\n" + "\n\n".join(blocks) + "\n\\end{proof}\n"
+                "\\begin{proof}\n"
+                + "\n\n".join(blocks)
+                + "\n\\end{proof}\n"
+                + "\\begin{lemma}\\label{sample:lem:result}Result.\\end{lemma}\n"
             )
             command = [str(ROOT / "scripts/format_tex_file.sh"), str(path)]
             formatted = subprocess.check_output(command, text=True, timeout=30)
             for block in blocks:
                 self.assertIn(block, formatted)
+            self.assertIn(r"\begin{lemma} \label{sample:lem:result}", formatted)
             path.write_text(formatted)
             self.assertEqual(
                 subprocess.check_output(command, text=True, timeout=30), formatted

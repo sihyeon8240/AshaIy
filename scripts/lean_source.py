@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+RAW_STRING = re.compile(r'r(#+)?"')
+
 
 def ignored_spans(text: str) -> list[tuple[int, int, str]]:
     """Locate nested comments, ordinary/raw strings, and quoted identifiers."""
@@ -28,10 +30,10 @@ def ignored_spans(text: str) -> list[tuple[int, int, str]]:
                     position += 2
                 else:
                     position += 1
-        elif raw := re.match(r'r(#+)?"', text[position:]):
+        elif raw := RAW_STRING.match(text, position):
             kind = "literal"
             closing = '"' + (raw.group(1) or "")
-            end = text.find(closing, position + raw.end())
+            end = text.find(closing, raw.end())
             position = len(text) if end < 0 else end + len(closing)
         elif text[position] in ('"', "«"):
             kind = "literal"

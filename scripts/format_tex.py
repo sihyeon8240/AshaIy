@@ -13,14 +13,13 @@ import tempfile
 from pathlib import Path
 from typing import cast
 
-from latex_scan import source_spans
-from lean_source import ignored_spans
-from normalize_eof import normalized_bytes
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-try:
-    from scripts.validation_patterns import validation_pattern
-except ModuleNotFoundError:
-    from validation_patterns import validation_pattern
+from scripts.latex_scan import source_spans, without_comments_and_literals
+from scripts.lean_source import ignored_spans
+from scripts.normalize_eof import normalized_bytes
+from scripts.validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
 LEAN_BLOCK = re.compile(
@@ -83,6 +82,15 @@ def format_file(file: Path) -> bytes:
         # The second pass corrects indentation added to short wrapped sentences.
         result = subprocess.check_output([*options, str(wrapped)])
     result = normalized_bytes(normalize_lean_indentation(result), collapse=True)
+    text = result.decode()
+    clean = without_comments_and_literals(text)
+    labels = re.compile(
+        r"(\\begin\{(?:theorem|lemma|proposition|corollary|definition|axiom|example|exercise|problem)\})[ \t]*\n[ \t]*(\\label\{[^}\n]+\})"
+    )
+    for match in reversed(list(labels.finditer(clean))):
+        if text[match.end(1) : match.start(2)].isspace():
+            text = text[: match.end(1)] + " " + text[match.start(2) :]
+    result = text.encode()
     for marker, literal in protected.items():
         if result.count(marker.encode()) != 1:
             raise ValueError("latexindent changed a protected literal marker")
