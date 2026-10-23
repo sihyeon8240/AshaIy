@@ -12,7 +12,13 @@ import unittest
 from pathlib import Path
 
 import yaml
-from test_support import book_record, manifest_document, write_executable, write_yaml
+from test_support import (
+    book_record,
+    copy_validation_configuration,
+    manifest_document,
+    write_executable,
+    write_yaml,
+)
 from workflow_support import build_workflow, condition_allows
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -138,6 +144,7 @@ elif args[-2:] == ["rev-parse", "HEAD"]:
 """,
             )
             (root / "tmp").mkdir()
+            copy_validation_configuration(root)
             for name in ("snapshot_state.py", "book_manifest.py", "source_reads.py"):
                 shutil.copy2(ROOT / "scripts" / name, root / "scripts" / name)
             write_yaml(

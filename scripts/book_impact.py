@@ -25,6 +25,8 @@ TEX_REF = re.compile(
     r"(?:\s*\[[^]]*\])?\s*\{(?P<reference>[^}]+)\}"
 )
 BUILD_INFRA = {
+    "config/validation-patterns.json",
+    "scripts/validation_patterns.py",
     "scripts/ashaiy",
     "scripts/repository_cli.py",
     "scripts/repository_commands.py",

@@ -15,6 +15,11 @@ import yaml
 from book_manifest import SLUG_PATTERN, normalize_manifest, version_key
 from github_artifacts import api, checksum, command, download, validate_identity
 
+try:
+    from scripts.validation_patterns import validation_pattern
+except ModuleNotFoundError:
+    from validation_patterns import validation_pattern
+
 ROOT = Path(__file__).resolve().parent.parent
 MAX_BYTES = 100 * 1024**2
 
@@ -27,7 +32,7 @@ def validate_run(run: dict, repository: str) -> str:
         or run.get("status") != "completed"
         or run.get("path") != ".github/workflows/build.yml"
         or (run.get("head_repository") or {}).get("full_name") != repository
-        or not re.fullmatch(r"[0-9a-f]{40}", source)
+        or not re.fullmatch(validation_pattern("git_commit"), source)
     ):
         raise ValueError("retry requires a completed main textbook CI run")
     return source
@@ -83,7 +88,9 @@ def collection(endpoint: str, key: str) -> list[dict]:
 
 
 def restore(run_id: str, book: str, version: str, directory: Path) -> str:
-    if not re.fullmatch(r"[1-9][0-9]*", run_id) or not SLUG_PATTERN.fullmatch(book):
+    if not re.fullmatch(
+        validation_pattern("positive_integer"), run_id
+    ) or not SLUG_PATTERN.fullmatch(book):
         raise ValueError("invalid source run or book")
     version_key(version)
     repository = os.environ["GITHUB_REPOSITORY"]
@@ -122,7 +129,7 @@ def restore(run_id: str, book: str, version: str, directory: Path) -> str:
         if (
             recorded.get("run_id") != run_id
             or not isinstance(attempt, str)
-            or not re.fullmatch(r"[1-9][0-9]*", attempt)
+            or not re.fullmatch(validation_pattern("positive_integer"), attempt)
             or int(attempt) > run["run_attempt"]
         ):
             raise ValueError("invalid original package run attempt")

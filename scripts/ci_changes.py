@@ -8,6 +8,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 IMAGE_PIPELINE = {
+    "config/validation-patterns.json",
+    "scripts/validation_patterns.py",
+    "scripts/validation_sync.py",
     "scripts/check_image_tag.sh",
     "scripts/ci_changes.py",
     "scripts/image_registry.py",
@@ -135,6 +138,8 @@ def consumer_selections(
             for path in paths
             if path == "config/books.yml"
             or path in SITE_FILES
+            or path
+            in {"config/validation-patterns.json", "scripts/validation_patterns.py"}
             or path.startswith("site/")
         ),
         "snapshot_changed": sorted(set(paths) & SNAPSHOT_FILES),

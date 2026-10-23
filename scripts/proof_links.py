@@ -11,6 +11,11 @@ from pathlib import Path
 from typing import Any
 
 try:
+    from scripts.validation_patterns import validation_pattern
+except ModuleNotFoundError:
+    from validation_patterns import validation_pattern
+
+try:
     from scripts.source_reads import read_text, reuse_source_reads
 except ModuleNotFoundError:
     from source_reads import read_text, reuse_source_reads
@@ -268,9 +273,13 @@ def check_book_sources(
                     len(relative.parts) == 2
                     or (len(relative.parts) == 3 and relative.parts[0] == "Appendices")
                 )
-                and re.fullmatch(r"[A-Z][A-Za-z0-9]*", relative.parts[-2])
-                and not re.fullmatch(r"(?:Chapter|Appendix)[0-9]+", relative.parts[-2])
-                and re.fullmatch(r"[A-Z][A-Za-z0-9]*\.lean", relative.name)
+                and re.fullmatch(validation_pattern("lean_name"), relative.parts[-2])
+                and not re.fullmatch(
+                    validation_pattern("reserved_lean_namespace"), relative.parts[-2]
+                )
+                and re.fullmatch(
+                    validation_pattern("lean_name") + r"\.lean", relative.name
+                )
                 and relative.name != "All.lean"
             ):
                 errors.append(

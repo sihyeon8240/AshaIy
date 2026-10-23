@@ -8,11 +8,16 @@ import re
 import subprocess
 from pathlib import Path
 
+try:
+    from scripts.validation_patterns import validation_pattern
+except ModuleNotFoundError:
+    from validation_patterns import validation_pattern
+
 ROOT = Path(__file__).resolve().parent.parent
 
 
 def fingerprint(book: str, *, root: Path = ROOT) -> str:
-    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", book):
+    if not re.fullmatch(validation_pattern("book_slug"), book):
         raise ValueError("invalid book slug")
     if not (root / "books" / book / "book.tex").is_file():
         raise ValueError(f"missing book entry point: {book}")

@@ -24,6 +24,7 @@ runs:
         IMAGE: ${{ inputs.image }}
         DIGEST: ${{ inputs.digest }}
       run: |
+        # validation-pattern: sha256
         [[ "$DIGEST" =~ ^[0-9a-f]{64}$ ]]
         python3 scripts/image_candidate.py inspect --archive "$ARCHIVE"
         docker load --input "$ARCHIVE"

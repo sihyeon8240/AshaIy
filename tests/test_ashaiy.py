@@ -14,7 +14,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from test_support import book_record, manifest_document, write_yaml
+from test_support import (
+    book_record,
+    copy_validation_configuration,
+    manifest_document,
+    write_yaml,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -94,6 +99,7 @@ class AshaiyTests(unittest.TestCase):
                 root / "scripts",
                 ignore=shutil.ignore_patterns("__pycache__"),
             )
+            copy_validation_configuration(root)
             for _ in range(2):
                 subprocess.run([str(root / "scripts/setup_cli.sh")], check=True)
             self.assertEqual(

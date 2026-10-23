@@ -11,7 +11,11 @@ import time
 import unittest
 from pathlib import Path
 
-from test_support import stop_process_group, write_executable
+from test_support import (
+    copy_validation_configuration,
+    stop_process_group,
+    write_executable,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -21,8 +25,9 @@ class BuildAllTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
+        copy_validation_configuration(self.root)
         scripts = self.root / "scripts"
-        scripts.mkdir()
+        scripts.mkdir(exist_ok=True)
         for name in ("build_all.sh", "build_all.py"):
             shutil.copy2(ROOT / "scripts" / name, scripts / name)
         shutil.copy2(ROOT / "scripts/check_log.py", scripts / "check_log.py")

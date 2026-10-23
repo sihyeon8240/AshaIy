@@ -56,6 +56,7 @@ jobs:
         env:
           TAG: ${{ inputs.tag }}
         run: |
+          # validation-pattern: image_tag
           [[ "$TAG" =~ ^texlive-[0-9a-f]{12}$ ]]
           echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
       - name: Login to GitHub Container Registry
@@ -119,6 +120,7 @@ jobs:
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
         run: |
           digest="$(docker buildx imagetools inspect "${IMAGE_NAME}:${RELEASE_TAG}" --format '{{.Manifest.Digest}}')"
+          # validation-pattern: image_digest
           [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           docker pull --platform "linux/$ARCH" "${IMAGE_NAME}@${digest}"
           docker tag "${IMAGE_NAME}@${digest}" "$BUILD_TAG"
@@ -188,6 +190,7 @@ jobs:
         run: |
           docker push "$BUILD_TAG"
           digest="$(docker buildx imagetools inspect "$BUILD_TAG" --format '{{.Manifest.Digest}}')"
+          # validation-pattern: image_digest
           [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           mkdir -p build/image-digests
           echo "${IMAGE_NAME}@${digest}" > "build/image-digests/${ARCH}"
@@ -290,6 +293,7 @@ jobs:
           for arch in "${architectures[@]}"; do
             source="$(cat "build/image-digests/$arch")"
             digest="${source#"${IMAGE_NAME}@"}"
+            # validation-pattern: image_digest
             [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
             sources+=("$source")
           done
@@ -310,12 +314,14 @@ jobs:
         run: |
           if [[ "$GITHUB_EVENT_NAME" == pull_request && -f build/image-digests/amd64 ]]; then
             digest="$(cat build/image-digests/amd64)"
+            # validation-pattern: image_digest
             [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
             echo "digest=${digest#sha256:}" >> "$GITHUB_OUTPUT"
             echo "reference=${IMAGE_NAME}:build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-amd64" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           digest="$(docker buildx imagetools inspect "${IMAGE_NAME}:${RELEASE_TAG}" --format '{{.Manifest.Digest}}')"
+          # validation-pattern: image_digest
           [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           IMAGE_REF="${IMAGE_NAME}@${digest}" REQUIRE_IMAGE=true ./scripts/check_image_tag.sh
           echo "digest=${digest#sha256:}" >> "$GITHUB_OUTPUT"

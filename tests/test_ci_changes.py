@@ -23,7 +23,13 @@ class CiChangeTests(unittest.TestCase):
                 self.assertTrue(CI.classify([path])["image_changed"])
 
     def test_runtime_image_policy_and_loader_select_image_validation(self):
-        for path in ("scripts/image_policy.py", "scripts/repository_config.py"):
+        for path in (
+            "scripts/image_policy.py",
+            "scripts/repository_config.py",
+            "config/validation-patterns.json",
+            "scripts/validation_patterns.py",
+            "scripts/validation_sync.py",
+        ):
             with self.subTest(path=path):
                 self.assertTrue(CI.classify([path])["image_changed"])
 

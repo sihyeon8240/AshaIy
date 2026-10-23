@@ -123,6 +123,16 @@ class AffectedBookTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(self.plan([path])["book"], ["alpha", "beta"])
 
+    def test_shared_validation_changes_select_books_and_dependent_consumers(self):
+        for path in (
+            "config/validation-patterns.json",
+            "scripts/validation_patterns.py",
+        ):
+            with self.subTest(path=path):
+                result = self.plan([path])
+                self.assertEqual(result["book"], ["alpha", "beta"])
+                self.assertTrue(result["site_changed"])
+
     def test_changed_canonical_image_reference_selects_all_books(self):
         self.assertEqual(
             self.plan(["config/container-image.txt"])["book"], ["alpha", "beta"]

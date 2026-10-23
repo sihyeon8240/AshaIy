@@ -17,6 +17,11 @@ from pathlib import Path
 import github_artifacts
 from github_artifacts import checksum, eligible_run
 
+try:
+    from scripts.validation_patterns import validation_pattern
+except ModuleNotFoundError:
+    from validation_patterns import validation_pattern
+
 ROOT = Path(__file__).resolve().parent.parent
 POLICY = "toolchain-candidate-v1"
 MAX_BYTES = 20 * 1024**3
@@ -52,7 +57,9 @@ def record(arch: str, image: str, directory: Path) -> None:
 
 def validate_manifest(manifest: dict, expected: dict, run: dict) -> None:
     github_artifacts.validate_identity(manifest, expected, run, label="candidate")
-    if not re.fullmatch(r"sha256:[0-9a-f]{64}", manifest.get("image_id", "")):
+    if not re.fullmatch(
+        validation_pattern("image_digest"), manifest.get("image_id", "")
+    ):
         raise ValueError("invalid candidate image ID")
 
 

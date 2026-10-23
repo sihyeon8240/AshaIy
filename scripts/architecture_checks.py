@@ -10,6 +10,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 try:
+    from scripts.validation_patterns import validation_pattern
+except ModuleNotFoundError:
+    from validation_patterns import validation_pattern
+
+try:
     from scripts.source_reads import read_text
 except ModuleNotFoundError:
     from source_reads import read_text
@@ -43,10 +48,8 @@ except ModuleNotFoundError:
 
 
 ROOT = Path(__file__).resolve().parent.parent
-CHAPTER_DIRECTORY = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
-SECTION_FILENAME = re.compile(
-    r"^(?P<slug>[a-z][a-z0-9]*(?:'[a-z0-9]+)*(?:-[a-z0-9]+(?:'[a-z0-9]+)*)*)\.tex$"
-)
+CHAPTER_DIRECTORY = re.compile("^" + validation_pattern("chapter_slug") + "$")
+SECTION_FILENAME = re.compile(rf"^(?P<slug>{validation_pattern('section_slug')})\.tex$")
 GENERIC_SECTION_SLUGS = {"continuation", "misc"}
 
 

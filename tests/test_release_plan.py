@@ -10,7 +10,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from test_support import book_record, manifest_document, write_yaml
+from test_support import (
+    book_record,
+    copy_validation_configuration,
+    manifest_document,
+    write_yaml,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -20,8 +25,9 @@ class ReleasePlanTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
+        copy_validation_configuration(self.root)
         scripts = self.root / "scripts"
-        scripts.mkdir()
+        scripts.mkdir(exist_ok=True)
         shutil.copy2(ROOT / "scripts/release_plan.sh", scripts / "release_plan.sh")
         for name in (
             "releases.py",

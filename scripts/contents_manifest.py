@@ -9,6 +9,11 @@ from typing import cast
 import yaml
 
 try:
+    from scripts.validation_patterns import validation_pattern
+except ModuleNotFoundError:
+    from validation_patterns import validation_pattern
+
+try:
     from scripts.source_reads import read_text, read_yaml
 except ModuleNotFoundError:
     from source_reads import read_text, read_yaml
@@ -19,11 +24,9 @@ except ModuleNotFoundError:
     from latex_scan import has_balanced_braces, without_comments
 
 SCHEMA_VERSION = 1
-SLUG = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
-SECTION_SLUG = re.compile(
-    r"^[a-z][a-z0-9]*(?:'[a-z0-9]+)*(?:-[a-z0-9]+(?:'[a-z0-9]+)*)*$"
-)
-LEAN_NAMESPACE = re.compile(r"[A-Z][A-Za-z0-9]*")
+SLUG = re.compile("^" + validation_pattern("chapter_slug") + "$")
+SECTION_SLUG = re.compile("^" + validation_pattern("section_slug") + "$")
+LEAN_NAMESPACE = re.compile(validation_pattern("lean_name"))
 BEGIN_CHAPTERS = "% BEGIN GENERATED CHAPTERS"
 END_CHAPTERS = "% END GENERATED CHAPTERS"
 BEGIN_APPENDICES = "% BEGIN GENERATED APPENDICES"
@@ -125,7 +128,9 @@ def load_book_contents(book_dir: Path) -> tuple[list[dict], list[dict]]:
                 not isinstance(namespace, str)
                 or not LEAN_NAMESPACE.fullmatch(namespace)
                 or namespace in {"All", "Appendices"}
-                or re.fullmatch(r"(?:Chapter|Appendix)[0-9]+", namespace)
+                or re.fullmatch(
+                    validation_pattern("reserved_lean_namespace"), namespace
+                )
             ):
                 raise ValueError(f"{path}: invalid lean_namespace: {namespace!r}")
             if namespace in namespaces:

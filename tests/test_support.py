@@ -90,6 +90,18 @@ def stop_process_group(process: subprocess.Popen[str]) -> None:
         process.communicate(timeout=5)
 
 
+def copy_validation_configuration(root: Path) -> None:
+    """Include the runtime dependency in isolated automation checkouts."""
+    repository = Path(__file__).resolve().parent.parent
+    for relative in (
+        "scripts/validation_patterns.py",
+        "config/validation-patterns.json",
+    ):
+        target = root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(repository / relative, target)
+
+
 def copy_script(source: Path, destination: Path) -> None:
     """Copy a script and the Python implementation behind a shell entry point."""
     shutil.copy2(source, destination)
@@ -99,5 +111,7 @@ def copy_script(source: Path, destination: Path) -> None:
         "format_tex_file.sh": ("format_tex.py", "normalize_eof.py"),
     }
     directory = destination if destination.is_dir() else destination.parent
+    if directory.name == "scripts":
+        copy_validation_configuration(directory.parent)
     for name in companions.get(source.name, ()):
         shutil.copy2(source.parent / name, directory / name)

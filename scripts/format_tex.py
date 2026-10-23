@@ -15,6 +15,11 @@ from typing import cast
 
 from normalize_eof import normalized_bytes
 
+try:
+    from scripts.validation_patterns import validation_pattern
+except ModuleNotFoundError:
+    from validation_patterns import validation_pattern
+
 ROOT = Path(__file__).resolve().parent.parent
 LEAN_BLOCK = re.compile(
     rb"^([\t ]*)(\\begin\{lean\}[\t ]*(?:%[^\n]*)?\n)(.*?)"
@@ -109,7 +114,7 @@ def prune_cache(cache: Path) -> None:
     for entry in cache.parent.iterdir():
         if (
             entry != cache
-            and re.fullmatch(r"[0-9a-f]{64}", entry.name)
+            and re.fullmatch(validation_pattern("sha256"), entry.name)
             and not entry.is_symlink()
             and entry.is_dir()
         ):

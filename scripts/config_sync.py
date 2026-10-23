@@ -22,8 +22,14 @@ from repository_config import (
     load_toolchain,
 )
 from source_reads import read_yaml
+from validation_sync import rendered_validation_consumers
 
-SHA256 = re.compile(r"[0-9a-f]{64}")
+try:
+    from scripts.validation_patterns import validation_pattern
+except ModuleNotFoundError:
+    from validation_patterns import validation_pattern
+
+SHA256 = re.compile(validation_pattern("sha256"))
 
 
 def replace_once(text: str, pattern: str, replacement: str, path: Path) -> str:
@@ -46,11 +52,11 @@ def formalization_versions(root: Path, lean_version: str) -> str:
         raise ValueError(f"{path}: expected exactly one Mathlib package")
     package = packages[0]
     release, revision = package["inputRev"], package["rev"]
-    if not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?", release):
+    if not re.fullmatch("v" + validation_pattern("lean_version"), release):
         raise ValueError(f"{path}: expected a Mathlib release tag")
-    if not re.fullmatch(r"[0-9a-f]{40}", revision):
+    if not re.fullmatch(validation_pattern("git_commit"), revision):
         raise ValueError(f"{path}: expected a full Mathlib commit hash")
-    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?", lean_version):
+    if not re.fullmatch(validation_pattern("lean_version"), lean_version):
         raise ValueError("expected a Lean release version")
     return (
         "% Generated from config/toolchain.env and lean/lake-manifest.json; do not edit.\n"
@@ -171,6 +177,7 @@ def rendered_consumers(
     ignore_updates[settings_path] = json.dumps(settings, indent=2) + "\n"
     return {
         **ignore_updates,
+        **rendered_validation_consumers(root),
         **rendered_toolchain_groups(root, toolchain),
         root / "common/templates/formalization-versions.tex": formalization_versions(
             root, toolchain["LEAN_VERSION"]

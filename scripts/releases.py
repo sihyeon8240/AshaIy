@@ -13,6 +13,7 @@ from pathlib import Path
 import yaml
 from book_manifest import SLUG_PATTERN, load_manifest, normalize_manifest, version_key
 from contents_manifest import expected_files
+from validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -22,7 +23,7 @@ class ReleaseVersionMismatch(ValueError):
 
 
 def plan_tag(tag: str, manifest: dict) -> dict:
-    match = re.fullmatch(r"([a-z0-9]+(?:-[a-z0-9]+)*)-v(.+)", tag)
+    match = re.fullmatch(rf"({validation_pattern('book_slug')})-v(.+)", tag)
     try:
         if match is None:
             raise ValueError("invalid slug")

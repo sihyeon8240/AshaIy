@@ -111,6 +111,7 @@ config/container-image.txt -> local and devcontainer image consumers
 config/ignore-patterns.yml -> Git, Docker, tree, and VS Code exclusion consumers
 config/image-build.json    -> image input detection, tag hashing, build matrix, and index checks
 config/authoring.json      -> CLI/editor shell formatting and unittest discovery
+config/validation-patterns.json -> Python validation and synchronized shell/schema expressions
 config/books.yml           -> VS Code task book choices
 .vscode/extensions.json   -> devcontainer extension installation
 ```
@@ -137,6 +138,27 @@ Commit synchronized consumers with their canonical sources. In particular:
   remains CI-only.
 
 `config/generated/` contains committed outputs; edit their canonical sources.
+
+Shared lexical validation rules live in `config/validation-patterns.json`.
+Python consumers use `scripts/validation_patterns.py`, whose standard-library-only
+loader resolves `${name}` references and rejects unknown or cyclic references.
+Expressions are unanchored fragments; Python callers retain their matching and
+capture behavior. Book versions retain semantic checks beyond their expression,
+and pinned development images and verified-build image references retain distinct
+accepted grammars.
+
+`ashaiy config generate/check` synchronizes schema objects marked with
+`$comment: "validation-pattern: <name>"` and Bash expressions immediately following
+`# validation-pattern: <name>`. These comments designate generated values inside
+otherwise hand-maintained consumers. Schema and shell consumers receive anchored
+expressions. Shell synchronization accepts only the explicitly supported ERE
+subset; it does not translate Python syntax. Inline shell consumers stay runnable
+without loading configuration or Python during CI bootstrap and copied Pages
+script execution.
+
+Keep parser, replacement, diagnostic, and formatter expressions with their owning
+code or tool configuration. Glob exclusions remain in `config/ignore-patterns.yml`.
+Do not add unrelated tool-specific patterns to the shared validation registry.
 
 ### Configuration consumer boundaries
 

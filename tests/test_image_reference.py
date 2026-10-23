@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -34,6 +36,9 @@ class ConfigurationTests(unittest.TestCase):
         (root / ".vscode").mkdir(exist_ok=True)
         shutil.copy(ROOT / ".vscode/settings.json", root / ".vscode/settings.json")
         for relative in (
+            "scripts",
+            "config/schemas",
+            ".github/actions/load-toolchain",
             "config/generated",
             ".devcontainer",
             ".github",
@@ -47,6 +52,16 @@ class ConfigurationTests(unittest.TestCase):
             "config/ignore-patterns.yml",
             "config/image-build.json",
             "config/authoring.json",
+            "config/validation-patterns.json",
+            "config/schemas/books.schema.json",
+            "config/schemas/chapters.schema.json",
+            "config/schemas/sections.schema.json",
+            "config/schemas/modules.schema.json",
+            ".github/actions/load-toolchain/action.yml",
+            ".github/workflows/build.yml",
+            ".github/workflows/pages.yml",
+            "scripts/pages_current.sh",
+            "scripts/snapshot_base.sh",
             ".github/workflows/prepare-image.yml",
             ".github/workflows/build-image.yml",
             ".github/workflows/build-toolchain.yml",
@@ -82,6 +97,87 @@ class ConfigurationTests(unittest.TestCase):
             ROOT / "common/templates/formalization-versions.tex",
             root / "common/templates/formalization-versions.tex",
         )
+
+    def test_validation_changes_synchronize_runtime_schemas_and_standalone_shell(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.make_repository(root)
+            shutil.copy2(
+                ROOT / "scripts/validation_patterns.py",
+                root / "scripts/validation_patterns.py",
+            )
+            path = root / "config/validation-patterns.json"
+            data = json.loads(path.read_text())
+            data["patterns"]["book_slug"] = "[a-z]+"
+            data["patterns"]["git_commit"] = "[0-9a-f]{8}"
+            data["patterns"]["sha256"] = "[0-9a-f]{8}"
+            path.write_text(json.dumps(data))
+            before = (root / "scripts/pages_current.sh").read_text()
+            changed = SYNC.synchronize(root=root, check=True)
+            self.assertIn(root / "config/schemas/books.schema.json", changed)
+            self.assertIn(root / ".github/workflows/build-toolchain.yml", changed)
+            self.assertIn(root / "scripts/pages_current.sh", changed)
+            self.assertEqual((root / "scripts/pages_current.sh").read_text(), before)
+
+            SYNC.synchronize(root=root)
+            self.assertEqual(SYNC.synchronize(root=root, check=True), [])
+            schema = json.loads((root / "config/schemas/books.schema.json").read_text())
+            slug = schema["properties"]["books"]["items"]["properties"]["slug"]
+            self.assertIsNotNone(re.search(slug["pattern"], "alpha"))
+            self.assertIsNone(re.search(slug["pattern"], "alpha-beta"))
+            script = (root / "scripts/pages_current.sh").read_text()
+            operand = script.split("# validation-pattern: git_commit\n", 1)[
+                1
+            ].splitlines()[0]
+            for value, expected in (("a" * 8, 0), ("a" * 40, 1), ("g" * 8, 1)):
+                result = subprocess.run(
+                    ["bash", "-c", "SNAPSHOT_SHA=$1\n" + operand, "validation", value],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, expected, result.stderr)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-c",
+                    "from validation_patterns import validation_pattern\n"
+                    "\n"
+                    "print(validation_pattern('image_digest'))\n",
+                ],
+                cwd=root / "scripts",
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            self.assertEqual(result.stdout.strip(), "sha256:[0-9a-f]{8}")
+            self.assertEqual(script.replace("{8}", "{40}"), before)
+
+    def test_invalid_shared_validation_never_writes_consumers(self):
+        for updates in (
+            {"sha256": "["},
+            {"sha256": "${image_digest}"},
+            {"sha256": "${missing}"},
+            {"git_commit": "(?:[0-9a-f]){40}"},
+        ):
+            with (
+                self.subTest(updates=updates),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                root = Path(temporary)
+                self.make_repository(root)
+                path = root / "config/validation-patterns.json"
+                data = json.loads(path.read_text())
+                data["patterns"].update(updates)
+                path.write_text(json.dumps(data))
+                before = {
+                    file: file.read_bytes()
+                    for file in root.rglob("*")
+                    if file.is_file()
+                }
+                with self.assertRaises(ValueError):
+                    SYNC.synchronize(root=root)
+                self.assertEqual({file: file.read_bytes() for file in before}, before)
 
     def test_image_policy_changes_are_consumed_without_workflow_generation(
         self,

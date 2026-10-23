@@ -11,6 +11,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from test_support import copy_validation_configuration
+
 ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -19,8 +21,9 @@ class ImagePolicyTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
-        (self.root / "scripts").mkdir()
-        (self.root / "config").mkdir()
+        copy_validation_configuration(self.root)
+        (self.root / "scripts").mkdir(exist_ok=True)
+        (self.root / "config").mkdir(exist_ok=True)
         for name in ("image_policy.py", "repository_config.py"):
             shutil.copyfile(ROOT / "scripts" / name, self.root / "scripts" / name)
         self.config = {

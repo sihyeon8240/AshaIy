@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 from ci_changes import SITE_FILES, is_documentation
+from validation_patterns import validation_pattern
 
 SAFE_PATHS = {
     ".github/dependabot.yml",
@@ -15,7 +16,7 @@ SAFE_PATHS = {
 }
 ARTIFACT_ACTION = re.compile(
     r"(?m)^([ \t]*(?:-[ \t]+)?uses:[ \t]+actions/(?:upload|download)-artifact)"
-    r"@[0-9a-f]{40}[ \t]*(?:#[^\n]*)?$"
+    rf"@{validation_pattern('git_commit')}[ \t]*(?:#[^\n]*)?$"
 )
 
 

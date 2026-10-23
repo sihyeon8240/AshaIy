@@ -10,6 +10,7 @@ from pathlib import Path
 
 from test_support import (
     book_record,
+    copy_validation_configuration,
     git_environment,
     manifest_document,
     write_executable,
@@ -52,6 +53,7 @@ class SnapshotLifecycleTests(unittest.TestCase):
                 ROOT / "scripts/publish_snapshot.sh",
                 work / "scripts/publish_snapshot.sh",
             )
+            copy_validation_configuration(work)
             for name in ("snapshot_state.py", "book_manifest.py", "source_reads.py"):
                 shutil.copy2(ROOT / "scripts" / name, work / "scripts" / name)
             write_yaml(

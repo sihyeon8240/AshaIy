@@ -16,6 +16,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO
 
+try:
+    from scripts.validation_patterns import validation_pattern
+except ModuleNotFoundError:
+    from validation_patterns import validation_pattern
+
 ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -35,7 +40,7 @@ def job_count() -> int:
     configured = os.environ.get("BOOK_BUILD_JOBS")
     if configured is None:
         return min(4, os.cpu_count() or 2)
-    if not re.fullmatch(r"[1-9][0-9]*", configured):
+    if not re.fullmatch(validation_pattern("positive_integer"), configured):
         raise ValueError(
             "BOOK_BUILD_JOBS must be a positive integer (for example, BOOK_BUILD_JOBS=2)"
         )

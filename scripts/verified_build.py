@@ -15,6 +15,11 @@ from pathlib import Path
 import github_artifacts
 from github_artifacts import checksum, eligible_run
 
+try:
+    from scripts.validation_patterns import validation_pattern
+except ModuleNotFoundError:
+    from validation_patterns import validation_pattern
+
 ROOT = Path(__file__).resolve().parent.parent
 POLICY = "strict-pdf-v1"
 FILES = ("book.pdf", "book.log")
@@ -30,12 +35,12 @@ def api(endpoint: str):
 
 
 def identity(book: str, image: str, *, candidate: bool = False) -> dict:
-    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", book):
+    if not re.fullmatch(validation_pattern("book_slug"), book):
         raise ValueError("invalid book slug")
     pattern = (
-        r"sha256:[0-9a-f]{64}"
+        validation_pattern("image_digest")
         if candidate
-        else r"ghcr\.io/[a-z0-9/_.-]+@sha256:[0-9a-f]{64}"
+        else validation_pattern("verified_image")
     )
     if not re.fullmatch(pattern, image):
         raise ValueError(

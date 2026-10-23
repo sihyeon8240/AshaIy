@@ -16,6 +16,11 @@ from config_sync import replace_once
 from image_policy import input_hash
 from repository_config import ROOT, image_name, load_image, load_image_build
 
+try:
+    from scripts.validation_patterns import validation_pattern
+except ModuleNotFoundError:
+    from validation_patterns import validation_pattern
+
 
 def command(
     *args: str, data: str | None = None, env: dict | None = None, stream: bool = False
@@ -246,7 +251,7 @@ def publish(load_candidate: Callable, *, policy: str, max_bytes: int) -> None:
                 "--format",
                 "{{.Manifest.Digest}}",
             )
-            if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+            if not re.fullmatch(validation_pattern("image_digest"), digest):
                 raise ValueError("invalid published image digest")
             sources.append(f"{name}@{digest}")
             command("docker", "image", "rm", image)
@@ -262,7 +267,7 @@ def publish(load_candidate: Callable, *, policy: str, max_bytes: int) -> None:
         "--format",
         "{{.Manifest.Digest}}",
     )
-    if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+    if not re.fullmatch(validation_pattern("image_digest"), digest):
         raise ValueError("invalid published index digest")
     image = f"{name}@{digest}"
     command(

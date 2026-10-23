@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from test_support import write_executable
+from test_support import copy_validation_configuration, write_executable
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -21,6 +21,7 @@ class ContainerCommandTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix="math container ")
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
+        copy_validation_configuration(self.root)
         shutil.copytree(
             ROOT / "scripts",
             self.root / "scripts",

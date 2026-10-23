@@ -8,6 +8,11 @@ from pathlib import Path
 import yaml
 
 try:
+    from scripts.validation_patterns import validation_pattern
+except ModuleNotFoundError:
+    from validation_patterns import validation_pattern
+
+try:
     from scripts.source_reads import read_text, read_yaml
 except ModuleNotFoundError:
     from source_reads import read_text, read_yaml
@@ -21,7 +26,7 @@ except ModuleNotFoundError:
 
 ROOT = Path(__file__).resolve().parent.parent
 GENERATED_NOTICE = "-- Generated from Lean module manifests; do not edit."
-TOPIC = re.compile(r"[A-Z][A-Za-z0-9]*")
+TOPIC = re.compile(validation_pattern("lean_name"))
 
 
 def load_modules(directory: Path) -> list[str]:

@@ -284,6 +284,7 @@ jobs:
           tag="${IMAGE_NAME}:texlive-${input_hash}"
           IMAGE_REF="$tag" REQUIRE_IMAGE=true ./scripts/check_image_tag.sh
           digest="$(docker buildx imagetools inspect "$tag" --format '{{.Manifest.Digest}}')"
+          # validation-pattern: image_digest
           [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           image="${IMAGE_NAME}@${digest}"
           IMAGE_REF="$image" REQUIRE_IMAGE=true ./scripts/check_image_tag.sh
@@ -503,6 +504,7 @@ jobs:
             echo "::error::Build planning ended with: $PLAN_RESULT"
             exit 1
           fi
+          # validation-pattern: nonnegative_integer
           if [[ ! "$BOOK_COUNT" =~ ^[0-9]+$ ]]; then
             echo "::error::Invalid textbook build count: ${BOOK_COUNT:-<empty>}"
             exit 1

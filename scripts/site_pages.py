@@ -14,6 +14,11 @@ import yaml
 from file_updates import write_updates
 
 try:
+    from scripts.validation_patterns import validation_pattern
+except ModuleNotFoundError:
+    from validation_patterns import validation_pattern
+
+try:
     from scripts.book_manifest import STATUS_LABELS, load_manifest
     from scripts.lean_coverage import book_lean_metrics, registered_results
 except ModuleNotFoundError:
@@ -45,7 +50,7 @@ def source_revision() -> str:
 def snapshot_revision() -> str:
     revision = os.environ.get("SITE_SNAPSHOT_SHA", "")
     if revision:
-        if not re.fullmatch(r"[0-9a-f]{40}", revision):
+        if not re.fullmatch(validation_pattern("git_commit"), revision):
             raise ValueError("SITE_SNAPSHOT_SHA must be a full snapshot commit SHA")
         return revision
     return source_revision()

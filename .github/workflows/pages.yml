@@ -44,6 +44,7 @@ jobs:
         shell: bash
         run: |
           snapshot_sha="$(cat pdf-snapshot/.source-sha)"
+          # validation-pattern: git_commit
           if [[ ! "$snapshot_sha" =~ ^[0-9a-f]{40}$ ]]; then
             echo "::error::PDF snapshot has an invalid source commit"
             exit 1

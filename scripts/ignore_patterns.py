@@ -8,6 +8,11 @@ from pathlib import Path
 
 import yaml
 
+try:
+    from scripts.validation_patterns import validation_pattern
+except ModuleNotFoundError:
+    from validation_patterns import validation_pattern
+
 PATTERN = re.compile(r"[A-Za-z0-9_.*?/~+-]+")
 HEADER = "# Generated from config/ignore-patterns.yml; do not edit.\n"
 EDITOR_PROFILES = {
@@ -62,7 +67,7 @@ def load_patterns(path: Path) -> dict[str, list[str]]:
     if any("/" in pattern for pattern in result["cleanup-files"]):
         raise ValueError(f"{path}: cleanup-files must contain filename patterns")
     for pattern in result["cleanup-prune"]:
-        if not re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", pattern) or any(
+        if not re.fullmatch(validation_pattern("relative_path"), pattern) or any(
             part in {".", ".."} for part in pattern.split("/")
         ):
             raise ValueError(f"{path}: cleanup-prune must contain relative directories")

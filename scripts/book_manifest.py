@@ -11,15 +11,20 @@ from typing import Any
 import yaml
 
 try:
+    from scripts.validation_patterns import validation_pattern
+except ModuleNotFoundError:
+    from validation_patterns import validation_pattern
+
+try:
     from scripts.source_reads import read_yaml
 except ModuleNotFoundError:
     from source_reads import read_yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MANIFEST_PATH = REPO_ROOT / "config/books.yml"
-SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-LABEL_PREFIX_PATTERN = re.compile(r"[a-z][a-z0-9]*")
-LEAN_MODULE_PATTERN = re.compile(r"[A-Z][A-Za-z0-9]*")
+SLUG_PATTERN = re.compile("^" + validation_pattern("book_slug") + "$")
+LABEL_PREFIX_PATTERN = re.compile(validation_pattern("label_prefix"))
+LEAN_MODULE_PATTERN = re.compile(validation_pattern("lean_name"))
 STATUS_LABELS = {
     "draft": "Draft",
     "review": "In Review",
@@ -48,8 +53,7 @@ BOOK_FIELDS = {
 def version_key(value: str) -> tuple:
     """SemVer precedence, excluding build metadata (unsupported by config/books.yml)."""
     match = re.fullmatch(
-        r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
-        r"(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?",
+        validation_pattern("book_version"),
         value,
     )
     if not match:
