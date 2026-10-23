@@ -107,8 +107,18 @@ def copy_script(source: Path, destination: Path) -> None:
     shutil.copy2(source, destination)
     companions = {
         "normalize_eof.sh": ("normalize_eof.py",),
-        "format_tex.sh": ("format_tex.py", "normalize_eof.py"),
-        "format_tex_file.sh": ("format_tex.py", "normalize_eof.py"),
+        "format_tex.sh": (
+            "format_tex.py",
+            "normalize_eof.py",
+            "latex_scan.py",
+            "lean_source.py",
+        ),
+        "format_tex_file.sh": (
+            "format_tex.py",
+            "normalize_eof.py",
+            "latex_scan.py",
+            "lean_source.py",
+        ),
     }
     directory = destination if destination.is_dir() else destination.parent
     if directory.name == "scripts":

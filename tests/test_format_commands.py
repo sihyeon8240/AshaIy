@@ -125,6 +125,32 @@ class SingleFileFormattingTests(unittest.TestCase):
 
 class FormatTexTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which("latexindent"), "latexindent is required")
+    def test_multiline_literals_keep_their_bytes_and_formatting_is_idempotent(
+        self,
+    ) -> None:
+        blocks = [
+            '\\begin{lean}\ndef ordinary := "first\n\n\n  last"\n'
+            'def raw := r##"first "quoted"\n\n\n  last"##\n'
+            "/- outer /- nested -/ comment -/\n\\end{lean}",
+            "\\begin{verbatim}\nfirst\n\n\n  last % literal\n\\end{verbatim}",
+            '\\begin{minted}{python}\nvalue = "literal"\n\n\n  tail\n\\end{minted}',
+            r"\verb|% \label{literal}|",
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "literals.tex"
+            path.write_text(
+                "\\begin{proof}\n" + "\n\n".join(blocks) + "\n\\end{proof}\n"
+            )
+            command = [str(ROOT / "scripts/format_tex_file.sh"), str(path)]
+            formatted = subprocess.check_output(command, text=True, timeout=30)
+            for block in blocks:
+                self.assertIn(block, formatted)
+            path.write_text(formatted)
+            self.assertEqual(
+                subprocess.check_output(command, text=True, timeout=30), formatted
+            )
+
+    @unittest.skipUnless(shutil.which("latexindent"), "latexindent is required")
     def test_preserves_manual_lines_and_aligns_equation_rows(self) -> None:
         source = (
             "\\begin{proof}\n  Keep this short line.\n  Keep this separate line.\n"
@@ -462,7 +488,7 @@ class FormatTexTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             inputs = capture.read_text(encoding="utf-8").splitlines()
             self.assertEqual(len(inputs), 2)
-            self.assertEqual(inputs[0], "tracked.tex")
+            self.assertEqual(Path(inputs[0]).name, "tracked.tex")
             self.assertEqual(Path(inputs[1]).name, "wrapped.tex")
             for arguments in ((), ("--file", str(root / "tracked.tex"))):
                 with self.subTest(arguments=arguments):

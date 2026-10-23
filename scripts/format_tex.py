@@ -13,6 +13,8 @@ import tempfile
 from pathlib import Path
 from typing import cast
 
+from latex_scan import source_spans
+from lean_source import ignored_spans
 from normalize_eof import normalized_bytes
 
 try:
@@ -49,15 +51,43 @@ def format_file(file: Path) -> bytes:
     if not file.is_file():
         raise ValueError(f"FILE does not exist: {file}")
     settings = ROOT / "config/latexindent.yaml"
+    source = file.read_text(encoding="utf-8")
+    protected: dict[str, str] = {}
+    for span in reversed(source_spans(source)):
+        if span.kind == "comment":
+            continue
+        literal = source[span.start : span.end]
+        if span.kind == "lean" and not any(
+            kind == "literal" and "\n" in literal[start:end]
+            for start, end, kind in ignored_spans(literal)
+        ):
+            continue
+        marker = (
+            f"ASHAIYLITERAL{span.start}X"
+            + hashlib.sha256(literal.encode()).hexdigest().upper()
+        )
+        if marker in source:
+            raise ValueError("literal protection marker already occurs in source")
+        protected[marker] = literal
+        source = source[: span.start] + marker + source[span.end :]
     with tempfile.TemporaryDirectory() as temporary:
         cruft = Path(temporary)
         wrapped = cruft / f"wrapped{file.suffix}"
+        original = cruft / file.name
+        original.write_text(source, encoding="utf-8")
         options = ["latexindent", f"--local={settings}", f"--cruft={cruft}"]
-        result = subprocess.check_output([*options, "--modifylinebreaks", str(file)])
+        result = subprocess.check_output(
+            [*options, "--modifylinebreaks", str(original)]
+        )
         wrapped.write_bytes(result)
         # The second pass corrects indentation added to short wrapped sentences.
         result = subprocess.check_output([*options, str(wrapped)])
-    return normalized_bytes(normalize_lean_indentation(result), collapse=True)
+    result = normalized_bytes(normalize_lean_indentation(result), collapse=True)
+    for marker, literal in protected.items():
+        if result.count(marker.encode()) != 1:
+            raise ValueError("latexindent changed a protected literal marker")
+        result = result.replace(marker.encode(), literal.encode())
+    return result
 
 
 def selected_files(root: Path, file: Path | None) -> list[Path]:
@@ -93,6 +123,8 @@ def cache_directory(root: Path) -> Path:
     for name in (
         "format_tex.py",
         "normalize_eof.py",
+        "latex_scan.py",
+        "lean_source.py",
         "format_tex.sh",
         "format_tex_file.sh",
         "normalize_eof.sh",

@@ -213,7 +213,10 @@ its manifests and generators.
 
 LaTeX wrapping preserves manual breaks and relative Lean indentation; long code
 and unbreakable tokens can exceed the wrapping target. TeX parsing is heuristic,
-so inspect the result. EditorConfig preserves Markdown hard-break spaces.
+so inspect the result. Inline `\verb` and verbatim-style environments are preserved.
+Lean blocks containing multiline string literals are preserved as a whole;
+indentation and blank lines inside a literal are part of its value.
+EditorConfig preserves Markdown hard-break spaces.
 All targets require exactly one final LF; `format all` applies this to every
 nonempty tracked text file, excluding binary and untracked files.
 
