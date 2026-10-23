@@ -13,15 +13,16 @@ The [editor schema](../config/schemas/books.schema.json) describes field shapes;
 | Fields | Requirement and meaning |
 |---|---|
 | `slug`, `title` | Required stable lowercase hyphenated identifier and nonempty single-line title. Slugs are unique. |
-| `version` | Required semantic version, such as `0.1.0` or `0.2.0-rc.1`. |
-| `status`, `order` | Required status below and integer display order; equal orders sort by slug. |
+| `version` | Required directly or through `defaults`; semantic version, such as `0.1.0` or `0.2.0-rc.1`. |
+| `status` | Required directly or through `defaults`; one of the statuses below. |
+| `order` | Required integer display order; equal orders sort by slug. |
 | `author` | Required nonempty single-line name, directly or through `defaults`. |
 | `build`, `check`, `release`, `site` | Required booleans, directly or through `defaults`; select bulk builds, full checks, releases, and site publication. |
 | `label_prefix` | Optional unique lowercase alphanumeric prefix beginning with a letter; defaults to the slug's initials. Set it explicitly to keep labels stable. |
 | `lean_module` | Optional unique UpperCamelCase name; required before adding Lean sources. |
 
 The root uses `schema_version: 1` and a `books` list. `defaults` may contain only
-`author` and the four boolean flags; each book's explicit values override them.
+`author`, `version`, `status`, and the four boolean flags; each book's explicit values override them.
 Unknown fields are errors. After metadata edits, run `ashaiy config generate`,
 `ashaiy config check`, and `ashaiy contents generate --book <slug>`; refresh site pages when
 needed as described below.

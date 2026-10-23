@@ -28,7 +28,7 @@ STATUS_LABELS = {
 }
 ALLOWED_STATUSES = frozenset(STATUS_LABELS)
 ROOT_FIELDS = {"schema_version", "defaults", "books"}
-DEFAULT_FIELDS = {"author", "build", "check", "release", "site"}
+DEFAULT_FIELDS = {"author", "version", "status", "build", "check", "release", "site"}
 BOOK_FIELDS = {
     "slug",
     "title",
@@ -207,6 +207,15 @@ def normalize_manifest(data: object) -> dict[str, Any]:
         )
 
     for flag, value in defaults.items():
+        if flag == "version":
+            if not isinstance(value, str):
+                raise ValueError("defaults field 'version' must be a semantic version")
+            version_key(value)
+            continue
+        if flag == "status":
+            if not isinstance(value, str) or value not in ALLOWED_STATUSES:
+                raise ValueError(f"defaults field 'status' is invalid: {value!r}")
+            continue
         if flag == "author":
             if (
                 not isinstance(value, str)
