@@ -237,6 +237,9 @@ class ImagePrCommitTests(unittest.TestCase):
         self.git("push", "origin", "HEAD:refs/heads/topic")
         self.head = self.git("rev-parse", "HEAD")
         self.pull = pull_request(self.head)
+        self.dispatch_patch = patch.object(image_pr, "dispatch_validation")
+        self.dispatch = self.dispatch_patch.start()
+        self.addCleanup(self.dispatch_patch.stop)
         self.root_patch = patch.object(image_pr, "ROOT", self.work)
         self.root_patch.start()
         self.addCleanup(self.root_patch.stop)
@@ -273,6 +276,8 @@ class ImagePrCommitTests(unittest.TestCase):
             self.git("ls-remote", "origin", "refs/heads/topic").split()[0], tip
         )
 
+        self.dispatch.assert_called_once_with("owner/repo", "topic", tip)
+
     def test_stale_and_closed_prs_never_modify_branch(self):
         for current in ({**self.pull, "state": "closed"}, pull_request("new")):
             with patch.object(image_pr.github_artifacts, "api", return_value=current):
@@ -293,6 +298,20 @@ class ImagePrCommitTests(unittest.TestCase):
             image_pr.append_pin("owner/repo", self.pull, IMAGE)
         self.assertEqual(
             self.git("ls-remote", "origin", "refs/heads/topic").split()[0], new_head
+        )
+
+
+class ImageDispatchTests(unittest.TestCase):
+    def test_dispatch_uses_structured_exact_commit_input(self):
+        with patch.object(image_pr, "command") as command:
+            image_pr.dispatch_validation("owner/repo", "topic", "a" * 40)
+        self.assertEqual(
+            json.loads(command.call_args.kwargs["data"]),
+            {"ref": "topic", "inputs": {"expected_sha": "a" * 40}},
+        )
+        self.assertIn(
+            "repos/owner/repo/actions/workflows/build.yml/dispatches",
+            command.call_args.args,
         )
 
 

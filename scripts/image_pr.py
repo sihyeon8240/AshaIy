@@ -79,6 +79,28 @@ def select_pull(repository: str, run: dict) -> dict | None:
     return None
 
 
+def summary(message: str) -> None:
+    print(message, flush=True)
+    destination = os.environ.get("GITHUB_STEP_SUMMARY")
+    if destination:
+        with Path(destination).open("a") as stream:
+            stream.write(message + "\n\n")
+
+
+def dispatch_validation(repository: str, branch: str, commit: str) -> None:
+    command(
+        "gh",
+        "api",
+        "--method",
+        "POST",
+        f"repos/{repository}/actions/workflows/build.yml/dispatches",
+        "--input",
+        "-",
+        data=json.dumps({"ref": branch, "inputs": {"expected_sha": commit}}),
+    )
+    summary(f"Started final consumer CI for `{commit}` on `{branch}` automatically.")
+
+
 def append_pin(repository: str, pull: dict, image: str) -> bool:
     current = github_artifacts.api(f"repos/{repository}/pulls/{pull['number']}")
     head = pull["head"]["sha"]
@@ -88,7 +110,9 @@ def append_pin(repository: str, pull: dict, image: str) -> bool:
         or current["head"]["ref"] != pull["head"]["ref"]
         or (current["head"]["repo"] or {}).get("full_name") != repository
     ):
-        print("PR changed or closed during publication; leaving its branch untouched.")
+        summary(
+            "PR changed or closed during publication; leaving its branch untouched."
+        )
         return False
 
     pin_path = "config/container-image.txt"
@@ -103,7 +127,7 @@ def append_pin(repository: str, pull: dict, image: str) -> bool:
         Path(dev_path),
     )
     if pin == image + "\n" and dev == updated_dev:
-        print("PR already pins the tested image.")
+        summary("PR already pins the tested image; no additional commit is needed.")
         return False
 
     # An isolated index avoids checking out PR hooks, configuration, or scripts.
@@ -142,7 +166,8 @@ def append_pin(repository: str, pull: dict, image: str) -> bool:
     command(
         "git", "push", f"--force-with-lease={ref}:{head}", "origin", f"{commit}:{ref}"
     )
-    print(f"Appended image pin to PR #{pull['number']}.")
+    summary(f"Appended image pin to PR #{pull['number']}: `{commit}`.")
+    dispatch_validation(repository, pull["head"]["ref"], commit)
     return True
 
 
@@ -160,7 +185,9 @@ def publish(load_candidate: Callable, *, policy: str, max_bytes: int) -> None:
     revision = command("git", "rev-parse", "FETCH_HEAD")
     parents = command("git", "show", "-s", "--format=%P", revision).split()
     if parents != [pull["base"]["sha"], pull["head"]["sha"]]:
-        print("PR merge changed; wait for validation of the current revision.")
+        summary(
+            "PR merge changed; rerun PR CI to validate the current revision before publication."
+        )
         return
     config, tag = source_policy(revision)
     paths = changed_paths(pull["base"]["sha"], pull["head"]["sha"])

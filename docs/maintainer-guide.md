@@ -234,10 +234,14 @@ PR branch. An isolated index and exact-head push lease protect concurrent author
 changes. Retries skip applied pins. The destination comes from trusted main
 configuration; no separate pin PR or branch is created.
 
-For a `GITHUB_TOKEN` pin commit, a maintainer must select **Approve workflows to
-run** in the PR merge box before new CI runs. The pin does not change image
-inputs, so subsequent CI reuses the published tag. Ordinary textbook PRs neither
-publish images nor update pins.
+After pushing a pin with `GITHUB_TOKEN`, the publisher dispatches **Build
+textbooks** on the PR branch with the exact expected commit. Dispatch events run
+automatically without a GitHub App, PAT, or approval of the separate PR-event run.
+The source gate rejects a dispatch if the branch moved before it started. Final
+consumer CI resolves the published image and does not trigger another publisher.
+If dispatch fails, manually dispatch **Build textbooks** on the PR branch with
+`expected_sha` set to the pin commit; do not rerun CI on the pre-pin commit.
+Ordinary textbook PRs neither publish images nor update pins.
 
 The content tag hashes inputs and build policy from `config/image-build.json`.
 Review the policy version when hash, build, or validation semantics change.

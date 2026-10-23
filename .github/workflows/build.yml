@@ -1,6 +1,12 @@
 name: Build textbooks
 on:
   workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact pin commit to validate (empty for a manual rebuild)
+        required: false
+        default: ''
+        type: string
   pull_request:
   push:
     branches: [main]
@@ -24,6 +30,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+      - name: Verify the dispatched pin commit
+        if: github.event_name == 'workflow_dispatch' && inputs.expected_sha != ''
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: test "$GITHUB_SHA" = "$EXPECTED_SHA"
       - id: changes
         name: Classify changed files
         env:
