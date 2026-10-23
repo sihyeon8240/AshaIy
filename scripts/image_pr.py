@@ -34,15 +34,19 @@ def command(
     return (result.stdout or "").strip()
 
 
-def source_text(revision: str, path: str) -> str:
-    # Preserve source newlines when preparing a two-file commit.
+def source_bytes(revision: str, path: str) -> bytes:
+    """Read exact Git blob bytes without checkout filters or text conversion."""
     return subprocess.run(
         ["git", "show", f"{revision}:{path}"],
         cwd=ROOT,
         capture_output=True,
         check=True,
         timeout=60,
-    ).stdout.decode("utf-8")
+    ).stdout
+
+
+def source_text(revision: str, path: str) -> str:
+    return source_bytes(revision, path).decode("utf-8")
 
 
 def source_policy(revision: str) -> tuple[dict, str]:
@@ -59,7 +63,7 @@ def source_policy(revision: str) -> tuple[dict, str]:
                 raise ValueError(f"image input must be a regular Git blob: {name}")
             target = root / name
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(source_text(revision, name))
+            target.write_bytes(source_bytes(revision, name))
             target.chmod(0o755 if mode == "100755" else 0o644)
         return policy, f"texlive-{input_hash(root)}"
 

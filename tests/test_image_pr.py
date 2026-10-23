@@ -10,8 +10,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+from test_support import git_environment
 
 from scripts import image_pr
+from scripts.image_policy import input_hash
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -29,6 +31,32 @@ def pull_request(head: str = "head") -> dict:
 
 
 class ImagePrSelectionTests(unittest.TestCase):
+    def test_historical_policy_preserves_blob_bytes_and_executable_modes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "config").mkdir()
+            policy = {
+                "schema_version": 1,
+                "policy_version": "native-multiarch-v2",
+                "inputs": ["input.bin", "config/image-build.json"],
+                "platforms": [{"arch": "amd64", "runner": "ubuntu-24.04"}],
+            }
+            (root / "config/image-build.json").write_text(json.dumps(policy))
+            source = root / "input.bin"
+            source.write_bytes(b"binary\x00\xff\n")
+            source.chmod(0o755)
+            for args in (("init", "-q"), ("add", "."), ("commit", "-qm", "input")):
+                subprocess.run(
+                    ["git", *args],
+                    cwd=root,
+                    env=git_environment(),
+                    check=True,
+                    capture_output=True,
+                )
+            expected = "texlive-" + input_hash(root)
+            with patch.object(image_pr, "ROOT", root):
+                self.assertEqual(image_pr.source_policy("HEAD"), (policy, expected))
+
     def setUp(self):
         self.workflow_run = {
             "id": 123,
