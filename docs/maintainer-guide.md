@@ -99,6 +99,28 @@ write permission; Pages and versioned releases are independent.
 Follow [Site metadata](site-metadata.md) for publication flags, generation,
 validation, and styling. Confirm that generated pages remain untracked.
 
+For initial setup:
+
+1. In **Settings → Pages → Build and deployment**, choose **GitHub Actions** as
+   the source. `configure-pages` checks the existing configuration; this workflow
+   does not enable Pages or change repository permissions automatically.
+2. If the `github-pages` environment has deployment branch restrictions, ensure
+   `main` is allowed. Keep existing required reviews and other protection rules.
+   The deployment job itself also accepts only `main`.
+3. Push reviewed changes to main or dispatch **Build textbooks** on main. This
+   builds the initial complete PDF set, creates `generated-pdfs`, and deploys it.
+   **Deploy static site** alone requires an existing snapshot and cannot bootstrap
+   missing PDFs.
+4. Open the deployment URL and check the index, a book detail page, and its PDF
+   read/download links. If setup fails, inspect the Pages configuration and
+   environment approval state before rerunning the failed job.
+
+To retry deployment without rebuilding PDFs, dispatch **Deploy static site** on
+main. It renders the current snapshot's recorded source, not arbitrary newer
+source changes. To publish new source or replace missing/expired PDF artifacts,
+dispatch **Build textbooks** on main instead. A superseded deployment exits
+successfully without uploading or deploying an older snapshot.
+
 Snapshot writers retain queued runs with `queue: max`; older runs cannot evict a
 waiting current-main publication. Before publishing, CI requires downloaded PDFs
 to match the build matrix exactly. CI validates the complete site PDF set, prepares
