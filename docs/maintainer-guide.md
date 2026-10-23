@@ -182,12 +182,16 @@ or `strict-pdf-v1` policy when their corresponding semantics change.
 
 Image builds restore architecture-specific `buildcache-<arch>` registry caches
 and fall back to the latest image's inline cache. Non-PR builds export all
-intermediate stages with `mode=max`; PR builds only read registry caches.
+intermediate stages with `mode=max`; same-repository PR builders authenticate
+with package-read access and only read registry caches. After a previously
+published PR candidate reaches main, a cache-only build refreshes intermediate
+stages without replacing the tested image.
 This preserves the independent TeX Live installation across tool updates.
 
 The package is `ghcr.io/sihyeon8240/ashaiy`. `build.yml` calls
 `prepare-image.yml`, which derives a content tag and calls `build-toolchain.yml`.
-Main waits for publication before using the immutable index. Ordinary PRs resolve
+Main waits for publication before using the immutable index. The manual
+`build-image.yml` recovery workflow does not also run on pushes. Ordinary PRs resolve
 the published tag for their inputs; `config/container-image.txt` remains the local
 and Dev Container pin. Registry errors fail explicitly.
 
@@ -196,6 +200,8 @@ and Dev Container pin. Registry errors fail explicitly.
 1. Both native runners must be available: `ubuntu-24.04` for AMD64 and
    `ubuntu-24.04-arm` for ARM64. Each candidate passes architecture and toolchain
    smoke checks; AMD64 also strictly builds every check-enabled textbook.
+   Image-pipeline PRs rerun these checks on an existing published image as well,
+   without rebuilding it or exporting redundant candidate archives.
 2. Formatting and PDF jobs consume the tested AMD64 candidate. Before registry
    publication they verify a run-local archive's image ID and architecture.
    Candidate failure blocks **Check sources** and downstream consumers.
@@ -255,7 +261,11 @@ PR artifacts or fall back to building from source.
 
 #### Recovery and registry access
 
-Main bootstraps its image automatically, even for a private package. Main and
+Main bootstraps its image automatically, even for a private package. Publication
+reports the digest, platforms, local-pin drift, and anonymous index access in the
+job summary. Only the current main commit advances `latest` and its source-SHA
+alias, including when reusing a previously published PR image. A new publication
+does not directly change the local pin on main. Main and
 same-repository PRs need package-read access; existing GHCR packages must grant
 this repository Actions access. Public repository visibility does not make its
 package public. Fork PRs and anonymous local pulls require a public package.

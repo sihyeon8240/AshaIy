@@ -124,8 +124,8 @@ fails on drift.
 Commit synchronized consumers with their canonical sources. In particular:
 
 - `config/image-build.json` owns hashed image inputs, build policy, and platform/
-  runner pairs. Image jobs read it at runtime; only `build-image.yml` trigger
-  filters are generated because GitHub evaluates them before execution.
+  runner pairs. Image jobs read it at runtime; main CI owns automatic image
+  preparation and `build-image.yml` provides manual recovery.
 - `config/authoring.json` owns shell formatting and test discovery. Synchronization
   updates the corresponding editor fields, book choices, and container extensions.
 - `config/ignore-patterns.yml` owns tool-specific exclusion profiles. Generated
@@ -146,7 +146,6 @@ Commit synchronized consumers with their canonical sources. In particular:
 | Complete generated files | Toolchain pins, CI requirements, exclusion lists, and publication version macros remain committed outputs for tools that consume those file formats directly. |
 | Mixed editor/container files | Synchronization owns the image, extension lists, book choices, and configured editor fields; remaining user-maintained settings are preserved. |
 | Mixed TOML files | Synchronization owns the Lean dependency revision and Ruff target version; package metadata, Lean options, and lint policy remain hand-maintained. |
-| Workflow trigger filters | Synchronization owns image workflow paths because event filtering happens before runtime configuration can be read. Other workflow logic remains hand-maintained. |
 
 Mixed consumers are intentional compatibility boundaries. Do not generate their
 entire files or introduce a parallel template merely to remove a field update.

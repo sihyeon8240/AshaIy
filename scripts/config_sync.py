@@ -10,7 +10,6 @@ import sys
 from pathlib import Path
 
 from book_manifest import normalize_manifest
-from ci_changes import IMAGE_PIPELINE
 from file_updates import changed_files, write_updates
 from ignore_patterns import rendered_ignore_consumers
 from repository_config import (
@@ -62,21 +61,6 @@ def formalization_versions(root: Path, lean_version: str) -> str:
     )
 
 
-def rendered_image_filters(root: Path) -> dict[Path, str]:
-    config = load_image_build(root)
-    wrapper = root / ".github/workflows/build-image.yml"
-    paths = "".join(
-        f"      - '{path}'\n" for path in sorted(set(config["inputs"]) | IMAGE_PIPELINE)
-    )
-    wrapper_text = replace_once(
-        wrapper.read_text(encoding="utf-8"),
-        r"(?<=    paths:\n)[\s\S]*?(?=permissions:)",
-        paths,
-        wrapper,
-    )
-    return {wrapper: wrapper_text}
-
-
 def rendered_toolchain_groups(root: Path, toolchain: dict[str, str]) -> dict[Path, str]:
     groups = {
         "tools": ("ELAN_", "RUFF_", "SHFMT_", "LATEXINDENT_", "SHELLCHECK_", "GH_"),
@@ -109,6 +93,7 @@ def rendered_toolchain_groups(root: Path, toolchain: dict[str, str]) -> dict[Pat
 def rendered_consumers(
     root: Path = ROOT, *, image: str | None = None
 ) -> dict[Path, str]:
+    load_image_build(root)
     toolchain = load_toolchain(root / "config/toolchain.env")
     if image is None:
         image = load_image(root / "config/container-image.txt")
@@ -187,7 +172,6 @@ def rendered_consumers(
     return {
         **ignore_updates,
         **rendered_toolchain_groups(root, toolchain),
-        **rendered_image_filters(root),
         root / "common/templates/formalization-versions.tex": formalization_versions(
             root, toolchain["LEAN_VERSION"]
         ),

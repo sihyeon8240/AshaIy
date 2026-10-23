@@ -20,7 +20,7 @@ def build_workflow() -> dict:
 def condition_allows(condition: str, context: Mapping[str, str | bool]) -> bool:
     expression = condition.strip().removeprefix("${{").removesuffix("}}").strip()
     tokens = re.compile(
-        r"'(?:[^']|'')*'|(?:github|needs|steps)\.[\w.-]+|always\(\)|cancelled\(\)"
+        r"'(?:[^']|'')*'|(?:github|needs|steps|inputs)\.[\w.-]+|always\(\)|cancelled\(\)"
         r"|&&|\|\||!(?!=)|\b(?:true|false)\b"
     )
 
@@ -28,7 +28,7 @@ def condition_allows(condition: str, context: Mapping[str, str | bool]) -> bool:
         token = match.group()
         if token.startswith("'"):
             return repr(token[1:-1].replace("''", "'"))
-        if token.startswith(("github.", "needs.", "steps.")):
+        if token.startswith(("github.", "needs.", "steps.", "inputs.")):
             return repr(context[token])
         return {
             "always()": "True",

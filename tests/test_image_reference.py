@@ -83,7 +83,9 @@ class ConfigurationTests(unittest.TestCase):
             root / "common/templates/formalization-versions.tex",
         )
 
-    def test_image_policy_changes_only_regenerate_static_trigger_filters(self) -> None:
+    def test_image_policy_changes_are_consumed_without_workflow_generation(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             self.make_repository(root)
@@ -105,7 +107,8 @@ class ConfigurationTests(unittest.TestCase):
             self.assertNotIn(root / ".github/workflows/build-toolchain.yml", changed)
             SYNC.synchronize(root=root)
             wrapper = (root / ".github/workflows/build-image.yml").read_text()
-            self.assertIn("scripts/new-image-input.sh", wrapper)
+            self.assertNotIn("scripts/new-image-input.sh", wrapper)
+            self.assertNotIn("push:", wrapper)
             for workflow, original in runtime_workflows.items():
                 self.assertEqual(workflow.read_bytes(), original)
             self.assertEqual(SYNC.synchronize(root=root, check=True), [])

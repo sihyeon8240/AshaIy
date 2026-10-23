@@ -6,6 +6,14 @@ on:
         description: Git revision containing the image inputs
         required: true
         type: string
+      validate_existing:
+        description: Run current validation even when the content tag is published
+        type: boolean
+        default: false
+      refresh_cache:
+        description: Refresh intermediate caches for an image promoted from a PR
+        type: boolean
+        default: false
     outputs:
       image:
         description: Tested registry or run-local image reference
@@ -39,3 +47,5 @@ jobs:
     with:
       ref: ${{ inputs.ref }}
       tag: ${{ needs.inputs.outputs.tag }}
+      validate_existing: ${{ inputs.validate_existing }}
+      refresh_cache: ${{ inputs.refresh_cache }}

@@ -3,6 +3,7 @@
   "policy_version": "native-multiarch-v1",
   "inputs": [
     ".devcontainer/Dockerfile",
+    ".devcontainer/Dockerfile.dockerignore",
     "config/toolchain.env",
     "scripts/check_toolchain.sh",
     "config/image-build.json",

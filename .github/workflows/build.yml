@@ -144,8 +144,10 @@ jobs:
     uses: ./.github/workflows/prepare-image.yml
     with:
       ref: ${{ github.sha }}
+      validate_existing: true
   main-image:
     name: Prepare main toolchain image
+    needs: source
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     permissions:
       contents: read
@@ -154,6 +156,7 @@ jobs:
     uses: ./.github/workflows/prepare-image.yml
     with:
       ref: ${{ github.sha }}
+      refresh_cache: ${{ needs.source.outputs.image_changed == 'true' }}
   latex:
     name: Source formatting and site tests
     needs: prepare-image

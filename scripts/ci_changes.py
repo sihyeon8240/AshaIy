@@ -8,6 +8,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 IMAGE_PIPELINE = {
+    "scripts/check_image_tag.sh",
+    "scripts/ci_changes.py",
+    "scripts/image_registry.py",
     ".github/actions/load-toolchain/action.yml",
     ".github/actions/run-toolchain/action.yml",
     "scripts/image_pr.py",

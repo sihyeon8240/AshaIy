@@ -184,6 +184,40 @@ printf '%s\\n' "$MANIFEST"
         self.assertLess(steps.index(registry), steps.index(assemble))
         self.assertIn("steps.registry.outputs.exists != 'true'", assemble["if"])
 
+    def test_existing_image_validation_failure_cannot_reach_consumers(self):
+        workflow = yaml.safe_load(
+            (ROOT / ".github/workflows/build-toolchain.yml").read_text()
+        )
+        for validate in (False, True):
+            for result in ("success", "failure", "cancelled", "skipped"):
+                with self.subTest(validate=validate, result=result):
+                    context = {
+                        "needs.prepare.result": "success",
+                        "needs.prepare.outputs.exists": "true",
+                        "needs.build.result": result,
+                        "inputs.validate_existing": validate,
+                    }
+                    self.assertEqual(
+                        condition_allows(workflow["jobs"]["publish"]["if"], context),
+                        result == "success" or (not validate and result == "skipped"),
+                    )
+        builder = workflow["jobs"]["build"]
+        login = next(
+            step for step in builder["steps"] if "login-action@" in step.get("uses", "")
+        )
+        for repository in ("owner/repo", "fork/repo"):
+            self.assertEqual(
+                condition_allows(
+                    login["if"],
+                    {
+                        "github.event_name": "pull_request",
+                        "github.repository": "owner/repo",
+                        "github.event.pull_request.head.repo.full_name": repository,
+                    },
+                ),
+                repository == "owner/repo",
+            )
+
     def test_new_image_tag_builds(self):
         result, output = self.run_image("push", tag_exists=False, inputs_changed=True)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -201,7 +235,7 @@ printf '%s\\n' "$MANIFEST"
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(output, "exists=true\n")
 
-    def test_build_image_triggers_cover_tag_and_image_inputs(self):
+    def test_manual_recovery_uses_the_runtime_content_tag(self):
         wrapper = (ROOT / ".github/workflows/build-image.yml").read_text(
             encoding="utf-8"
         )
@@ -209,12 +243,11 @@ printf '%s\\n' "$MANIFEST"
             encoding="utf-8"
         )
         self.assertIn("python3 scripts/image_policy.py hash", text)
-        self.assertIn("scripts/image_policy.py", wrapper)
         self.assertIn("RELEASE_TAG=texlive-${input_hash}", text)
         self.assertNotIn("pull_request_target:", wrapper)
         self.assertIn("workflow_dispatch:", wrapper)
         self.assertIn(
-            "if: needs.prepare.outputs.exists != 'true'",
+            "if: needs.prepare.outputs.exists != 'true' || inputs.validate_existing",
             (ROOT / ".github/workflows/build-toolchain.yml").read_text(),
         )
         self.assertNotIn("pull-requests: write", wrapper)
@@ -226,7 +259,10 @@ printf '%s\\n' "$MANIFEST"
         )
         jobs = workflow["jobs"]
         self.assertEqual(jobs["build"]["needs"], "prepare")
-        self.assertEqual(jobs["build"]["if"], "needs.prepare.outputs.exists != 'true'")
+        self.assertEqual(
+            jobs["build"]["if"],
+            "needs.prepare.outputs.exists != 'true' || inputs.validate_existing",
+        )
         self.assertEqual(
             jobs["build"]["strategy"]["matrix"],
             "${{ fromJSON(needs.prepare.outputs.matrix) }}",
