@@ -17,17 +17,20 @@ from image_policy import input_hash
 from repository_config import ROOT, image_name, load_image, load_image_build
 
 
-def command(*args: str, data: str | None = None, env: dict | None = None) -> str:
-    return subprocess.run(
+def command(
+    *args: str, data: str | None = None, env: dict | None = None, stream: bool = False
+) -> str:
+    result = subprocess.run(
         args,
         cwd=ROOT,
         input=data,
         env=env,
         text=True,
-        capture_output=True,
+        capture_output=not stream,
         check=True,
-        timeout=1800,
-    ).stdout.strip()
+        timeout=600 if stream else 1800,
+    )
+    return (result.stdout or "").strip()
 
 
 def source_text(revision: str, path: str) -> str:
@@ -147,6 +150,7 @@ def publish(load_candidate: Callable, *, policy: str, max_bytes: int) -> None:
     repository = os.environ["GITHUB_REPOSITORY"]
     run_id = int(os.environ["SOURCE_RUN_ID"])
     run = github_artifacts.api(f"repos/{repository}/actions/runs/{run_id}")
+    print(f"Checking publication eligibility for run {run_id}", flush=True)
     pull = select_pull(repository, run)
     if pull is None:
         print("No current, successful same-repository PR candidate; skipping.")
@@ -203,7 +207,9 @@ def publish(load_candidate: Callable, *, policy: str, max_bytes: int) -> None:
                 repository, candidates[f"toolchain-image-{arch}"], expected, run, image
             )
             # Loading and inspecting an image never executes its contents.
-            command("docker", "push", image)
+            print(f"Publishing {arch} image to GHCR: {image}", flush=True)
+            command("docker", "push", image, stream=True)
+            print(f"Published {arch} image; checking registry digest", flush=True)
             digest = command(
                 "docker",
                 "buildx",
@@ -217,6 +223,7 @@ def publish(load_candidate: Callable, *, policy: str, max_bytes: int) -> None:
                 raise ValueError("invalid published image digest")
             sources.append(f"{name}@{digest}")
             command("docker", "image", "rm", image)
+        print(f"Publishing multi-platform index: {release}", flush=True)
         command("docker", "buildx", "imagetools", "create", "--tag", release, *sources)
 
     digest = command(
@@ -236,4 +243,5 @@ def publish(load_candidate: Callable, *, policy: str, max_bytes: int) -> None:
         "scripts/check_image_tag.sh",
         env={**env, "IMAGE_REF": image, "REQUIRE_IMAGE": "true"},
     )
+    print(f"Updating PR #{pull['number']} with verified image pin", flush=True)
     append_pin(repository, pull, image)

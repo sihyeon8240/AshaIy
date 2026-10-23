@@ -63,6 +63,7 @@ def load_candidate(
         github_artifacts.download(
             repository, artifact, archive_path, max_bytes=MAX_BYTES
         )
+        print(f"Extracting {expected['arch']} candidate archive", flush=True)
         with zipfile.ZipFile(archive_path) as archive:
             if sorted(archive.namelist()) != ["candidate.json", "image.tar.gz"]:
                 raise ValueError("unexpected candidate files")
@@ -81,10 +82,12 @@ def load_candidate(
             ):
                 shutil.copyfileobj(source, target)
         archive_path.unlink()
+        print(f"Verifying {expected['arch']} image checksum", flush=True)
         if checksum(image_path) != manifest["checksum"]:
             raise ValueError("candidate image checksum mismatch")
+        print(f"Loading {expected['arch']} image into Docker", flush=True)
         subprocess.run(
-            ["docker", "load", "--input", str(image_path)], check=True, timeout=1800
+            ["docker", "load", "--input", str(image_path)], check=True, timeout=600
         )
         image_id = manifest["image_id"]
         arch = command(
@@ -93,6 +96,7 @@ def load_candidate(
         if arch != expected["arch"]:
             raise ValueError("candidate architecture mismatch")
         command("docker", "tag", image_id, image)
+        print(f"Loaded and verified {expected['arch']} image", flush=True)
 
 
 def restore(arch: str, image: str) -> bool:

@@ -193,15 +193,16 @@ class ImageCandidateTests(unittest.TestCase):
                 if failure == "github_digest":
                     artifact["digest"] = "wrong"
 
-                def execute(args, **kwargs):
-                    if args[0] == "gh":
-                        kwargs["stdout"].write(archive_path.read_bytes())
-                    return subprocess.CompletedProcess(args, 0)
+                def transfer(args, target, *unused):
+                    target.write_bytes(archive_path.read_bytes())
 
                 with (
+                    patch.object(CANDIDATE.subprocess, "run") as run,
                     patch.object(
-                        CANDIDATE.subprocess, "run", side_effect=execute
-                    ) as run,
+                        CANDIDATE.github_artifacts,
+                        "download_attempt",
+                        side_effect=transfer,
+                    ),
                     patch.object(
                         CANDIDATE,
                         "command",

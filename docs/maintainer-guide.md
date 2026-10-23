@@ -219,6 +219,15 @@ tree, run/attempt, archive checksums, image IDs, and architectures. It never
 executes PR scripts or candidate containers with write credentials. Changed or
 closed heads are skipped; mismatched merge trees require fresh CI.
 
+Candidate downloads report bytes, average speed, and idle time every 15 seconds.
+They stop after 120 seconds without file growth and retry from zero up to three
+times within a ten-minute total download budget per artifact. Every completed
+archive must still pass GitHub's digest and candidate provenance checks. Image
+extraction, verification, loading, and publication log their stages; Docker push
+output streams directly. Docker load and push each have ten-minute limits; the
+publication job has a 120-minute overall limit. Publication code comes from
+`main`, so these changes take effect there only after owner review and merge.
+
 After publishing the index, the publisher adds one commit changing only
 `config/container-image.txt` and `.devcontainer/devcontainer.json` to the original
 PR branch. An isolated index and exact-head push lease protect concurrent author
