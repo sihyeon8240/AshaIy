@@ -99,9 +99,13 @@ write permission; Pages and versioned releases are independent.
 Follow [Site metadata](site-metadata.md) for publication flags, generation,
 validation, and styling. Confirm that generated pages remain untracked.
 
-Before publishing, CI validates the complete site PDF set, prepares replacements
+Snapshot writers retain queued runs with `queue: max`; older runs cannot evict a
+waiting current-main publication. Before publishing, CI requires downloaded PDFs
+to match the build matrix exactly, then validates the complete site PDF set and prepares replacements
 and removals in a temporary directory, then installs and pushes the snapshot.
-Missing PDFs require a full **Build textbooks** run to bootstrap. Superseded main
+Missing or expired planned artifacts stop publication without advancing
+`.source-sha`; run **Build textbooks** again to produce fresh artifacts. Missing
+initial PDFs require a full **Build textbooks** run to bootstrap. Superseded main
 runs exit before preparation, with main checked again before pushing.
 
 For failures:
@@ -118,6 +122,9 @@ For failures:
   permits bootstrap. Lookup, diff, transport, and push errors fail publication.
   Concurrent snapshot changes reject the fast-forward push; fetch and retry.
   Even unchanged snapshots must push successfully before success is reported.
+
+Changes to the Pages workflow advance the site source snapshot without requiring
+PDF rebuilds, so the workflow and its source scripts remain compatible.
 
 Publication returns an immutable `snapshot_sha`; Pages uses that snapshot and
 its recorded source, including manual or documentation-only retries. Deployment

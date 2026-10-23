@@ -521,6 +521,7 @@ jobs:
     concurrency:
       group: development-pdf-snapshot
       cancel-in-progress: false
+      queue: max
     needs: [plan, book, check, build-check]
     if: >-
       always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
@@ -549,6 +550,8 @@ jobs:
           merge-multiple: true
       - id: publish
         name: Update generated-pdfs snapshot
+        env:
+          BUILD_PLAN: ${{ needs.plan.outputs.matrix }}
         shell: bash
         run: ./scripts/publish_snapshot.sh
   pages:

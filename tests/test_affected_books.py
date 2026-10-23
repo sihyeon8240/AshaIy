@@ -70,6 +70,11 @@ class AffectedBookTests(unittest.TestCase):
         ):
             return affected.plan(paths, old)
 
+    def test_pages_workflow_advances_site_source_without_rebuilding_pdfs(self):
+        result = self.plan([".github/workflows/pages.yml"])
+        self.assertEqual(result["book"], [])
+        self.assertTrue(result["site_changed"])
+
     def test_release_matrix_forces_build_after_snapshot_has_advanced(self):
         output = io.StringIO()
         with (

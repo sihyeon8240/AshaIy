@@ -25,6 +25,32 @@ class SnapshotStateTests(unittest.TestCase):
         self.assertEqual(plan.replace, ("alpha",))
         self.assertEqual(plan.remove, ("hidden", "retired"))
 
+    def test_build_plan_requires_exact_updates_even_when_previous_pdf_exists(self):
+        for updated in ({}, {"beta": 10}, {"alpha": 10, "beta": 10}):
+            with (
+                self.subTest(updated=updated),
+                self.assertRaisesRegex(
+                    ValueError, "artifacts differ from the build plan"
+                ),
+            ):
+                state.plan_snapshot(
+                    {"alpha": 20, "beta": 20},
+                    updated,
+                    {"alpha", "beta"},
+                    {"alpha", "beta"},
+                    {"alpha"},
+                )
+        self.assertEqual(
+            state.plan_snapshot(
+                {"alpha": 20, "beta": 20},
+                {"alpha": 10},
+                {"alpha", "beta"},
+                {"alpha", "beta"},
+                {"alpha"},
+            ).replace,
+            ("alpha",),
+        )
+
     def test_failed_copy_or_install_preserves_previous_set_and_allows_retry(
         self,
     ) -> None:

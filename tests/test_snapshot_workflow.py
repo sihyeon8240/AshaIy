@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import itertools
+import json
 import os
 import shutil
 import subprocess
@@ -173,6 +174,9 @@ elif args[-2:] == ["rev-parse", "HEAD"]:
                     "FIXTURE": str(root),
                     "TMPDIR": str(root / "tmp"),
                     "GITHUB_SHA": "a" * 40,
+                    "BUILD_PLAN": json.dumps(
+                        {"book": [Path(name).stem for name in updated]}
+                    ),
                     "GITHUB_OUTPUT": str(root / "output"),
                     **environment,
                 },
@@ -360,6 +364,17 @@ esac
                 result, snapshot, _ = self.run_pdf_update(updated, existing)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(snapshot, expected)
+
+    def test_missing_planned_artifact_preserves_pdfs_and_never_pushes(self):
+        existing = {"alpha.pdf": b"old-a", "beta.pdf": b"old-b"}
+        result, snapshot, report = self.run_pdf_update(
+            {}, existing, BUILD_PLAN='{"book":["alpha"]}'
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("artifacts differ from the build plan", result.stderr)
+        self.assertEqual(snapshot, existing)
+        self.assertNotIn("push origin", report["git"])
+        self.assertEqual(report["outputs"], "")
 
     def test_pdf_update_prunes_files_that_are_no_longer_for_site(self):
         result, snapshot, _ = self.run_pdf_update(

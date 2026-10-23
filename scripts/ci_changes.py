@@ -25,6 +25,7 @@ IMAGE_PIPELINE = {
     ".github/workflows/prepare-image.yml",
 }
 SITE_FILES = {
+    ".github/workflows/pages.yml",
     "scripts/generate_site_pages.py",
     "scripts/site_pages.py",
     "scripts/lean_coverage.py",

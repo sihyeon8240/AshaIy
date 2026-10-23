@@ -10,6 +10,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON="${PYTHON:-python3}"
 : "${GITHUB_SHA:?GITHUB_SHA is required}" "${GITHUB_OUTPUT:?GITHUB_OUTPUT is required}"
 cd "$repo_root"
+: "${BUILD_PLAN:?BUILD_PLAN is required}"
 
 stop_if_superseded() {
   local remote_sha
@@ -65,7 +66,7 @@ else
   git -C "$snapshot" rm -r --ignore-unmatch .
 fi
 
-"$PYTHON" scripts/snapshot_state.py "$snapshot" updated-pdfs
+"$PYTHON" scripts/snapshot_state.py "$snapshot" updated-pdfs --build-plan "$BUILD_PLAN"
 
 printf '%s\n' "$GITHUB_SHA" >"$snapshot/.source-sha"
 cp .github/generated-pdfs-README.md "$snapshot/README.md"

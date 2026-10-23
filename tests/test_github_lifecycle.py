@@ -26,7 +26,11 @@ class SnapshotLifecycleTests(unittest.TestCase):
             work = root / "work"
             work.mkdir()
             (root / "tmp").mkdir()
-            env = {**git_environment(), "TMPDIR": str(root / "tmp")}
+            env = {
+                **git_environment(),
+                "TMPDIR": str(root / "tmp"),
+                "BUILD_PLAN": '{"book":["sample"]}',
+            }
 
             def git(*args, cwd=work):
                 return subprocess.run(

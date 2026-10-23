@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import sys
@@ -25,6 +26,7 @@ def plan_snapshot(
     updated: Mapping[str, int],
     registered: set[str],
     expected: set[str],
+    required_updates: set[str] | None = None,
 ) -> SnapshotPlan:
     for slug, size in sorted(updated.items()):
         if not size:
@@ -33,6 +35,15 @@ def plan_snapshot(
             )
         if slug not in registered:
             raise ValueError(f"unknown PDF artifact slug: {slug}")
+
+    if required_updates is not None:
+        missing = sorted(required_updates - updated.keys())
+        unexpected = sorted(updated.keys() - required_updates)
+        if missing or unexpected:
+            raise ValueError(
+                f"PDF artifacts differ from the build plan: missing={missing}, "
+                f"unexpected={unexpected}; rerun Build textbooks if artifacts expired"
+            )
 
     for slug in sorted(expected):
         if not updated.get(slug, existing.get(slug, 0)):
@@ -56,7 +67,9 @@ def pdf_files(directory: Path, *, artifacts: bool = False) -> dict[str, Path]:
     return files
 
 
-def prepare(snapshot: Path, updated: Path) -> SnapshotPlan:
+def prepare(
+    snapshot: Path, updated: Path, *, required_updates: set[str] | None = None
+) -> SnapshotPlan:
     books = load_manifest()["books"]
     existing = pdf_files(snapshot / "pdf")
     updates = pdf_files(updated, artifacts=True)
@@ -65,6 +78,7 @@ def prepare(snapshot: Path, updated: Path) -> SnapshotPlan:
         {slug: path.stat().st_size for slug, path in updates.items()},
         {book["slug"] for book in books},
         {book["slug"] for book in books if book["site"]},
+        required_updates,
     )
 
     destination = snapshot / "pdf"
@@ -107,13 +121,30 @@ def prepare(snapshot: Path, updated: Path) -> SnapshotPlan:
     return plan
 
 
+def parse_build_plan(value: str) -> set[str]:
+    try:
+        matrix = json.loads(value)
+    except json.JSONDecodeError as error:
+        raise argparse.ArgumentTypeError("expected a JSON book build matrix") from error
+    if (
+        not isinstance(matrix, dict)
+        or set(matrix) != {"book"}
+        or not isinstance(matrix["book"], list)
+        or not all(isinstance(slug, str) and slug for slug in matrix["book"])
+        or len(matrix["book"]) != len(set(matrix["book"]))
+    ):
+        raise argparse.ArgumentTypeError("expected a unique list of book slugs")
+    return set(matrix["book"])
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("snapshot", type=Path)
     parser.add_argument("updated", type=Path)
+    parser.add_argument("--build-plan", type=parse_build_plan)
     args = parser.parse_args()
     try:
-        prepare(args.snapshot, args.updated)
+        prepare(args.snapshot, args.updated, required_updates=args.build_plan)
     except (OSError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
