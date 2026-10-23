@@ -127,7 +127,7 @@ theorem riemannIntegrable_finite_discontinuities (I : Box Unit) (f : ℝ → ℝ
         have hn (z : ℝ) (hz : z ∈ cell J) : |f z - f (q J hJ)| < η := by
           apply he (q J hJ) hbad z (cell_subset_closed (P.val.le_of_mem hJ) hz)
 
-          have hh := hq J hJ z ⟨hz.1, hz.2.le⟩
+          have hh := hq J hJ z hz
           simp only [radii, hbad, ↓reduceIte] at hh
           exact hh.trans_lt (half_lt_self (hd (q J hJ)))
 

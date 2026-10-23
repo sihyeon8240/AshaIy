@@ -29,8 +29,8 @@ def upperIntegral (I : Box Unit) (f α : ℝ → ℝ) : ℝ :=
 def lowerIntegral (I : Box Unit) (f α : ℝ → ℝ) : ℝ :=
   sSup (range (lowerSum (I := I) f α))
 
-/-- Definition: integrability requires boundedness and equality of the upper
-and lower Darboux-Stieltjes integrals. -/
+/-- Definition: the Darboux integrability predicate records boundedness and equality
+of the integrals; results about Stieltjes integrators assume monotonicity explicitly. -/
 def StieltjesIntegrable (I : Box Unit) (f α : ℝ → ℝ) : Prop :=
   Bornology.IsBounded (f '' Icc (-I.upper ()) (-I.lower ())) ∧
     lowerIntegral I f α = upperIntegral I f α
@@ -41,12 +41,12 @@ def RiemannIntegrable (I : Box Unit) (f : ℝ → ℝ) : Prop :=
 
 /-- Lemma: cell images are nonempty. -/
 theorem cell_image_nonempty (f : ℝ → ℝ) (I : Box Unit) : (f '' cell I).Nonempty :=
-  ⟨f (-I.upper ()), -I.upper (), ⟨le_rfl, neg_lt_neg (I.lower_lt_upper ())⟩, rfl⟩
+  ⟨f (-I.upper ()), -I.upper (), ⟨le_rfl, neg_le_neg (I.lower_le_upper ())⟩, rfl⟩
 
 /-- Lemma: a subcell lies in the ambient closed interval. -/
 theorem cell_subset_closed {I J : Box Unit} (hJI : J ≤ I) :
     cell J ⊆ Icc (-I.upper ()) (-I.lower ()) :=
-  (cell_mono hJI).trans Ico_subset_Icc_self
+  cell_mono hJI
 
 /-- Lemma: boundedness on the ambient interval bounds all cell images. -/
 theorem cell_image_bounded {I J : Box Unit} (f : ℝ → ℝ) (hJI : J ≤ I)

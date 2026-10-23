@@ -107,7 +107,7 @@ theorem riemannIntegral_constant (I : Box Unit) (c : ℝ) :
     (Continuity.continuous_const c).continuousOn
   apply riemannIntegral_eq_of_taggedSum I _ (continuous_riemannIntegrable I _ hc)
   intro P
-  refine ⟨fun J => -J.upper (), fun J _ => ⟨le_rfl, neg_lt_neg (J.lower_lt_upper ())⟩, ?_⟩
+  refine ⟨fun J => -J.upper (), fun J _ => ⟨le_rfl, neg_le_neg (J.lower_le_upper ())⟩, ?_⟩
   simp only [taggedSum, ← Finset.mul_sum, sum_cellLengths]
 
 /-- Lemma: an integrand uniformly close to a constant has an integral close

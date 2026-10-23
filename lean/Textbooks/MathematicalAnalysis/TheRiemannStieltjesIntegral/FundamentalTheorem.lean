@@ -42,7 +42,7 @@ theorem integral_derivative (I : Box Unit) (F f : ℝ → ℝ)
   refine ⟨tag, ?_, ?_⟩
   · intro J hJ
     simp only [tag, dite_eq_left hJ]
-    exact ⟨(hτ J hJ).1.le, (hτ J hJ).2⟩
+    exact ⟨(hτ J hJ).1.le, (hτ J hJ).2.le⟩
   · calc
       taggedSum f P tag = ∑ J ∈ P.val.boxes, increment F J := by
         apply Finset.sum_congr rfl

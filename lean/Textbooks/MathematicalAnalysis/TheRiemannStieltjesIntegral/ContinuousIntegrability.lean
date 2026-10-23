@@ -8,21 +8,6 @@ open MathematicalAnalysis.BasicTopology MathematicalAnalysis.Continuity
 
 noncomputable section
 
-private theorem cell_iff_neg_mem (I : Box Unit) (x : ℝ) :
-    x ∈ cell I ↔ (fun _ : Unit => -x) ∈ I := by
-  constructor
-  · intro hx i
-    cases i
-    exact ⟨by
-      dsimp [cell] at hx
-      linarith [hx.2], by
-      dsimp [cell] at hx
-      linarith [hx.1]⟩
-
-  · intro hx
-    have h := hx ()
-    exact ⟨by linarith [h.2], by linarith [h.1]⟩
-
 /-- Lemma: finitely many prescribed positive radii give a partition whose cells
 are each contained in one of the corresponding closed neighborhoods. -/
 theorem partition_subordinate (I : Box Unit)
@@ -48,12 +33,12 @@ theorem partition_subordinate (I : Box Unit)
   intro J hJ
   have hJI : J ≤ I := P.val.le_of_mem hJ
   have htag : -J.upper () ∈ A := cell_subset_closed hJI
-    ⟨le_rfl, neg_lt_neg (J.lower_lt_upper ())⟩
+    ⟨le_rfl, neg_le_neg (J.lower_le_upper ())⟩
 
   obtain ⟨q, hq⟩ := mem_iUnion.mp (hs htag)
   obtain ⟨hqs, hnear⟩ := mem_iUnion.mp hq
-  have htagB : -J.upper () ∈ cell (B q) := by
-    rw [cell_intervalBox]
+  have htagB : -J.upper () ∈ halfOpenCell (B q) := by
+    rw [halfOpenCell_intervalBox]
     change |-J.upper () - q.val| < r q / 2 at hnear
 
     have h := abs_lt.mp hnear
@@ -69,7 +54,7 @@ theorem partition_subordinate (I : Box Unit)
       apply Set.not_disjoint_iff.mpr
       refine ⟨fun _ : Unit => J.upper (), ?_, J.upper_mem⟩
       simpa only [Box.coe_coe, Box.mem_coe, neg_neg] using
-        (cell_iff_neg_mem (B q) (-J.upper ())).mp htagB)
+        (neg_mem_box (B q) (-J.upper ())).mpr htagB)
 
   refine ⟨q, ?_⟩
   intro x hx
@@ -108,7 +93,7 @@ theorem continuous_riemannIntegrable (I : Box Unit) (f : ℝ → ℝ)
     have hnear : ∀ x ∈ cell J, |f x - f q| < η := by
       intro x hx
       exact hd q x (cell_subset_closed (P.val.le_of_mem hJ) hx)
-        ((hq x ⟨hx.1, hx.2.le⟩).trans_lt (half_lt_self (hδ q)))
+        ((hq x hx).trans_lt (half_lt_self (hδ q)))
 
     have hu : cellSup f J ≤ f q + η := by
       apply csSup_le (cell_image_nonempty f J)

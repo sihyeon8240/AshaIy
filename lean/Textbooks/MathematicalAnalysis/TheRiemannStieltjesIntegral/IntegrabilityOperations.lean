@@ -35,6 +35,23 @@ theorem bounded_of_absolute_bound (I : Box Unit) (f : ℝ → ℝ) (C : ℝ)
 
   exact hu.isBounded hl
 
+/-- Theorem: a constant integrand is Stieltjes integrable for every increasing integrator. -/
+theorem stieltjesIntegrable_constant (I : Box Unit) (c : ℝ) (α : ℝ → ℝ)
+    (hα : MonotoneOn α (cell I)) : StieltjesIntegrable I (fun _ => c) α := by
+  have hf := bounded_of_absolute_bound I (fun _ => c) |c| (fun _ _ => le_rfl)
+  apply (stieltjesIntegrable_iff_gap I _ α hf hα).mpr
+  intro ε hε
+  refine ⟨⟨⊤, Prepartition.isPartitionTop I⟩, ?_⟩
+  have himage (J : Box Unit) : (fun _ : ℝ => c) '' cell J = {c} := by
+    ext y
+    constructor
+    · rintro ⟨_, _, rfl⟩
+      rfl
+    · rintro rfl
+      exact ⟨-J.upper (), ⟨le_rfl, neg_le_neg (J.lower_le_upper ())⟩, rfl⟩
+  simpa only [upperSum, lowerSum, cellSup, cellInf, himage, csSup_singleton,
+    csInf_singleton, sub_self] using hε
+
 /-- Lemma: the oscillation on a cell bounds every difference of two function values. -/
 theorem cell_difference_bound {I J : Box Unit} (f : ℝ → ℝ) (hJI : J ≤ I)
     (hf : Bornology.IsBounded (f '' Icc (-I.upper ()) (-I.lower ())))
