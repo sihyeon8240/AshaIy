@@ -187,6 +187,7 @@ jobs:
             git config --global --add safe.directory "$(pwd)"
             ./scripts/ashaiy format sh --check
             python3 scripts/format_tex.py --check --prune-cache
+            REQUIRE_TEX_TESTS=1 python3 -m unittest discover -s tests -p test_code_fonts.py -v
             ./scripts/ashaiy site test
       - name: Upload failed browser trace
         if: failure()
