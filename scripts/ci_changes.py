@@ -90,8 +90,8 @@ def image_inputs(root: Path = ROOT) -> set[str]:
 
 def is_documentation(path: str) -> bool:
     return path.endswith(".md") or path in {
-        "LICENSES/MIT.txt",
-        "LICENSES/CC-BY-4.0.txt",
+        "LICENSE-MIT",
+        "LICENSE-CC-BY-4.0",
     }
 
 

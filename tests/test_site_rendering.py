@@ -187,7 +187,7 @@ class SiteRenderingTests(unittest.TestCase):
             "",
             "/releases",
             "/issues/new/choose",
-            "/blob/main/LICENSES/CC-BY-4.0.txt",
+            "/blob/main/LICENSE-CC-BY-4.0",
         ):
             self.assertIn(repository + suffix, urls)
         self.assertIn(repository + "/edit/main/site/index.html", urls)
