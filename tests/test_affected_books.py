@@ -105,6 +105,39 @@ class AffectedBookTests(unittest.TestCase):
     def test_common_style_selects_only_actual_consumer(self):
         self.assertEqual(self.plan(["common/styles/alpha.sty"])["book"], ["alpha"])
 
+    def test_unknown_shared_assets_are_conservative_but_scaffolds_are_exempt(self):
+        self.assertEqual(
+            self.plan(["common/templates/diagram.png"])["book"], ["alpha", "beta"]
+        )
+        self.assertEqual(self.plan(["common/templates/section.tex"])["book"], [])
+
+    def test_graphics_are_tracked_as_shared_book_dependencies(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            asset = root / "common/templates/diagram.png"
+            asset.parent.mkdir(parents=True)
+            asset.write_bytes(b"image bytes")
+            source = root / "books/alpha/book.tex"
+            source.parent.mkdir(parents=True)
+            source.write_text(r"\includegraphics[width=2cm]{common/templates/diagram}")
+            beta = root / "books/beta/book.tex"
+            beta.parent.mkdir(parents=True)
+            beta.write_text("No graphic.\n")
+            with (
+                mock.patch.object(affected, "ROOT", root),
+                mock.patch.object(
+                    affected, "load_manifest", return_value=self.manifest
+                ),
+            ):
+                self.assertEqual(
+                    affected.plan(["common/templates/diagram.png"])["book"], ["alpha"]
+                )
+                asset.unlink()
+                self.assertEqual(
+                    affected.plan(["common/templates/diagram.png"])["book"],
+                    ["alpha", "beta"],
+                )
+
     def test_ci_only_helpers_select_no_books(self):
         for path in (
             "scripts/snapshot_base.sh",

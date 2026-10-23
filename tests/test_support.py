@@ -95,6 +95,7 @@ def copy_validation_configuration(root: Path) -> None:
     repository = Path(__file__).resolve().parent.parent
     for relative in (
         "scripts/validation_patterns.py",
+        "scripts/path_policy.py",
         "config/validation-patterns.json",
     ):
         target = root / relative

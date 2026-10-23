@@ -322,6 +322,7 @@ The main implementation responsibilities are:
 | `repository_tasks.py`, `task_stages.py` | Ordered execution, invocation-local stage results, and stopping on failure. |
 | `book_manifest.py`, `books.py` | Manifest policy and stable CLI presentation; Python checks import the domain module. |
 | `book_impact.py`, `source_impact.py`, `ci_changes.py` | PDF dependencies, Lean selection, and shared changed-path discovery. |
+| `path_policy.py` | Shared file roles for image, site, snapshot, source, and PDF consumers; unknown PDF inputs select conservatively. |
 | `releases.py` | Release eligibility and semantic-version policy. |
 | `impact_plan.py` | Source/PDF selection with independent event and snapshot baselines. Missing comparisons select conservatively. |
 | `source_checks.py`, `source_reads.py` | Read-only source checks with an invocation-scoped read snapshot. Writing generation reads preceding stages' output directly. |
