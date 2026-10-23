@@ -103,6 +103,51 @@ def check_remote_tags(selected: list[str], manifest: dict) -> None:
         )
 
 
+def release_edits(text: str, node: yaml.MappingNode, version: str) -> list[tuple]:
+    fields = {key.value: value for key, value in node.value}
+    updates = {"version": version, "release": "true"}
+    edits = []
+    missing = []
+    for name, replacement in updates.items():
+        value = fields.get(name)
+        if value is None:
+            missing.append((name, replacement))
+        else:
+            if (
+                not node.start_mark.index
+                <= value.start_mark.index
+                < node.end_mark.index
+            ):
+                raise ValueError(f"release field '{name}' must not be a YAML alias")
+            edits.append((value.start_mark.index, value.end_mark.index, replacement))
+
+    if not missing:
+        return edits
+    if node.flow_style:
+        position = node.end_mark.index - 1
+        addition = ", " + ", ".join(f"{name}: {value}" for name, value in missing)
+    elif "version" in fields:
+        key = next(key for key, _ in node.value if key.value == "version")
+        position = text.rfind("\n", 0, key.start_mark.index) + 1
+        indent = " " * key.start_mark.column
+        addition = "".join(f"{indent}{name}: {value}\n" for name, value in missing)
+    else:
+        key, value = node.value[-1]
+        position = text.find("\n", value.end_mark.index)
+        prefix = ""
+        if position < 0:
+            position = len(text)
+            prefix = "\n"
+        else:
+            position += 1
+        indent = " " * key.start_mark.column
+        addition = prefix + "".join(
+            f"{indent}{name}: {value}\n" for name, value in missing
+        )
+    edits.append((position, position, addition))
+    return edits
+
+
 def prepare(book_slug: str, version: str) -> None:
     branch = subprocess.check_output(
         ["git", "branch", "--show-current"], cwd=ROOT, text=True
@@ -132,17 +177,7 @@ def prepare(book_slug: str, version: str) -> None:
         for item in books_node.value
         if any(k.value == "slug" and v.value == book_slug for k, v in item.value)
     )
-    value = next(v for k, v in node.value if k.value == "version")
-    edits = [(value.start_mark.index, value.end_mark.index, version)]
-    release = next((v for k, v in node.value if k.value == "release"), None)
-    if release is not None:
-        edits.append((release.start_mark.index, release.end_mark.index, "true"))
-    else:
-        # Insert before the version field, respecting its existing indentation.
-        key = next(k for k, _ in node.value if k.value == "version")
-        position = text.rfind("\n", 0, key.start_mark.index) + 1
-        indent = " " * key.start_mark.column
-        edits.append((position, position, f"{indent}release: true\n"))
+    edits = release_edits(text, node, version)
 
     # Preserve comments, formatting, and unrelated in-progress manifest edits.
     updated = text
