@@ -31,10 +31,12 @@ try:
     from scripts.book_manifest import load_manifest
     from scripts.latex_scan import command_arguments, theorem_label_groups
     from scripts.lean_source import escape_hatch_lines
+    from scripts.lean_source import imports as module_imports
 except ModuleNotFoundError:
     from book_manifest import load_manifest
     from latex_scan import command_arguments, theorem_label_groups
     from lean_source import escape_hatch_lines
+    from lean_source import imports as module_imports
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -42,7 +44,6 @@ LABEL_RE = re.compile(
     r"^[a-z0-9]+:(?:thm|lem|prop|cor):[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$"
 )
 DECLARATION_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_']*(?:\.[A-Za-z_][A-Za-z0-9_']*)+$")
-IMPORT_RE = re.compile(r"(?m)^\s*import\s+([A-Za-z_][A-Za-z0-9_.']*)")
 ALLOWED_FIELDS = {"id", "declaration"}
 
 
@@ -287,12 +288,12 @@ def check_book_sources(
                     "or Appendices/AppendixName/Topic.lean layout "
                     "(only the book All.lean entry point is exempt)"
                 )
-            for number, line in enumerate(sources[source].splitlines(), 1):
-                match = re.match(r"\s*import\s+Textbooks\.([A-Za-z0-9_]+)", line)
-                if match and match.group(1) != owner:
+            for imported, number in module_imports(sources[source]):
+                parts = imported.split(".")
+                if len(parts) > 1 and parts[0] == "Textbooks" and parts[1] != owner:
                     errors.append(
                         f"{source.relative_to(root)}:{number}: direct cross-book import "
-                        f"is forbidden: {line.strip()}"
+                        f"is forbidden: {imported}"
                     )
 
     return errors
@@ -313,7 +314,7 @@ def check_source_proofs(root: Path, sources: dict[Path, str]) -> list[str]:
         for source in sources
     }
     imports = {
-        module: set(IMPORT_RE.findall(sources[source]))
+        module: {name for name, _ in module_imports(sources[source])}
         for module, source in source_by_module.items()
     }
 
