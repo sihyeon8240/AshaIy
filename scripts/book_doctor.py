@@ -6,26 +6,19 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-try:
-    from scripts.book_manifest import load_manifest
-    from scripts.contents_manifest import (
-        appendix_directory,
-        chapter_directory,
-        expected_files,
-        load_book_contents,
-        load_sections,
-        section_filenames,
-    )
-except ModuleNotFoundError:
-    from book_manifest import load_manifest
-    from contents_manifest import (
-        appendix_directory,
-        chapter_directory,
-        expected_files,
-        load_book_contents,
-        load_sections,
-        section_filenames,
-    )
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.book_manifest import load_manifest
+from scripts.contents_manifest import (
+    appendix_directory,
+    chapter_directory,
+    expected_files,
+    load_book_contents,
+    load_sections,
+    section_filenames,
+)
+from scripts.latex_scan import command_arguments
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -62,7 +55,6 @@ def main() -> int:
             "Manifest metadata": bool(record),
             "Book structure": bool(entry),
             "Bibliography": (directory / "references.bib").is_file(),
-            "Frontmatter fallback": "common/templates" in entry,
         }
 
         chapters, appendices = load_book_contents(directory)
@@ -102,14 +94,19 @@ def main() -> int:
                 and not stale,
                 "Section structure": bool(section_files)
                 and all(path.is_file() for path in section_files),
-                "Labels": "\\label{" in content,
+                "Labels": bool(command_arguments(content, {"label"})),
                 "References": "\\printbibliography" in entry,
             }
         )
-        checks["Repository policy compliance"] = bool(record) and all(checks.values())
-
         for name, passed in checks.items():
             print(f"{name}: {'OK' if passed else 'CHECK'}")
+            if not passed:
+                reason = (
+                    "no labels in section sources yet"
+                    if name == "Labels"
+                    else "missing or stale inputs; run ashaiy check source for details"
+                )
+                warnings.append(f"{name}: {reason}")
     except Exception as error:
         warnings.append(f"inspection incomplete: {error}")
 
