@@ -107,6 +107,7 @@ class ManifestModuleTests(unittest.TestCase):
         self.assertTrue(book["check"])
         self.assertFalse(book["release"])
         self.assertTrue(book["site"])
+        self.assertEqual(book["label_prefix"], "s")
 
     def test_version_and_status_defaults_allow_book_overrides(self) -> None:
         root, path, _ = self.fixture({"slug": "sample", "title": "Sample", "order": 10})

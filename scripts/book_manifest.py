@@ -6,7 +6,7 @@ import os
 import re
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, NotRequired, TypedDict, cast
 
 import yaml
 
@@ -48,6 +48,21 @@ BOOK_FIELDS = {
     "release",
     "site",
 }
+
+
+class BookMetadata(TypedDict):
+    slug: str
+    title: str
+    author: str
+    version: str
+    status: str
+    order: int
+    label_prefix: str
+    lean_module: NotRequired[str]
+    build: bool
+    check: bool
+    release: bool
+    site: bool
 
 
 def version_key(value: str) -> tuple:
@@ -235,7 +250,7 @@ def normalize_manifest(data: object) -> dict[str, Any]:
     if not isinstance(books, list):
         raise ValueError("'books' must be a list")
 
-    normalized_books: list[dict[str, Any]] = []
+    normalized_books: list[BookMetadata] = []
     seen_slugs: set[str] = set()
     seen_label_prefixes: set[str] = set()
     seen_lean_modules: set[str] = set()
@@ -302,6 +317,7 @@ def normalize_manifest(data: object) -> dict[str, Any]:
         if label_prefix in seen_label_prefixes:
             raise ValueError(f"duplicate label_prefix: {label_prefix}")
         seen_label_prefixes.add(label_prefix)
+        book["label_prefix"] = label_prefix
 
         lean_module = book.get("lean_module")
         if lean_module is not None:
@@ -326,7 +342,7 @@ def normalize_manifest(data: object) -> dict[str, Any]:
         if book["site"] and not book["build"]:
             raise ValueError(f"book '{slug}' cannot have site=true when build=false")
 
-        normalized_books.append(book)
+        normalized_books.append(cast(BookMetadata, book))
 
     data["books"] = sorted(
         normalized_books,
@@ -366,9 +382,9 @@ def manifest_warnings(manifest: dict[str, Any]) -> list[str]:
     return warnings
 
 
-def require_book(slug: str) -> dict[str, Any]:
+def require_book(slug: str) -> BookMetadata:
     manifest = load_manifest()
     for book in manifest["books"]:
         if book["slug"] == slug:
-            return book
+            return cast(BookMetadata, book)
     raise ValueError(f"book is not registered in config/books.yml: {slug}")
