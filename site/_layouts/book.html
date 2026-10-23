@@ -15,14 +15,16 @@ layout: default
   <aside class="resource-card" aria-label="Book resources">
     <ul class="resource-list">
       <li>
-        <code>ashaiy book build --book<br>
-          {% if book.label_prefix %}{ {{ book.slug | escape }} | {{ book.label_prefix | escape }} }{% else %}{{ book.slug | escape }}{% endif %}
-        </code>
+        <code>ashaiy book build --book {{ book.slug | escape }}</code>
+        {% if book.label_prefix %}<small>Alias: <code>{{ book.label_prefix | escape }}</code></small>{% endif %}
       </li>
       <li>
         <span class="resource-list__item">
+          {% if book.lean_total == 0 %}No textbook results registered yet.{% else %}
           Lean coverage: <strong>{{ book.lean_coverage }}%</strong>
           ({{ book.lean_verified }}/{{ book.lean_total }})
+          {% endif %}
+          <br>Sections with content: {{ book.sections_written }}/{{ book.sections_total }}
         </span>
       </li>
       <li>

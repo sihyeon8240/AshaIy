@@ -11,19 +11,18 @@ import sys
 from pathlib import Path
 
 import yaml
-from file_updates import write_updates
 
-try:
-    from scripts.validation_patterns import validation_pattern
-except ModuleNotFoundError:
-    from validation_patterns import validation_pattern
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-try:
-    from scripts.book_manifest import STATUS_LABELS, load_manifest
-    from scripts.lean_coverage import book_lean_metrics, registered_results
-except ModuleNotFoundError:
-    from book_manifest import STATUS_LABELS, load_manifest
-    from lean_coverage import book_lean_metrics, registered_results
+from scripts.book_manifest import STATUS_LABELS, load_manifest
+from scripts.file_updates import write_updates
+from scripts.lean_coverage import (
+    book_content_metrics,
+    book_lean_metrics,
+    registered_results,
+)
+from scripts.validation_patterns import validation_pattern
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PAGES_DIR = REPO_ROOT / "site" / "books"
@@ -72,6 +71,9 @@ def site_books(manifest: dict) -> list[dict]:
         book["lean_verified"] = lean["verified"]
         book["lean_total"] = lean["total"]
         book["lean_coverage"] = lean["percentage"]
+        content = book_content_metrics(source["slug"])
+        book["sections_total"] = content["sections"]
+        book["sections_written"] = content["written"]
         books.append(book)
     return books
 
