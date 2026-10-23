@@ -1,8 +1,7 @@
-"""Runtime image policy output and compatibility with immutable tag hashing."""
+"""Runtime image policy output and complete declared-input identity."""
 
 from __future__ import annotations
 
-import hashlib
 import json
 import shutil
 import subprocess
@@ -60,17 +59,24 @@ class ImagePolicyTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         return result.stdout.strip()
 
-    def test_hash_preserves_sha256sum_transcript_and_input_order(self) -> None:
-        for inputs in (self.config["inputs"], list(reversed(self.config["inputs"]))):
-            with self.subTest(inputs=inputs):
-                self.config["inputs"] = inputs
-                self.save()
-                transcript = subprocess.check_output(
-                    ["sha256sum", *inputs], cwd=self.root
-                )
-                transcript += b"native-multiarch-v1\nlinux/amd64,linux/arm64\n"
-                expected = hashlib.sha256(transcript).hexdigest()[:12]
-                self.assertEqual(self.output("hash"), expected)
+    def test_executable_modes_and_paths_change_identity_and_symlinks_fail(self) -> None:
+        original = self.output("hash")
+        source = self.root / "input.bin"
+        source.chmod(0o755)
+        executable = self.output("hash")
+        self.assertNotEqual(executable, original)
+        source.chmod(0o644)
+        self.assertEqual(self.output("hash"), original)
+        target = self.root / "renamed.bin"
+        source.rename(target)
+        self.config["inputs"][0] = "renamed.bin"
+        self.save()
+        self.assertNotEqual(self.output("hash"), original)
+        target.rename(source)
+        target.symlink_to(source)
+        result = self.command("hash")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("without symlinks", result.stderr)
 
     def test_runtime_matrix_and_architectures_follow_policy_without_generation(
         self,

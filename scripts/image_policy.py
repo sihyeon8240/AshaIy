@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import stat
 import sys
 from pathlib import Path
 
@@ -15,11 +16,19 @@ from repository_config import ROOT, load_image_build
 def input_hash(root: Path = ROOT) -> str:
     config = load_image_build(root)
     digest = hashlib.sha256()
-    # Preserve the sha256sum transcript used by existing immutable image tags.
     for path in config["inputs"]:
-        with (root / path).open("rb") as stream:
+        source = root / path
+        mode = source.lstat().st_mode
+        if not stat.S_ISREG(mode) or any(
+            parent.is_symlink() for parent in source.parents if parent != root.parent
+        ):
+            raise ValueError(
+                f"image input must be a regular file without symlinks: {path}"
+            )
+        with source.open("rb") as stream:
             checksum = hashlib.file_digest(stream, "sha256").hexdigest()
-        digest.update(f"{checksum}  {path}\n".encode())
+        executable = "100755" if mode & 0o111 else "100644"
+        digest.update(f"{executable} {checksum}  {path}\n".encode())
     platforms = ",".join(f"linux/{item['arch']}" for item in config["platforms"])
     digest.update(f"{config['policy_version']}\n{platforms}\n".encode())
     return digest.hexdigest()[:12]

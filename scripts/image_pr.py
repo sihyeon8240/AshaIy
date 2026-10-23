@@ -57,9 +57,14 @@ def source_policy(revision: str) -> tuple[dict, str]:
         config.write_text(source_text(revision, "config/image-build.json"))
         policy = load_image_build(root)
         for name in policy["inputs"]:
+            entry = command("git", "ls-tree", revision, "--", name)
+            mode = entry.split(" ", 1)[0]
+            if mode not in {"100644", "100755"}:
+                raise ValueError(f"image input must be a regular Git blob: {name}")
             target = root / name
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(source_text(revision, name))
+            target.chmod(0o755 if mode == "100755" else 0o644)
         return policy, f"texlive-{input_hash(root)}"
 
 

@@ -288,6 +288,10 @@ If dispatch fails, manually dispatch **Build textbooks** on the PR branch with
 Ordinary textbook PRs neither publish images nor update pins.
 
 The content tag hashes inputs and build policy from `config/image-build.json`.
+It includes each input's path, bytes, and Git executable flag; symlinks are rejected.
+This identifies declared build inputs and a tested publication. It does not promise
+identical bytes from independent rebuilds: apt resolution and Python transitive
+dependencies are not fully locked. Consumers use the published immutable digest.
 Review the policy version when hash, build, or validation semantics change.
 Existing indexes must contain both Linux platforms and are never overwritten.
 Only an explicit missing manifest permits a build; denied lookups fail.

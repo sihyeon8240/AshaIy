@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "policy_version": "native-multiarch-v1",
+  "policy_version": "native-multiarch-v2",
   "inputs": [
     ".devcontainer/Dockerfile",
     ".devcontainer/Dockerfile.dockerignore",
