@@ -174,9 +174,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/latexindent
-          key: latexindent-v2-${{ runner.os }}-${{ runner.arch }}-${{ needs.prepare-image.outputs.digest }}-${{ hashFiles('scripts/format_tex.py', 'scripts/normalize_eof.py', 'scripts/format_tex.sh', 'scripts/format_tex_file.sh', 'scripts/normalize_eof.sh', 'config/latexindent.yaml') }}-${{ hashFiles('**/*.tex', '**/*.sty') }}
+          key: latexindent-v2-${{ runner.os }}-${{ runner.arch }}-${{ needs.prepare-image.outputs.digest }}-${{ hashFiles('scripts/format_tex.py', 'scripts/normalize_eof.py', 'scripts/latex_scan.py', 'scripts/lean_source.py', 'scripts/format_tex.sh', 'scripts/format_tex_file.sh', 'scripts/normalize_eof.sh', 'config/latexindent.yaml') }}-${{ hashFiles('**/*.tex', '**/*.sty') }}
           restore-keys: |
-            latexindent-v2-${{ runner.os }}-${{ runner.arch }}-${{ needs.prepare-image.outputs.digest }}-${{ hashFiles('scripts/format_tex.py', 'scripts/normalize_eof.py', 'scripts/format_tex.sh', 'scripts/format_tex_file.sh', 'scripts/normalize_eof.sh', 'config/latexindent.yaml') }}-
+            latexindent-v2-${{ runner.os }}-${{ runner.arch }}-${{ needs.prepare-image.outputs.digest }}-${{ hashFiles('scripts/format_tex.py', 'scripts/normalize_eof.py', 'scripts/latex_scan.py', 'scripts/lean_source.py', 'scripts/format_tex.sh', 'scripts/format_tex_file.sh', 'scripts/normalize_eof.sh', 'config/latexindent.yaml') }}-
       - uses: ./.github/actions/run-toolchain
         with:
           image: ${{ needs.prepare-image.outputs.image }}
