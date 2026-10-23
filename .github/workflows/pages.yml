@@ -21,7 +21,8 @@ concurrency:
   queue: max
 jobs:
   deploy:
-    timeout-minutes: 15
+    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 30
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -29,7 +30,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Preserve the current deployment guard
-        run: cp scripts/pages_current.sh "$RUNNER_TEMP/pages_current.sh"
+        run: |
+          cp scripts/pages_current.sh "$RUNNER_TEMP/pages_current.sh"
+          cp scripts/check_site_output.py "$RUNNER_TEMP/check_site_output.py"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.snapshot_sha || 'generated-pdfs' }}
@@ -51,37 +54,65 @@ jobs:
           fi
           echo "sha=$snapshot_sha" >> "$GITHUB_OUTPUT"
           echo "snapshot=$(git -C pdf-snapshot rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Skip superseded snapshots before building
+        id: eligible
+        env:
+          SNAPSHOT_SHA: ${{ steps.source.outputs.snapshot }}
+        run: bash "$RUNNER_TEMP/pages_current.sh"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: steps.eligible.outputs.current == 'true'
         with:
           ref: ${{ steps.source.outputs.sha }}
           # Preserve the snapshot checkout when checking out the source at the root.
           clean: false
       - name: Load repository configuration
+        if: steps.eligible.outputs.current == 'true'
         id: config
         run: ./scripts/export_config.sh
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        if: steps.eligible.outputs.current == 'true'
         with:
           python-version: ${{ steps.config.outputs.python }}
           cache: pip
           cache-dependency-path: .github/requirements-ci.txt
-      - run: >-
+      - name: Install site generation dependencies
+        if: steps.eligible.outputs.current == 'true'
+        run: >-
           python3 -m pip install --disable-pip-version-check
           --requirement .github/requirements-ci.txt
       - name: Validate and generate site from config/books.yml
+        env:
+          SITE_SNAPSHOT_SHA: ${{ steps.source.outputs.snapshot }}
+        if: steps.eligible.outputs.current == 'true'
         run: ./scripts/ashaiy site generate
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
+        id: pages
+        if: steps.eligible.outputs.current == 'true'
       - uses: actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697 # v1
+        if: steps.eligible.outputs.current == 'true'
         with:
           source: site
           destination: _site
+          build_revision: ${{ steps.source.outputs.sha }}
       - name: Prepare PDF destination
+        if: steps.eligible.outputs.current == 'true'
         run: sudo install -d -o "$(id -u)" -g "$(id -g)" _site/pdf
       - name: Validate and add the complete PDF snapshot
+        if: steps.eligible.outputs.current == 'true'
         run: python3 scripts/stage_site_pdfs.py pdf-snapshot _site/pdf
+      - name: Validate the rendered deployment artifact
+        if: steps.eligible.outputs.current == 'true'
+        env:
+          PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+        run: >-
+          python3 "$RUNNER_TEMP/check_site_output.py" _site pdf-snapshot
+          --base-path "$PAGES_BASE_PATH"
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
+        if: steps.eligible.outputs.current == 'true'
         with:
           path: _site
       - name: Check that the deployment snapshot is still current
+        if: steps.eligible.outputs.current == 'true'
         id: current
         env:
           SNAPSHOT_SHA: ${{ steps.source.outputs.snapshot }}

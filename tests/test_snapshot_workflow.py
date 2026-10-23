@@ -504,6 +504,24 @@ esac
         self.assertNotIn("push origin", report["git"])
         self.assertEqual(report["temporary"], [])
 
+    def test_superseded_pages_skip_all_build_upload_and_deploy_steps(self):
+        workflow = yaml.safe_load((ROOT / ".github/workflows/pages.yml").read_text())
+        steps = workflow["jobs"]["deploy"]["steps"]
+        early = next(
+            index for index, step in enumerate(steps) if step.get("id") == "eligible"
+        )
+        for step in steps[early + 1 :]:
+            with self.subTest(step=step.get("name", step.get("uses"))):
+                self.assertFalse(
+                    condition_allows(
+                        step["if"],
+                        {
+                            "steps.eligible.outputs.current": "false",
+                            "steps.current.outputs.current": "",
+                        },
+                    )
+                )
+
     def test_pages_requires_snapshot_source_correspondence(self):
         workflow = yaml.safe_load((ROOT / ".github/workflows/pages.yml").read_text())
         step = next(

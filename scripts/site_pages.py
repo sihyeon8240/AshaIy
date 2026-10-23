@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -23,7 +25,7 @@ PAGES_DIR = REPO_ROOT / "site" / "books"
 SITE_FIELDS = ("slug", "title", "status", "order", "site", "release", "label_prefix")
 
 
-def snapshot_revision() -> str:
+def source_revision() -> str:
     """Identify the source checkout paired with the published PDF snapshot."""
     try:
         result = subprocess.run(
@@ -40,15 +42,26 @@ def snapshot_revision() -> str:
     return result.stdout.strip()
 
 
+def snapshot_revision() -> str:
+    revision = os.environ.get("SITE_SNAPSHOT_SHA", "")
+    if revision:
+        if not re.fullmatch(r"[0-9a-f]{40}", revision):
+            raise ValueError("SITE_SNAPSHOT_SHA must be a full snapshot commit SHA")
+        return revision
+    return source_revision()
+
+
 def site_books(manifest: dict) -> list[dict]:
     selected = [source for source in manifest["books"] if source["site"]]
     registered = registered_results() if selected else {}
     revision = snapshot_revision() if selected else ""
+    source_sha = source_revision() if selected else ""
     books = []
     for source in selected:
         book = {field: source.get(field) for field in SITE_FIELDS}
         book["status_label"] = STATUS_LABELS[source["status"]]
         book["snapshot_revision"] = revision
+        book["source_revision"] = source_sha
 
         lean = book_lean_metrics(source["slug"], registered=registered)
         book["lean_verified"] = lean["verified"]

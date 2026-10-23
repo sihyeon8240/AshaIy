@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import io
+import os
 import subprocess
 import sys
 import tempfile
@@ -82,6 +83,23 @@ class SiteGenerationTests(unittest.TestCase):
                 [book["snapshot_revision"] for book in books], [revision] * 2
             )
             self.assertEqual([book["release"] for book in books], [False, True])
+
+    def test_new_snapshot_changes_pdf_urls_without_changing_source_provenance(self):
+        with mock.patch.object(
+            site_generator, "source_revision", return_value="a" * 40
+        ):
+            for snapshot in ("b" * 40, "c" * 40):
+                with mock.patch.dict(os.environ, {"SITE_SNAPSHOT_SHA": snapshot}):
+                    books = site_generator.site_books(self.manifest())
+                self.assertEqual(
+                    [book["snapshot_revision"] for book in books], [snapshot] * 2
+                )
+                self.assertEqual(
+                    [book["source_revision"] for book in books], ["a" * 40] * 2
+                )
+        with mock.patch.dict(os.environ, {"SITE_SNAPSHOT_SHA": "invalid"}):
+            with self.assertRaisesRegex(ValueError, "full snapshot commit"):
+                site_generator.snapshot_revision()
 
     def test_exported_sources_can_render_without_git_metadata(self) -> None:
         with mock.patch.object(

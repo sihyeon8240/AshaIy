@@ -85,14 +85,17 @@ for metadata ownership.
 
 ## PDF snapshot URLs
 
-The generator records the source checkout's commit as `snapshot_revision`.
-Pages builds check out the source commit recorded by the PDF snapshot, so this
-identifies the published snapshot. The shared PDF URL include uses the same
-revision query for cards, previews, direct reading, fallback links, and downloads.
-Rebuilding the same commit preserves the URL; a different commit changes it.
-Source exports without Git metadata use unversioned URLs. Uncommitted local
-PDF changes do not change the revision; disable browser caching when previewing
-such changes locally.
+Pages sets `SITE_SNAPSHOT_SHA` to the immutable PDF snapshot commit. The generator
+records it as `snapshot_revision`, and the shared PDF URL include uses that query
+value for cards, previews, direct reading, fallback links, and downloads. Rebuilding
+the same source with different PDF bytes creates a new snapshot commit and URL.
+The separate `source_revision` field records the source checkout that produced
+the snapshot; Jekyll's build revision uses that source commit as well.
+
+Local generation falls back to the source checkout's commit when no deployment
+snapshot is supplied. Source exports without Git metadata use unversioned URLs.
+Uncommitted local PDF changes do not change the revision; disable browser caching
+when previewing such changes locally.
 
 ## Refreshing local pages
 
@@ -141,5 +144,8 @@ checks. It does not require local PDFs or a running preview server. Under
 Review the actual local site and its PDF links manually as well.
 
 Local preview uses the installed Jekyll; deployment uses GitHub's Jekyll build
-action. Deployment permissions and remote PDF snapshot validation remain CI
-responsibilities. Recreate the container after changing its image pin.
+action. Before uploading the actual deployment artifact, CI validates local HTML,
+CSS resource, image, and PDF links, HTML anchors, PDF headers, and PDF checksums
+against the downloaded snapshot. These checks use Pages' configured base path.
+Rendered fixtures exercise the same checker locally. Deployment permissions and
+remote PDF snapshot validation remain CI responsibilities. Recreate the container after changing its image pin.

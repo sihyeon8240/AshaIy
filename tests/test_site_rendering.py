@@ -18,6 +18,8 @@ import yaml
 from playwright.sync_api import sync_playwright
 from test_site_generation import site_generator
 
+from scripts.check_site_output import check as check_site_output
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 JEKYLL = shutil.which("jekyll")
 BROWSER = shutil.which("chromium") or shutil.which("chromium-browser")
@@ -139,6 +141,20 @@ class SiteRenderingTests(unittest.TestCase):
 
     def page(self, path: str) -> RenderedPage:
         return RenderedPage((self.destination / path).read_text(encoding="utf-8"))
+
+    def test_actual_rendered_output_passes_deployment_link_and_pdf_checks(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            destination = root / "rendered"
+            shutil.copytree(self.destination, destination)
+            (destination / "pdf").mkdir()
+            snapshot = root / "snapshot"
+            (snapshot / "pdf").mkdir(parents=True)
+            for slug in ("alpha", "beta"):
+                data = b"%PDF-1.7\nchecked snapshot"
+                (destination / "pdf" / f"{slug}.pdf").write_bytes(data)
+                (snapshot / "pdf" / f"{slug}.pdf").write_bytes(data)
+            check_site_output(destination, snapshot, base_path="/math")
 
     def test_titles_are_escaped_in_text_and_accessible_names(self) -> None:
         home = self.page("index.html")

@@ -101,8 +101,9 @@ validation, and styling. Confirm that generated pages remain untracked.
 
 Snapshot writers retain queued runs with `queue: max`; older runs cannot evict a
 waiting current-main publication. Before publishing, CI requires downloaded PDFs
-to match the build matrix exactly, then validates the complete site PDF set and prepares replacements
-and removals in a temporary directory, then installs and pushes the snapshot.
+to match the build matrix exactly. CI validates the complete site PDF set, prepares
+replacements and removals in a temporary directory, then installs and pushes the
+snapshot.
 Missing or expired planned artifacts stop publication without advancing
 `.source-sha`; run **Build textbooks** again to produce fresh artifacts. Missing
 initial PDFs require a full **Build textbooks** run to bootstrap. Superseded main
@@ -128,8 +129,13 @@ PDF rebuilds, so the workflow and its source scripts remain compatible.
 
 Publication returns an immutable `snapshot_sha`; Pages uses that snapshot and
 its recorded source, including manual or documentation-only retries. Deployment
-jobs queue without cancelling one another and skip superseded snapshots just
-before deployment. The guard runs before loading the snapshot's source.
+jobs queue without cancelling one another. The deployment guard and artifact
+checker are preserved before loading the snapshot's source. The snapshot is
+checked before installing dependencies or rendering, and again immediately before
+deployment. Superseded snapshots skip the build, upload, and deploy steps.
+Before upload, the checker validates the actual rendered local links and PDF
+bytes against the snapshot. The job has a 30-minute budget including dependency
+installation, rendering, upload, and the deploy action's ten-minute timeout.
 Remote/ref resolution failures stop deployment rather than count as a skip;
 restore access or repair the ref, then retry. Main and the snapshot ref are not
 locked as one transaction. These rules do not alter release packages.
