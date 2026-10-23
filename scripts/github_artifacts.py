@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -11,6 +12,9 @@ from typing import Callable
 
 ROOT = Path(__file__).resolve().parent.parent
 DOWNLOAD_TIMEOUT = 600
+DOWNLOAD_MAX_TIMEOUT = 3600
+DOWNLOAD_MIN_BYTES_PER_SECOND = 8 * 1024**2
+DISK_RESERVE = 2 * 1024**3
 DOWNLOAD_IDLE_TIMEOUT = 120
 DOWNLOAD_ATTEMPTS = 3
 DOWNLOAD_POLL_INTERVAL = 1
@@ -67,6 +71,25 @@ def verify_digest(artifact: dict, data: bytes | Path) -> None:
         raise ValueError("GitHub artifact digest mismatch")
 
 
+def require_space(path: Path, size: int, *, operation: str) -> None:
+    free = shutil.disk_usage(path).free
+    required = size + DISK_RESERVE
+    print(
+        f"{operation}: {free / 1024**3:.1f} GiB free; "
+        f"{required / 1024**3:.1f} GiB required including reserve",
+        flush=True,
+    )
+    if free < required:
+        raise ValueError(f"insufficient disk space for {operation}")
+
+
+def download_timeout(size: int) -> float:
+    return min(
+        DOWNLOAD_MAX_TIMEOUT,
+        DOWNLOAD_TIMEOUT + size / DOWNLOAD_MIN_BYTES_PER_SECOND,
+    )
+
+
 def download(repository: str, artifact: dict, target: Path, *, max_bytes: int) -> None:
     if (
         artifact.get("expired", True)
@@ -75,7 +98,10 @@ def download(repository: str, artifact: dict, target: Path, *, max_bytes: int) -
         raise ValueError("artifact is expired or too large")
     label = artifact.get("name", str(artifact["id"]))
     expected_size = artifact["size_in_bytes"]
-    deadline = time.monotonic() + DOWNLOAD_TIMEOUT
+    require_space(target.parent, expected_size, operation=f"download {label}")
+    budget = download_timeout(expected_size)
+    deadline = time.monotonic() + budget
+    print(f"{label}: total download budget {budget:.0f}s", flush=True)
     args = ["gh", "api", f"repos/{repository}/actions/artifacts/{artifact['id']}/zip"]
     for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
         print(
@@ -143,7 +169,7 @@ def download_attempt(
                         raise subprocess.CalledProcessError(process.returncode, args)
                     return
                 if now >= deadline:
-                    raise subprocess.TimeoutExpired(args, DOWNLOAD_TIMEOUT)
+                    raise subprocess.TimeoutExpired(args, max(0, deadline - started))
                 if now - last_progress >= DOWNLOAD_IDLE_TIMEOUT:
                     raise subprocess.TimeoutExpired(args, DOWNLOAD_IDLE_TIMEOUT)
         finally:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import json
 import os
 import subprocess
@@ -418,12 +419,13 @@ printf '%s\\n' "$MANIFEST"
                 with tempfile.TemporaryDirectory() as temporary:
                     root = Path(temporary)
                     archive = root / "image.tar.gz"
-                    archive.touch()
+                    archive.write_bytes(gzip.compress(b"docker archive"))
                     docker = root / "docker"
                     write_executable(
                         docker,
                         "#!/usr/bin/env bash\n"
                         'if [[ "$1" == load ]]; then exit 0; fi\n'
+                        'if [[ "$1" == info ]]; then echo "$DOCKER_TEST_STORAGE"; exit 0; fi\n'
                         'case "$5" in\n'
                         "  '{{.Id}}') echo \"$IMAGE_ID\" ;;\n"
                         "  '{{.Architecture}}') echo \"$IMAGE_ARCH\" ;;\n"
@@ -436,6 +438,7 @@ printf '%s\\n' "$MANIFEST"
                             **os.environ,
                             "PATH": f"{root}:{os.environ['PATH']}",
                             "ARCHIVE": str(archive),
+                            "DOCKER_TEST_STORAGE": str(root),
                             "IMAGE": "ghcr.io/example/toolchain:local",
                             "DIGEST": "a" * 64,
                             "IMAGE_ID": image_id,

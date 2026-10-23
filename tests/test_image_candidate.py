@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import importlib.util
 import json
 import os
@@ -157,6 +158,20 @@ class ImageCandidateTests(unittest.TestCase):
         expired = [self.artifacts[0], {**self.artifacts[1], "expired": True}]
         self.assertEqual(self.restore(artifacts=expired), (False, 0))
 
+    def test_expanded_image_limit_is_checked_before_docker_access(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            archive = Path(temporary) / "image.gz"
+            archive.write_bytes(gzip.compress(b"x" * 100))
+            with (
+                patch.object(CANDIDATE, "MAX_IMAGE_BYTES", 10),
+                patch.object(CANDIDATE, "command") as command,
+                self.assertRaisesRegex(
+                    ValueError, "expanded Docker image is too large"
+                ),
+            ):
+                CANDIDATE.check_archive(archive)
+            command.assert_not_called()
+
     def test_archive_is_verified_before_loading_or_tagging(self):
         for failure in (
             None,
@@ -172,7 +187,7 @@ class ImageCandidateTests(unittest.TestCase):
             ):
                 root = Path(temporary)
                 image = root / "image.tar.gz"
-                image.write_bytes(b"image bytes")
+                image.write_bytes(gzip.compress(b"image bytes"))
                 manifest = {**self.manifest, "checksum": CANDIDATE.checksum(image)}
                 if failure == "checksum":
                     manifest["checksum"] = "wrong"
@@ -206,7 +221,11 @@ class ImageCandidateTests(unittest.TestCase):
                     patch.object(
                         CANDIDATE,
                         "command",
-                        return_value="arm64" if failure == "architecture" else "amd64",
+                        side_effect=lambda *args: (
+                            str(root)
+                            if args[:2] == ("docker", "info")
+                            else ("arm64" if failure == "architecture" else "amd64")
+                        ),
                     ) as command,
                 ):
                     if failure:

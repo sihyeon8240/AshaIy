@@ -226,12 +226,15 @@ executes PR scripts or candidate containers with write credentials. Changed or
 closed heads are skipped; mismatched merge trees require fresh CI.
 
 Candidate downloads report bytes, average speed, and idle time every 15 seconds.
+Download, extraction, and Docker load check available disk space with a 2 GiB
+reserve. The gzip stream is measured before loading and capped at 40 GiB expanded.
 They stop after 120 seconds without file growth and retry from zero up to three
-times within a ten-minute total download budget per artifact. Every completed
+times within a size-dependent budget per artifact: ten minutes plus transfer
+time at 8 MiB/s, capped at one hour. Every completed
 archive must still pass GitHub's digest and candidate provenance checks. Image
 extraction, verification, loading, and publication log their stages; Docker push
 output streams directly. Docker load and push each have ten-minute limits; the
-publication job has a 120-minute overall limit. Publication code comes from
+publication job has a 180-minute overall limit. Publication code comes from
 `main`, so these changes take effect there only after owner review and merge.
 
 After publishing the index, the publisher adds one commit changing only

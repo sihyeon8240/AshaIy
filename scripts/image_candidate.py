@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import os
 import re
@@ -19,6 +20,7 @@ from github_artifacts import checksum, eligible_run
 ROOT = Path(__file__).resolve().parent.parent
 POLICY = "toolchain-candidate-v1"
 MAX_BYTES = 20 * 1024**3
+MAX_IMAGE_BYTES = 40 * 1024**3
 
 
 def command(*args: str) -> str:
@@ -54,6 +56,23 @@ def validate_manifest(manifest: dict, expected: dict, run: dict) -> None:
         raise ValueError("invalid candidate image ID")
 
 
+def check_archive(image_path: Path) -> int:
+    expanded = 0
+    with gzip.open(image_path, "rb") as stream:
+        while chunk := stream.read(8 * 1024**2):
+            expanded += len(chunk)
+            if expanded > MAX_IMAGE_BYTES:
+                raise ValueError("expanded Docker image is too large")
+    if not expanded:
+        raise ValueError("empty Docker image archive")
+    storage = Path(command("docker", "info", "--format", "{{.DockerRootDir}}"))
+    if not storage.is_absolute() or not storage.is_dir():
+        raise ValueError("Docker storage must be locally accessible for disk checks")
+    github_artifacts.require_space(storage, expanded, operation="load Docker image")
+    print(f"Expanded Docker archive: {expanded / 1024**3:.1f} GiB", flush=True)
+    return expanded
+
+
 def load_candidate(
     repository: str, artifact: dict, expected: dict, run: dict, image: str
 ) -> None:
@@ -75,6 +94,11 @@ def load_candidate(
             if not isinstance(manifest, dict):
                 raise ValueError("invalid candidate manifest")
             validate_manifest(manifest, expected, run)
+            github_artifacts.require_space(
+                directory,
+                archive.getinfo("image.tar.gz").file_size,
+                operation="extract candidate archive",
+            )
             image_path = directory / "image.tar.gz"
             with (
                 archive.open("image.tar.gz") as source,
@@ -85,10 +109,12 @@ def load_candidate(
         print(f"Verifying {expected['arch']} image checksum", flush=True)
         if checksum(image_path) != manifest["checksum"]:
             raise ValueError("candidate image checksum mismatch")
+        check_archive(image_path)
         print(f"Loading {expected['arch']} image into Docker", flush=True)
         subprocess.run(
             ["docker", "load", "--input", str(image_path)], check=True, timeout=600
         )
+        image_path.unlink()
         image_id = manifest["image_id"]
         arch = command(
             "docker", "image", "inspect", image_id, "--format", "{{.Architecture}}"
@@ -150,10 +176,16 @@ def restore(arch: str, image: str) -> bool:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("record", "restore", "publish-pr"))
+    parser.add_argument("mode", choices=("record", "restore", "publish-pr", "inspect"))
     parser.add_argument("--arch", choices=("amd64", "arm64"))
     parser.add_argument("--image")
+    parser.add_argument("--archive", type=Path)
     args = parser.parse_args()
+    if args.mode == "inspect":
+        if not args.archive:
+            parser.error("--archive is required for inspect")
+        check_archive(args.archive)
+        return
     if args.mode == "publish-pr":
         import image_pr
 

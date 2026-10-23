@@ -47,6 +47,31 @@ class ArtifactDownloadTests(unittest.TestCase):
                 )
             self.assertFalse(target.exists())
 
+    def test_large_archives_receive_a_bounded_size_dependent_budget(self):
+        self.assertEqual(artifacts.download_timeout(0), 600)
+        self.assertGreater(artifacts.download_timeout(8 * 1024**3), 14 * 60)
+        self.assertEqual(artifacts.download_timeout(100 * 1024**3), 3600)
+
+    def test_insufficient_disk_space_stops_before_download(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with (
+                patch.object(artifacts.shutil, "disk_usage") as usage,
+                patch.object(artifacts, "download_attempt") as transfer,
+                self.assertRaisesRegex(ValueError, "insufficient disk space"),
+            ):
+                usage.return_value.free = 0
+                artifacts.download(
+                    "owner/repo",
+                    {
+                        "id": 1,
+                        "expired": False,
+                        "size_in_bytes": 100,
+                    },
+                    Path(temporary) / "archive",
+                    max_bytes=100,
+                )
+            transfer.assert_not_called()
+
     def test_stalled_process_is_killed_and_progress_is_reported(self):
         with tempfile.TemporaryDirectory() as temporary:
             target = Path(temporary) / "artifact.zip"
