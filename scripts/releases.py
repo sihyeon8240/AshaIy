@@ -13,6 +13,7 @@ from pathlib import Path
 import yaml
 from book_manifest import SLUG_PATTERN, load_manifest, normalize_manifest, version_key
 from contents_manifest import expected_files
+from source_reads import parse_yaml
 from validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -240,7 +241,7 @@ def main() -> int:
             previous = {"books": []}
             if args.base != "0" * 40:
                 previous = normalize_manifest(
-                    yaml.safe_load(
+                    parse_yaml(
                         subprocess.check_output(
                             ["git", "show", f"{args.base}:config/books.yml"],
                             cwd=ROOT,

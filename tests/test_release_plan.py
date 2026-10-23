@@ -34,6 +34,7 @@ class ReleasePlanTests(unittest.TestCase):
             "book_manifest.py",
             "contents_manifest.py",
             "latex_scan.py",
+            "latex_titles.py",
             "source_reads.py",
         ):
             shutil.copy2(ROOT / "scripts" / name, scripts / name)

@@ -107,6 +107,7 @@ def load_image_build(root: Path = ROOT) -> dict:
     if (
         not isinstance(data, dict)
         or set(data) != {"schema_version", "policy_version", "inputs", "platforms"}
+        or type(data["schema_version"]) is not int
         or data["schema_version"] != 1
     ):
         raise ValueError(f"{path}: unsupported image build configuration")
@@ -156,6 +157,7 @@ def load_authoring(root: Path = ROOT) -> dict:
         not isinstance(data, dict)
         or set(data)
         != {"schema_version", "shell_args", "test_directory", "test_pattern"}
+        or type(data["schema_version"]) is not int
         or data["schema_version"] != 1
     ):
         raise ValueError(f"{path}: unsupported authoring configuration")

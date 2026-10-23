@@ -12,6 +12,23 @@ except ModuleNotFoundError:
 TEXORPDFSTRING = re.compile(r"\\texorpdfstring\s*")
 
 
+def tex_text(text: str) -> str:
+    """Render plain registry text without granting it TeX command semantics."""
+    escapes = {
+        "\\": r"\textbackslash{}",
+        "{": r"\{",
+        "}": r"\}",
+        "&": r"\&",
+        "%": r"\%",
+        "#": r"\#",
+        "_": r"\_",
+        "$": r"\$",
+        "~": r"\textasciitilde{}",
+        "^": r"\textasciicircum{}",
+    }
+    return "".join(escapes.get(character, character) for character in text)
+
+
 def chapter_titles(text: str) -> list[str]:
     return [item.argument for item in command_arguments(text, {"chapter"})]
 

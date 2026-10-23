@@ -27,6 +27,10 @@ Unknown fields are errors. After metadata edits, run `ashaiy config generate`,
 `ashaiy config check`, and `ashaiy contents generate --book <slug>`; refresh site pages when
 needed as described below.
 
+Registry `title` and `author` are plain text. LaTeX generation escapes their
+special characters; site generation renders them as text. Chapter and section
+titles are LaTeX: balance braces and write `\%` for a literal percent sign.
+
 `ashaiy book build --book <slug>` builds a registered book regardless of its `build`
 flag. Release preparation requires `build: true` and enables `release: true`.
 A reviewed transition to `release: true` publishes the current version;

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import cast
 
 import yaml
+from latex_titles import tex_text
 
 try:
     from scripts.validation_patterns import validation_pattern
@@ -43,7 +44,10 @@ def _mapping(path: Path) -> dict:
         raise ValueError(f"{path}: cannot read YAML: {error}") from error
     if not isinstance(value, dict):
         raise ValueError(f"{path}: root must be a mapping")
-    if value.get("schema_version") != SCHEMA_VERSION:
+    if (
+        type(value.get("schema_version")) is not int
+        or value["schema_version"] != SCHEMA_VERSION
+    ):
         raise ValueError(f"{path}: schema_version must be {SCHEMA_VERSION}")
     return value
 
@@ -85,6 +89,10 @@ def _validate_entries(
         if slug in seen:
             raise ValueError(f"{path}: duplicate {field[:-1]} slug {slug!r}")
         seen.add(slug)
+        if isinstance(title, str) and without_comments(title) != title:
+            raise ValueError(
+                f"{prefix}.title contains an unescaped percent sign; use \\%"
+            )
         if (
             not isinstance(title, str)
             or not title.strip()
@@ -191,8 +199,8 @@ def render_metadata(book: dict) -> str:
     return "\n".join(
         (
             BEGIN_METADATA,
-            f"\\newcommand{{\\name}}{{{book['author']}}}",
-            f"\\newcommand{{\\displaytitle}}{{{book['title']}}}",
+            f"\\newcommand{{\\name}}{{{tex_text(book['author'])}}}",
+            f"\\newcommand{{\\displaytitle}}{{{tex_text(book['title'])}}}",
             f"\\newcommand{{\\version}}{{{book['version']}}}",
             f"\\newcommand{{\\slug}}{{{book['slug']}}}",
             r"\title{\displaytitle}",

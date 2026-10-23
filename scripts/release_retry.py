@@ -11,9 +11,9 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-import yaml
 from book_manifest import SLUG_PATTERN, normalize_manifest, version_key
 from github_artifacts import api, checksum, command, download, validate_identity
+from source_reads import parse_yaml
 
 try:
     from scripts.validation_patterns import validation_pattern
@@ -101,7 +101,7 @@ def restore(run_id: str, book: str, version: str, directory: Path) -> str:
     command("git", "fetch", "--no-tags", "origin", "main")
     command("git", "merge-base", "--is-ancestor", source, "origin/main")
     manifest = normalize_manifest(
-        yaml.safe_load(command("git", "show", f"{source}:config/books.yml").decode())
+        parse_yaml(command("git", "show", f"{source}:config/books.yml").decode())
     )
     entry = next((item for item in manifest["books"] if item["slug"] == book), None)
     if not entry or not entry["release"] or entry["version"] != version:

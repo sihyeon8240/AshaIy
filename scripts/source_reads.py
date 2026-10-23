@@ -10,6 +10,45 @@ from pathlib import Path
 import yaml
 
 
+class StrictLoader(yaml.SafeLoader):
+    """Safe YAML with explicit, unique mapping keys; merge keys are unsupported."""
+
+    def construct_mapping(self, node, deep=False):
+        mapping = {}
+        for key_node, value_node in node.value:
+            if key_node.tag == "tag:yaml.org,2002:merge":
+                raise yaml.constructor.ConstructorError(
+                    "while constructing a mapping",
+                    node.start_mark,
+                    "merge keys are unsupported; write each field explicitly",
+                    key_node.start_mark,
+                )
+            key = self.construct_object(key_node, deep=deep)
+            try:
+                duplicate = key in mapping
+            except TypeError as error:
+                raise yaml.constructor.ConstructorError(
+                    "while constructing a mapping",
+                    node.start_mark,
+                    "mapping keys must be scalar values",
+                    key_node.start_mark,
+                ) from error
+            if duplicate:
+                raise yaml.constructor.ConstructorError(
+                    "while constructing a mapping",
+                    node.start_mark,
+                    f"duplicate key {key!r}",
+                    key_node.start_mark,
+                )
+            mapping[key] = self.construct_object(value_node, deep=deep)
+        return mapping
+
+
+def parse_yaml(text: str) -> object:
+    """Parse current or historical configuration using the same strict contract."""
+    return yaml.load(text, Loader=StrictLoader)
+
+
 @dataclass
 class SourceReads:
     texts: dict[tuple[Path, str], str] = field(default_factory=dict)
@@ -43,8 +82,8 @@ def read_text(path: Path, *, errors: str = "strict") -> str:
 def read_yaml(path: Path) -> object:
     snapshot = _active.get()
     if snapshot is None:
-        return yaml.safe_load(read_text(path))
+        return parse_yaml(read_text(path))
 
     if path not in snapshot.documents:
-        snapshot.documents[path] = yaml.safe_load(read_text(path))
+        snapshot.documents[path] = parse_yaml(read_text(path))
     return snapshot.documents[path]

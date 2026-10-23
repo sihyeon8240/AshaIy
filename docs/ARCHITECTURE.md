@@ -280,11 +280,14 @@ an entire book or the fidelity of prose and displayed code.
 
 ## Stability policy
 
-The directory layout, `config/books.yml` and proof-index schemas, metadata loading,
-chapter/index pattern, Lean dependency boundary, build scripts, automation, and
-CI are public interfaces. Keep changes compatible and limited to a concrete
-maintenance need. Preserve independent book ownership and review interface
-changes explicitly.
+The directory layout, configuration schemas, metadata loading, chapter/index
+pattern, Lean dependency boundary, build scripts, automation, and CI are reviewed
+interfaces. Keep consumers, tests, and documentation aligned with their current
+contracts. Preserve independent book ownership and review interface changes explicitly.
+
+Repository YAML requires unique mapping keys and integer schema versions. Anchors
+and aliases are accepted; merge keys (`<<`) are rejected. Write fields explicitly
+so validation and source-preserving edits share an unambiguous field owner.
 
 ### Multi-platform toolchain images
 

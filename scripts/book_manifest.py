@@ -209,7 +209,7 @@ def normalize_manifest(data: object) -> dict[str, Any]:
             "manifest has unknown field(s): " + ", ".join(sorted(unknown_root_fields))
         )
 
-    if data.get("schema_version") != 1:
+    if type(data.get("schema_version")) is not int or data["schema_version"] != 1:
         raise ValueError("unsupported or missing schema_version")
 
     defaults = data.get("defaults", {})
@@ -329,7 +329,7 @@ def normalize_manifest(data: object) -> dict[str, Any]:
                 raise ValueError(f"duplicate lean_module: {lean_module}")
             seen_lean_modules.add(lean_module)
 
-        if status not in ALLOWED_STATUSES:
+        if not isinstance(status, str) or status not in ALLOWED_STATUSES:
             raise ValueError(f"book '{slug}' has invalid status: {status!r}")
 
         if not isinstance(order, int) or isinstance(order, bool):

@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 
 import yaml
+from source_reads import read_yaml
 
 try:
     from scripts.validation_patterns import validation_pattern
@@ -23,12 +24,13 @@ EDITOR_PROFILES = {
 
 def load_patterns(path: Path) -> dict[str, list[str]]:
     try:
-        config = yaml.safe_load(path.read_text(encoding="utf-8"))
+        config = read_yaml(path)
     except yaml.YAMLError as error:
         raise ValueError(f"{path}: invalid YAML: {error}") from error
     if (
         not isinstance(config, dict)
         or set(config) != {"schema_version", "groups", "profiles"}
+        or type(config["schema_version"]) is not int
         or config["schema_version"] != 1
     ):
         raise ValueError(f"{path}: expected ignore-pattern schema version 1")
