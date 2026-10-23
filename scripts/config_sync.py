@@ -79,8 +79,7 @@ def rendered_image_filters(root: Path) -> dict[Path, str]:
 
 def rendered_toolchain_groups(root: Path, toolchain: dict[str, str]) -> dict[Path, str]:
     groups = {
-        "tools": ("ELAN_", "RUFF_", "SHFMT_", "LATEXINDENT_", "SHELLCHECK_"),
-        "system": ("GH_",),
+        "tools": ("ELAN_", "RUFF_", "SHFMT_", "LATEXINDENT_", "SHELLCHECK_", "GH_"),
         "texlive": ("TEXLIVE_",),
         "lean": ("LEAN_",),
         "python": (

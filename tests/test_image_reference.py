@@ -116,7 +116,7 @@ class ConfigurationTests(unittest.TestCase):
         for key, group in (
             ("RUFF_VERSION", "tools"),
             ("PYYAML_VERSION", "python"),
-            ("GH_VERSION", "system"),
+            ("GH_VERSION", "tools"),
             ("TEXLIVE_ARCHIVE_DATE", "texlive"),
             ("LEAN_TOOLCHAIN", "lean"),
         ):

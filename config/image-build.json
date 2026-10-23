@@ -8,7 +8,6 @@
     "config/image-build.json",
     "scripts/ashaiy_launcher.sh",
     ".devcontainer/generated/tools.env",
-    ".devcontainer/generated/system.env",
     ".devcontainer/generated/texlive.env",
     ".devcontainer/generated/lean.env",
     ".devcontainer/generated/python.env"
