@@ -53,7 +53,6 @@ RUN set -a && . /tmp/texlive.env && set +a \
     'tlpdbopt_install_srcfiles 0' > /tmp/install-tl/profile \
   && TEXLIVE_INSTALL_NO_CONTEXT_CACHE=1 TEXLIVE_INSTALL_NO_WELCOME=1 \
     perl /tmp/install-tl/install-tl -profile /tmp/install-tl/profile -repository "$repository" \
-  && "/usr/local/texlive/${TEXLIVE_YEAR}/bin/$(uname -m)-linux/tlmgr" remove --force aliascnt \
   && rm -rf /tmp/install-tl /tmp/install-tl.tgz "/usr/local/texlive/${TEXLIVE_YEAR}"/*.log
 
 FROM python:3.14.8-slim-trixie@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170
