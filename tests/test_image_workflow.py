@@ -5,6 +5,7 @@ from __future__ import annotations
 import gzip
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -137,6 +138,10 @@ printf '%s\\n' "$MANIFEST"
                 tempfile.TemporaryDirectory() as temporary,
             ):
                 root = Path(temporary)
+                scripts = root / "scripts"
+                scripts.mkdir()
+                for name in ("__init__.py", "source_reads.py"):
+                    shutil.copy2(ROOT / "scripts" / name, scripts / name)
                 workflows = root / ".github/workflows"
                 workflows.mkdir(parents=True)
                 (workflows / "test.yml").write_text(
