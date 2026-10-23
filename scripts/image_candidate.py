@@ -10,17 +10,17 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import zipfile
 from pathlib import Path
 
-import github_artifacts
-from github_artifacts import checksum, eligible_run
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-try:
-    from scripts.validation_patterns import validation_pattern
-except ModuleNotFoundError:
-    from validation_patterns import validation_pattern
+from scripts import github_artifacts
+from scripts.github_artifacts import checksum, eligible_run
+from scripts.validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
 POLICY = "toolchain-candidate-v1"
@@ -194,7 +194,7 @@ def main() -> None:
         check_archive(args.archive)
         return
     if args.mode == "publish-pr":
-        import image_pr
+        from scripts import image_pr
 
         image_pr.publish(load_candidate, policy=POLICY, max_bytes=MAX_BYTES)
         return

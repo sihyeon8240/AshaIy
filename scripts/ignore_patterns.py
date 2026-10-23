@@ -7,12 +7,9 @@ import re
 from pathlib import Path
 
 import yaml
-from source_reads import read_yaml
 
-try:
-    from scripts.validation_patterns import validation_pattern
-except ModuleNotFoundError:
-    from validation_patterns import validation_pattern
+from scripts.source_reads import read_yaml
+from scripts.validation_patterns import validation_pattern
 
 PATTERN = re.compile(r"[A-Za-z0-9_.*?/~+-]+")
 HEADER = "# Generated from config/ignore-patterns.yml; do not edit.\n"

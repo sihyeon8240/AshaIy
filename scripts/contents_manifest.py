@@ -7,22 +7,11 @@ from pathlib import Path
 from typing import cast
 
 import yaml
-from latex_titles import tex_text
 
-try:
-    from scripts.validation_patterns import validation_pattern
-except ModuleNotFoundError:
-    from validation_patterns import validation_pattern
-
-try:
-    from scripts.source_reads import read_text, read_yaml
-except ModuleNotFoundError:
-    from source_reads import read_text, read_yaml
-
-try:
-    from scripts.latex_scan import has_balanced_braces, without_comments
-except ModuleNotFoundError:
-    from latex_scan import has_balanced_braces, without_comments
+from scripts.latex_scan import has_balanced_braces, without_comments
+from scripts.latex_titles import tex_text
+from scripts.source_reads import read_text, read_yaml
+from scripts.validation_patterns import validation_pattern
 
 SCHEMA_VERSION = 1
 SLUG = re.compile("^" + validation_pattern("chapter_slug") + "$")

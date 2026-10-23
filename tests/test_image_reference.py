@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import re
 import shutil
@@ -13,22 +12,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from scripts import config_sync as SYNC
+from scripts import repository_config as CONFIG
+
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-
-CONFIG_SPEC = importlib.util.spec_from_file_location(
-    "repository_config", ROOT / "scripts/repository_config.py"
-)
-assert CONFIG_SPEC and CONFIG_SPEC.loader
-CONFIG = importlib.util.module_from_spec(CONFIG_SPEC)
-CONFIG_SPEC.loader.exec_module(CONFIG)
-
-SYNC_SPEC = importlib.util.spec_from_file_location(
-    "config_sync", ROOT / "scripts/config_sync.py"
-)
-assert SYNC_SPEC and SYNC_SPEC.loader
-SYNC = importlib.util.module_from_spec(SYNC_SPEC)
-SYNC_SPEC.loader.exec_module(SYNC)
 
 
 class ConfigurationTests(unittest.TestCase):

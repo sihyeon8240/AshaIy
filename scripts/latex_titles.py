@@ -4,10 +4,7 @@ from __future__ import annotations
 
 import re
 
-try:
-    from scripts.latex_scan import braced_argument, command_arguments
-except ModuleNotFoundError:
-    from latex_scan import braced_argument, command_arguments
+from scripts.latex_scan import braced_argument, command_arguments
 
 TEXORPDFSTRING = re.compile(r"\\texorpdfstring\s*")
 

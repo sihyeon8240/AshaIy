@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import importlib.util
-import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,14 +10,9 @@ from typing import Any
 import yaml
 from test_support import book_record, manifest_document, write_yaml
 
+from scripts import architecture_checks as MODULE
+
 ROOT = Path(__file__).resolve().parent.parent
-SPEC = importlib.util.spec_from_file_location(
-    "check_architecture", ROOT / "scripts/architecture_checks.py"
-)
-assert SPEC and SPEC.loader
-MODULE = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = MODULE
-SPEC.loader.exec_module(MODULE)
 
 
 class ArchitectureTests(unittest.TestCase):

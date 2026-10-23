@@ -12,7 +12,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
-from book_manifest import load_manifest
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.book_manifest import load_manifest
 
 
 @dataclass(frozen=True)

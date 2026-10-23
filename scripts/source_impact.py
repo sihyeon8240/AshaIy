@@ -6,9 +6,9 @@ import re
 import subprocess
 from pathlib import Path
 
-from ci_changes import is_documentation
-from path_policy import SAFE_PATHS, SITE_FILES
-from validation_patterns import validation_pattern
+from scripts.ci_changes import is_documentation
+from scripts.path_policy import SAFE_PATHS, SITE_FILES
+from scripts.validation_patterns import validation_pattern
 
 ARTIFACT_ACTION = re.compile(
     r"(?m)^([ \t]*(?:-[ \t]+)?uses:[ \t]+actions/(?:upload|download)-artifact)"

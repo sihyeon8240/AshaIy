@@ -2,25 +2,18 @@
 
 from __future__ import annotations
 
-import importlib.util
 import io
 import os
 import subprocess
-import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest import mock
 
+from scripts import site_pages as site_generator
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT / "scripts"))
-spec = importlib.util.spec_from_file_location(
-    "site_generator", REPO_ROOT / "scripts/site_pages.py"
-)
-assert spec and spec.loader
-site_generator = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(site_generator)
 
 
 class SiteGenerationTests(unittest.TestCase):

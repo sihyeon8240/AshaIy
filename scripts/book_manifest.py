@@ -10,15 +10,8 @@ from typing import Any, NotRequired, TypedDict, cast
 
 import yaml
 
-try:
-    from scripts.validation_patterns import validation_pattern
-except ModuleNotFoundError:
-    from validation_patterns import validation_pattern
-
-try:
-    from scripts.source_reads import read_yaml
-except ModuleNotFoundError:
-    from source_reads import read_yaml
+from scripts.source_reads import read_yaml
+from scripts.validation_patterns import validation_pattern
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MANIFEST_PATH = REPO_ROOT / "config/books.yml"

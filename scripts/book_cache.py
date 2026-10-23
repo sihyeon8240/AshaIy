@@ -6,12 +6,13 @@ import argparse
 import hashlib
 import re
 import subprocess
+import sys
 from pathlib import Path
 
-try:
-    from scripts.validation_patterns import validation_pattern
-except ModuleNotFoundError:
-    from validation_patterns import validation_pattern
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
 

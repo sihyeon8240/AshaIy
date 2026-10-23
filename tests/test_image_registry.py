@@ -7,14 +7,12 @@ import io
 import json
 import os
 import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-import image_registry
+from scripts import image_registry
 
 IMAGE = "ghcr.io/example/toolchain@sha256:" + "a" * 64
 

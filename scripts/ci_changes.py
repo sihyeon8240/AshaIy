@@ -5,8 +5,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from path_policy import IMAGE_PIPELINE, SITE_FILES, SNAPSHOT_FILES
-from repository_config import load_image_build
+from scripts.path_policy import IMAGE_PIPELINE, SITE_FILES, SNAPSHOT_FILES
+from scripts.repository_config import load_image_build
 
 ROOT = Path(__file__).resolve().parent.parent
 

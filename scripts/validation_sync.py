@@ -6,7 +6,7 @@ import json
 import re
 from pathlib import Path
 
-from validation_patterns import load_patterns
+from scripts.validation_patterns import load_patterns
 
 SHELL_CONSUMERS = (
     ".github/actions/load-toolchain/action.yml",

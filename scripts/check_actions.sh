@@ -5,10 +5,10 @@ set -euo pipefail
 python3 - <<'PYTHON'
 from pathlib import Path
 
-import yaml
+from scripts.source_reads import read_yaml
 
 for path in sorted(Path(".github/workflows").glob("*.yml")):
-    workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
+    workflow = read_yaml(path)
     for scope in (workflow, *workflow.get("jobs", {}).values()):
         concurrency = scope.get("concurrency")
         if not isinstance(concurrency, dict) or "queue" not in concurrency:

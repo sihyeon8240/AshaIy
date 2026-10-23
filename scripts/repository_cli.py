@@ -10,6 +10,9 @@ import sys
 from pathlib import Path
 from typing import overload
 
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 OVERVIEW = """Books:
   book list [--format json]
       List registered textbooks, their label prefixes, and enabled operations.
@@ -142,7 +145,7 @@ def contents_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def run_contents(arguments: argparse.Namespace) -> int:
-    from contents_generation import generate
+    from scripts.contents_generation import generate
 
     try:
         return generate(arguments.scope, book=arguments.book, check=arguments.check)
@@ -168,7 +171,7 @@ def positive_integer(value: str) -> int:
 
 
 def resolve_book(value: str) -> str:
-    from book_manifest import load_manifest
+    from scripts.book_manifest import load_manifest
 
     try:
         books = load_manifest()["books"]
@@ -466,13 +469,13 @@ def run_contents_task(arguments: argparse.Namespace) -> int:
 
 
 def run_task(arguments: argparse.Namespace) -> int:
-    from repository_commands import execute
+    from scripts.repository_commands import execute
 
     return execute(arguments)
 
 
 def run_book(arguments: argparse.Namespace) -> int:
-    from repository_tasks import build_books
+    from scripts.repository_tasks import build_books
 
     if arguments.strict and not arguments.check:
         print(
@@ -491,13 +494,13 @@ def run_book(arguments: argparse.Namespace) -> int:
 
 
 def run_ci_sources(arguments: argparse.Namespace) -> int:
-    from repository_tasks import check_ci_sources
+    from scripts.repository_tasks import check_ci_sources
 
     return check_ci_sources(compile_lean=arguments.lean_mode == "build").returncode
 
 
 def run_generated(arguments: argparse.Namespace) -> int:
-    from repository_tasks import generate
+    from scripts.repository_tasks import generate
 
     try:
         return generate(book=arguments.book, check=arguments.check).returncode
@@ -507,7 +510,7 @@ def run_generated(arguments: argparse.Namespace) -> int:
 
 
 def run_checks(arguments: argparse.Namespace) -> int:
-    from repository_tasks import check_repository
+    from scripts.repository_tasks import check_repository
 
     if arguments.strict and arguments.scope != "all":
         print("error: strict is only valid for the full check", file=sys.stderr)
@@ -517,7 +520,7 @@ def run_checks(arguments: argparse.Namespace) -> int:
 
 
 def run_plan(arguments: argparse.Namespace) -> int:
-    from impact_plan import create_plan
+    from scripts.impact_plan import create_plan
 
     try:
         result = create_plan(
@@ -533,7 +536,7 @@ def run_plan(arguments: argparse.Namespace) -> int:
 
 
 def run_format(arguments: argparse.Namespace) -> int:
-    from repository_tasks import format_sources
+    from scripts.repository_tasks import format_sources
 
     if arguments.file and arguments.scope == "all":
         print(

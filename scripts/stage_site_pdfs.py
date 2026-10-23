@@ -8,7 +8,10 @@ import shutil
 import sys
 from pathlib import Path
 
-from book_manifest import load_manifest
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.book_manifest import load_manifest
 
 
 def registered_and_site_slugs() -> tuple[set[str], set[str]]:

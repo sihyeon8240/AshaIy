@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import contextlib
 import io
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-from check_site_output import check
+from scripts.check_site_output import check
 
 
 class SiteOutputTests(unittest.TestCase):

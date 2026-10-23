@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import importlib
-import sys
 import unittest
 from pathlib import Path
 
+from scripts import ci_changes as CI
+
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-CI = importlib.import_module("ci_changes")
 
 
 class CiChangeTests(unittest.TestCase):

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import contextlib
-import importlib
 import io
 import json
 import sys
@@ -15,13 +14,11 @@ from unittest.mock import patch
 import yaml
 from test_support import write_yaml
 
+from scripts import book_manifest as books_module
+from scripts import books as books_cli
+from scripts.book_manifest import load_manifest, manifest_warnings
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT / "scripts"))
-
-import book_manifest as books_module  # noqa: E402
-from book_manifest import load_manifest, manifest_warnings  # noqa: E402
-
-books_cli = importlib.import_module("books")
 
 
 class ManifestWarningTests(unittest.TestCase):

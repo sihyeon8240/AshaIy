@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib.util
 import os
 import shutil
 import subprocess
@@ -12,9 +11,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-
-from contents_manifest import (
+from scripts.contents_manifest import (
     expected_files,
     load_sections,
     render_metadata,
@@ -124,12 +121,8 @@ class ContentsManifestTests(unittest.TestCase):
 
     def test_generator_initializes_proof_indexes_without_overwriting(self) -> None:
         repository = Path(__file__).resolve().parent.parent
-        spec = importlib.util.spec_from_file_location(
-            "generate_contents", repository / "scripts/contents_generation.py"
-        )
-        assert spec and spec.loader
-        generator = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(generator)
+        from scripts import contents_generation as generator
+
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             book = self.fixture(root)

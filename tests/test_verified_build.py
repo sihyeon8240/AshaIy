@@ -2,26 +2,19 @@
 
 from __future__ import annotations
 
-import importlib.util
 import io
 import json
 import os
 import subprocess
-import sys
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
+from scripts import verified_build as BUILD
+
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-SPEC = importlib.util.spec_from_file_location(
-    "verified_build", ROOT / "scripts/verified_build.py"
-)
-assert SPEC and SPEC.loader
-BUILD = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(BUILD)
 
 
 class VerifiedBuildTests(unittest.TestCase):

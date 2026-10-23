@@ -10,7 +10,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-from repository_config import load_authoring
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.repository_config import load_authoring
 
 
 def run(*arguments: str, cwd: Path) -> None:

@@ -14,12 +14,11 @@ import sys
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from latex_scan import without_comments
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-try:
-    from scripts.source_reads import read_text
-except ModuleNotFoundError:
-    from source_reads import read_text
+from scripts.latex_scan import without_comments
+from scripts.source_reads import read_text
 
 ROOT = Path(__file__).resolve().parent.parent
 

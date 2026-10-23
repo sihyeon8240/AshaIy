@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import contextlib
-import importlib.util
 import io
 import json
 import os
@@ -17,16 +16,10 @@ from unittest import mock
 import yaml
 from test_support import git_environment
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-affected = importlib.import_module("book_impact")
+from scripts import affected_books as cli
+from scripts import book_impact as affected
 
-spec = importlib.util.spec_from_file_location(
-    "affected_books", ROOT / "scripts/affected_books.py"
-)
-assert spec and spec.loader
-cli = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(cli)
+ROOT = Path(__file__).resolve().parent.parent
 
 
 class AffectedBookTests(unittest.TestCase):
@@ -249,7 +242,7 @@ class AffectedBookTests(unittest.TestCase):
     def test_site_activation_builds_pdf_required_by_snapshot(self):
         from copy import deepcopy
 
-        from snapshot_state import plan_snapshot
+        from scripts.snapshot_state import plan_snapshot
 
         previous = deepcopy(self.manifest)
         current = deepcopy(previous)
@@ -361,7 +354,9 @@ class AffectedBookTests(unittest.TestCase):
             git("add", "-A")
             git("commit", "-qm", "after")
             with mock.patch.object(affected, "ROOT", root):
-                self.assertEqual(set(affected.changed_paths(base, "HEAD")), {old, new})
+                paths = affected.changed_paths(base, "HEAD")
+                assert paths is not None
+                self.assertEqual(set(paths), {old, new})
 
     def test_invalid_historical_manifests_fall_back_without_creating_paths(self):
         for text in (
@@ -406,6 +401,7 @@ class AffectedBookTests(unittest.TestCase):
             affected, "git_output", return_value=yaml.safe_dump(manifest)
         ):
             result = affected.manifest_at("base")
+        assert result is not None
         self.assertEqual(result["books"][0]["slug"], "deleted")
         self.assertTrue(result["books"][0]["build"])
 

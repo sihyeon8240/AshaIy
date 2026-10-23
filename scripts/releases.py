@@ -11,10 +11,19 @@ import sys
 from pathlib import Path
 
 import yaml
-from book_manifest import SLUG_PATTERN, load_manifest, normalize_manifest, version_key
-from contents_manifest import expected_files
-from source_reads import parse_yaml
-from validation_patterns import validation_pattern
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.book_manifest import (
+    SLUG_PATTERN,
+    load_manifest,
+    normalize_manifest,
+    version_key,
+)
+from scripts.contents_manifest import expected_files
+from scripts.source_reads import parse_yaml
+from scripts.validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
 

@@ -10,16 +10,12 @@ import tempfile
 from pathlib import Path
 from typing import Callable
 
-import github_artifacts
-from ci_changes import IMAGE_PIPELINE, changed_paths
-from config_sync import replace_once
-from image_policy import input_hash
-from repository_config import ROOT, image_name, load_image, load_image_build
-
-try:
-    from scripts.validation_patterns import validation_pattern
-except ModuleNotFoundError:
-    from validation_patterns import validation_pattern
+from scripts import github_artifacts
+from scripts.ci_changes import IMAGE_PIPELINE, changed_paths
+from scripts.config_sync import replace_once
+from scripts.image_policy import input_hash
+from scripts.repository_config import ROOT, image_name, load_image, load_image_build
+from scripts.validation_patterns import validation_pattern
 
 
 def command(

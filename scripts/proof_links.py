@@ -10,34 +10,17 @@ import sys
 from pathlib import Path
 from typing import Any
 
-try:
-    from scripts.validation_patterns import validation_pattern
-except ModuleNotFoundError:
-    from validation_patterns import validation_pattern
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-try:
-    from scripts.source_reads import read_text, reuse_source_reads
-except ModuleNotFoundError:
-    from source_reads import read_text, reuse_source_reads
-
-try:
-    from scripts.contents_manifest import load_book_contents
-    from scripts.proof_index import load_proof_index
-except ModuleNotFoundError:
-    from contents_manifest import load_book_contents
-    from proof_index import load_proof_index
-
-try:
-    from scripts.book_manifest import load_manifest
-    from scripts.latex_scan import command_arguments, theorem_label_groups
-    from scripts.lean_source import escape_hatch_lines
-    from scripts.lean_source import imports as module_imports
-except ModuleNotFoundError:
-    from book_manifest import load_manifest
-    from latex_scan import command_arguments, theorem_label_groups
-    from lean_source import escape_hatch_lines
-    from lean_source import imports as module_imports
-
+from scripts.book_manifest import load_manifest
+from scripts.contents_manifest import load_book_contents
+from scripts.latex_scan import command_arguments, theorem_label_groups
+from scripts.lean_source import escape_hatch_lines
+from scripts.lean_source import imports as module_imports
+from scripts.proof_index import load_proof_index
+from scripts.source_reads import read_text, reuse_source_reads
+from scripts.validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
 LABEL_RE = re.compile(

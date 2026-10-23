@@ -12,7 +12,10 @@ import sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from book_manifest import load_manifest
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.book_manifest import load_manifest
 
 ROOT = Path(__file__).resolve().parent.parent
 

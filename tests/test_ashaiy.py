@@ -8,7 +8,6 @@ import json
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -21,9 +20,9 @@ from test_support import (
     write_yaml,
 )
 
+from scripts.repository_cli import build_parser, main
+
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-from repository_cli import build_parser, main  # noqa: E402
 
 
 class AshaiyTests(unittest.TestCase):
@@ -50,7 +49,9 @@ class AshaiyTests(unittest.TestCase):
             book_record("linear-algebra", label_prefix="la"),
             book_record("linear-analysis", label_prefix="lan"),
         ]
-        with patch("book_manifest.load_manifest", return_value={"books": books}):
+        with patch(
+            "scripts.book_manifest.load_manifest", return_value={"books": books}
+        ):
             parser = build_parser()
             for selector in ("lin", "missing", ""):
                 with (
@@ -80,7 +81,7 @@ class AshaiyTests(unittest.TestCase):
             ["clean", "cache"],
             ["check", "all", "--strict", "test"],
         )
-        with patch("repository_commands.execute") as execute:
+        with patch("scripts.repository_commands.execute") as execute:
             for command in cases:
                 with (
                     self.subTest(command=command),

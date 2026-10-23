@@ -10,7 +10,10 @@ import stat
 import sys
 from pathlib import Path
 
-from repository_config import ROOT, load_image_build
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.repository_config import ROOT, load_image_build
 
 
 def input_hash(root: Path = ROOT) -> str:

@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import contextlib
-import importlib.util
 import io
-import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,18 +11,10 @@ from pathlib import Path
 import yaml
 from test_support import book_record, manifest_document, write_yaml
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-
-from lean_manifest import expected_files
+from scripts import lean_generation as GENERATOR
+from scripts.lean_manifest import expected_files
 
 ROOT = Path(__file__).resolve().parent.parent
-
-SPEC = importlib.util.spec_from_file_location(
-    "generate_lean", ROOT / "scripts/lean_generation.py"
-)
-assert SPEC and SPEC.loader
-GENERATOR = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(GENERATOR)
 
 
 class LeanManifestTests(unittest.TestCase):

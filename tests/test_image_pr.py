@@ -2,20 +2,19 @@
 
 from __future__ import annotations
 
-import importlib
 import json
 import os
 import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
 
-image_pr = importlib.import_module("image_pr")
+from scripts import image_pr
+
+ROOT = Path(__file__).resolve().parent.parent
+
 
 IMAGE = "ghcr.io/example/toolchain@sha256:" + "a" * 64
 

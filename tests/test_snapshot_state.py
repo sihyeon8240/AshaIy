@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import importlib
 import shutil
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-state = importlib.import_module("snapshot_state")
+from scripts import snapshot_state as state
 
 
 class SnapshotStateTests(unittest.TestCase):

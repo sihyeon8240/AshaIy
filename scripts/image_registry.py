@@ -6,10 +6,14 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
-from repository_config import IMAGE, image_name, load_image, load_image_build
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.repository_config import IMAGE, image_name, load_image, load_image_build
 
 
 def command(*args: str, env: dict | None = None) -> str:

@@ -40,7 +40,7 @@ import json
 import sys
 
 sys.path.insert(0, sys.argv[1])
-from repository_config import load_image_build
+from scripts.repository_config import load_image_build
 
 required = {("linux", platform["arch"]) for platform in load_image_build()["platforms"]}
 manifest = json.load(sys.stdin)
@@ -49,7 +49,7 @@ platforms = {
     for entry in manifest.get("manifests", [])
 }
 sys.exit(not required <= platforms)
-' "$root_dir/scripts"; then
+' "$root_dir"; then
   echo "error: existing image lacks the configured platform index: $image_ref" >&2
   echo "Bump the image build policy version; immutable tags must not be overwritten." >&2
   exit 1

@@ -314,6 +314,10 @@ Cache hits alone never establish validation. See
 ## Repository automation modules
 
 `scripts/ashaiy` is the public command interface; argparse validates subcommands and options.
+Python domain modules use absolute `scripts.*` imports. Entry-point adapters add
+the checkout root to the import path when executed directly; internal readers,
+caches, and invocation snapshots retain one package identity. Tests import the
+same package rather than loading separate module copies.
 The main implementation responsibilities are:
 
 | Owner | Responsibility |

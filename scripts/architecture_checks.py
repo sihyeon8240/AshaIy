@@ -9,43 +9,22 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-try:
-    from scripts.validation_patterns import validation_pattern
-except ModuleNotFoundError:
-    from validation_patterns import validation_pattern
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-try:
-    from scripts.source_reads import read_text
-except ModuleNotFoundError:
-    from source_reads import read_text
-
-try:
-    from scripts.bibtex import entry_keys
-    from scripts.book_manifest import load_manifest
-    from scripts.contents_manifest import (
-        appendix_directory,
-        chapter_directory,
-        load_book_contents,
-        load_sections,
-        section_filenames,
-    )
-    from scripts.latex_scan import command_arguments
-    from scripts.latex_titles import chapter_titles as extract_chapter_titles
-except ModuleNotFoundError:
-    from bibtex import entry_keys
-
-    # Direct execution puts scripts/, rather than the repository root, on sys.path.
-    from book_manifest import load_manifest
-    from contents_manifest import (
-        appendix_directory,
-        chapter_directory,
-        load_book_contents,
-        load_sections,
-        section_filenames,
-    )
-    from latex_scan import command_arguments
-    from latex_titles import chapter_titles as extract_chapter_titles
-
+from scripts.bibtex import entry_keys
+from scripts.book_manifest import load_manifest
+from scripts.contents_manifest import (
+    appendix_directory,
+    chapter_directory,
+    load_book_contents,
+    load_sections,
+    section_filenames,
+)
+from scripts.latex_scan import command_arguments
+from scripts.latex_titles import chapter_titles as extract_chapter_titles
+from scripts.source_reads import read_text
+from scripts.validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
 CHAPTER_DIRECTORY = re.compile("^" + validation_pattern("chapter_slug") + "$")

@@ -7,18 +7,18 @@ import argparse
 import json
 import os
 import re
+import sys
 import tempfile
 import zipfile
 from pathlib import Path
 
-from book_manifest import SLUG_PATTERN, normalize_manifest, version_key
-from github_artifacts import api, checksum, command, download, validate_identity
-from source_reads import parse_yaml
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-try:
-    from scripts.validation_patterns import validation_pattern
-except ModuleNotFoundError:
-    from validation_patterns import validation_pattern
+from scripts.book_manifest import SLUG_PATTERN, normalize_manifest, version_key
+from scripts.github_artifacts import api, checksum, command, download, validate_identity
+from scripts.source_reads import parse_yaml
+from scripts.validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
 MAX_BYTES = 100 * 1024**2

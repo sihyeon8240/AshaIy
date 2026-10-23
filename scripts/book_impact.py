@@ -7,22 +7,23 @@ import subprocess
 from pathlib import Path, PurePosixPath
 
 import yaml
-from book_manifest import load_manifest, normalize_manifest
-from ci_changes import changed_paths as shared_changed_paths
-from ci_changes import (
+
+from scripts.book_manifest import load_manifest, normalize_manifest
+from scripts.ci_changes import changed_paths as shared_changed_paths
+from scripts.ci_changes import (
     classify,
     is_documentation,
 )
-from latex_scan import without_comments
-from path_policy import (
+from scripts.latex_scan import without_comments
+from scripts.path_policy import (
     BUILD_INFRA,
     CI_ONLY_FILES,
     SCAFFOLD_FILES,
     SITE_FILES,
     SNAPSHOT_FILES,
 )
-from repository_config import load_image_build
-from source_reads import parse_yaml
+from scripts.repository_config import load_image_build
+from scripts.source_reads import parse_yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 TEX_REF = re.compile(

@@ -2,20 +2,15 @@
 
 from __future__ import annotations
 
-import importlib.util
 import subprocess
 import sys
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from scripts import check_local_environment as LOCAL
+
 ROOT = Path(__file__).resolve().parent.parent
-SPEC = importlib.util.spec_from_file_location(
-    "local_environment", ROOT / "scripts/check_local_environment.py"
-)
-assert SPEC and SPEC.loader
-LOCAL = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(LOCAL)
 
 
 class LocalEnvironmentTests(unittest.TestCase):

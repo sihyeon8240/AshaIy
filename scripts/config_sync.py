@@ -9,10 +9,13 @@ import re
 import sys
 from pathlib import Path
 
-from book_manifest import normalize_manifest
-from file_updates import changed_files, write_updates
-from ignore_patterns import rendered_ignore_consumers
-from repository_config import (
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.book_manifest import normalize_manifest
+from scripts.file_updates import changed_files, write_updates
+from scripts.ignore_patterns import rendered_ignore_consumers
+from scripts.repository_config import (
     IMAGE_PATH,
     ROOT,
     image_name,
@@ -21,13 +24,9 @@ from repository_config import (
     load_image_build,
     load_toolchain,
 )
-from source_reads import read_yaml
-from validation_sync import rendered_validation_consumers
-
-try:
-    from scripts.validation_patterns import validation_pattern
-except ModuleNotFoundError:
-    from validation_patterns import validation_pattern
+from scripts.source_reads import read_yaml
+from scripts.validation_patterns import validation_pattern
+from scripts.validation_sync import rendered_validation_consumers
 
 SHA256 = re.compile(validation_pattern("sha256"))
 

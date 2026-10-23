@@ -9,8 +9,8 @@ root = Path(__file__).resolve().parent.parent
 os.environ.setdefault("PYTHONPYCACHEPREFIX", str(root / ".cache/python"))
 os.environ.setdefault("MATHLIB_CACHE_DIR", str(root / ".cache/mathlib"))
 sys.pycache_prefix = os.environ["PYTHONPYCACHEPREFIX"]
-sys.path.insert(0, str(root / "scripts"))
+sys.path.insert(0, str(root))
 
-from repository_cli import main  # noqa: E402
+from scripts.repository_cli import main  # noqa: E402
 
 raise SystemExit(main())

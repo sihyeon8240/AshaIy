@@ -2,7 +2,6 @@
 
 import contextlib
 import copy
-import importlib
 import io
 import subprocess
 import sys
@@ -14,9 +13,9 @@ from unittest.mock import patch
 
 from test_support import git_environment
 
+from scripts import releases
+
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-releases = importlib.import_module("releases")
 
 
 class ReleasePlanTests(unittest.TestCase):

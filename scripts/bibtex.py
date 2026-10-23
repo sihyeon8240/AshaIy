@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-try:
-    from scripts.latex_scan import is_escaped
-except ModuleNotFoundError:
-    from latex_scan import is_escaped
+from scripts.latex_scan import is_escaped
 
 NON_ENTRY_TYPES = {"comment", "preamble", "string"}
 

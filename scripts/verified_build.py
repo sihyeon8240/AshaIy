@@ -9,16 +9,16 @@ import json
 import os
 import re
 import subprocess
+import sys
 import zipfile
 from pathlib import Path
 
-import github_artifacts
-from github_artifacts import checksum, eligible_run
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-try:
-    from scripts.validation_patterns import validation_pattern
-except ModuleNotFoundError:
-    from validation_patterns import validation_pattern
+from scripts import github_artifacts
+from scripts.github_artifacts import checksum, eligible_run
+from scripts.validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
 POLICY = "strict-pdf-v1"

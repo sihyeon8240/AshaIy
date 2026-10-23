@@ -6,10 +6,7 @@ import json
 import re
 from pathlib import Path
 
-try:
-    from scripts.validation_patterns import validation_pattern
-except ModuleNotFoundError:
-    from validation_patterns import validation_pattern
+from scripts.validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
 TOOLCHAIN_PATH = ROOT / "config/toolchain.env"

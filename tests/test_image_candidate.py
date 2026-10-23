@@ -3,25 +3,18 @@
 from __future__ import annotations
 
 import gzip
-import importlib.util
 import json
 import os
 import subprocess
-import sys
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
+from scripts import image_candidate as CANDIDATE
+
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-SPEC = importlib.util.spec_from_file_location(
-    "image_candidate", ROOT / "scripts/image_candidate.py"
-)
-assert SPEC and SPEC.loader
-CANDIDATE = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(CANDIDATE)
 
 
 class ImageCandidateTests(unittest.TestCase):
