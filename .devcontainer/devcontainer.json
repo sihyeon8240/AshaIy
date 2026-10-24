@@ -1,6 +1,6 @@
 {
   "name": "AshaIy",
-  "image": "ghcr.io/sihyeon8240/ashaiy@sha256:f0621a41818a4f59e01bf45462c614ec6d1f3618ac356a5f6a62719ad7536af3",
+  "image": "ghcr.io/sihyeon8240/ashaiy@sha256:f0b958ad78dc3a10a87e9448d4cf3669e2909deb5d6f05e8b83b4575df85ab81",
   "containerEnv": {
     "PYTHONPYCACHEPREFIX": "${containerWorkspaceFolder}/.cache/python",
     "MATHLIB_CACHE_DIR": "${containerWorkspaceFolder}/.cache/mathlib",
