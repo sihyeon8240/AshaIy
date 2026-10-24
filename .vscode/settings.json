@@ -142,5 +142,25 @@
       "/config/latexindent.yaml"
     ]
   },
-  "ruff.configuration": "${workspaceFolder}/config/pyproject.toml"
+  "ruff.configuration": "${workspaceFolder}/config/pyproject.toml",
+  "json.schemas": [
+    {
+      "fileMatch": [
+        "/config/authoring.json"
+      ],
+      "url": "./config/schemas/authoring.schema.json"
+    },
+    {
+      "fileMatch": [
+        "/config/image-build.json"
+      ],
+      "url": "./config/schemas/image-build.schema.json"
+    },
+    {
+      "fileMatch": [
+        "/config/validation-patterns.json"
+      ],
+      "url": "./config/schemas/validation-patterns.schema.json"
+    }
+  ]
 }

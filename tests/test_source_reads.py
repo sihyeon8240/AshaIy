@@ -10,10 +10,21 @@ from unittest.mock import patch
 import yaml
 
 from scripts.contents_manifest import load_sections
+from scripts.json_config import parse_json
 from scripts.source_reads import parse_yaml, read_text, read_yaml, reuse_source_reads
 
 
 class SourceReadTests(unittest.TestCase):
+    def test_json_rejects_ambiguous_keys_and_nonstandard_constants(self) -> None:
+        for text in (
+            '{"schema_version": 2, "schema_version": 1}',
+            '{"nested": {"enabled": true, "enabled": false}}',
+            '{"value": NaN}',
+            '{"value": Infinity}',
+        ):
+            with self.subTest(text=text), self.assertRaises(ValueError):
+                parse_json(text)
+
     def test_domain_loaders_share_the_invocation_snapshot(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)

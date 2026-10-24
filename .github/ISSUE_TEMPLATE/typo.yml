@@ -7,7 +7,7 @@ body:
     id: book
     attributes:
       label: Textbook
-      options: [Elementary Number Theory, Linear Algebra, Mathematical Analysis]
+      options: ["Mathematical Analysis", "Elementary Number Theory", "Linear Algebra"]
     validations: {required: true}
   - type: input
     id: location

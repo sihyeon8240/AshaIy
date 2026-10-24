@@ -1,6 +1,7 @@
 """File roles shared by CI, source selection, and conservative PDF planning."""
 
 IMAGE_PIPELINE = {
+    "scripts/json_config.py",
     "config/validation-patterns.json",
     "scripts/validation_patterns.py",
     "scripts/validation_sync.py",

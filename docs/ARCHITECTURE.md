@@ -112,7 +112,7 @@ config/ignore-patterns.yml -> Git, Docker, tree, and VS Code exclusion consumers
 config/image-build.json    -> image input detection, tag hashing, build matrix, and index checks
 config/authoring.json      -> CLI/editor shell formatting and unittest discovery
 config/validation-patterns.json -> Python validation and synchronized shell/schema expressions
-config/books.yml           -> VS Code task book choices
+config/books.yml           -> VS Code task and GitHub issue-form book choices
 .vscode/extensions.json   -> devcontainer extension installation
 ```
 
@@ -284,6 +284,9 @@ The directory layout, configuration schemas, metadata loading, chapter/index
 pattern, Lean dependency boundary, build scripts, automation, and CI are reviewed
 interfaces. Keep consumers, tests, and documentation aligned with their current
 contracts. Preserve independent book ownership and review interface changes explicitly.
+
+Repository JSON rejects duplicate keys and nonstandard numeric constants. Editor JSON
+schema associations and YAML schema associations also drive CLI validation.
 
 Repository YAML requires unique mapping keys and integer schema versions. Anchors
 and aliases are accepted; merge keys (`<<`) are rejected. Write fields explicitly

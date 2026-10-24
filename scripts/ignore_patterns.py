@@ -8,6 +8,7 @@ from pathlib import Path
 
 import yaml
 
+from scripts.json_config import read_json
 from scripts.source_reads import read_yaml
 from scripts.validation_patterns import validation_pattern
 
@@ -76,7 +77,7 @@ def load_patterns(path: Path) -> dict[str, list[str]]:
 def rendered_ignore_consumers(root: Path) -> dict[Path, str]:
     patterns = load_patterns(root / "config/ignore-patterns.yml")
     settings_path = root / ".vscode/settings.json"
-    settings = json.loads(settings_path.read_text(encoding="utf-8"))
+    settings = read_json(settings_path)
     for profile, key in EDITOR_PROFILES.items():
         settings[key] = dict.fromkeys(patterns[profile], True)
 
