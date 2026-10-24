@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import tempfile
@@ -67,6 +68,7 @@ class CleanArtifactsTests(unittest.TestCase):
                 root / "notes.tex.bak",
                 root / "notes.tex.swp",
                 root / ".books.yml.interrupted.tmp",
+                root / "__latexindent_temp_section.tex",
             )
             for artifact in artifacts:
                 artifact.write_text("discard", encoding="utf-8")
@@ -102,6 +104,29 @@ class CleanArtifactsTests(unittest.TestCase):
             self.assertTrue(
                 all(path.read_text(encoding="utf-8") == "keep" for path in preserved)
             )
+
+    def test_traversal_failure_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "scripts").mkdir()
+            (root / "config/generated").mkdir(parents=True)
+            shutil.copy2(ROOT / "scripts/clean_artifacts.sh", root / "scripts")
+            for name in ("cleanup-files.txt", "cleanup-prune.txt"):
+                shutil.copy2(
+                    ROOT / "config/generated" / name, root / "config/generated"
+                )
+            binary = root / "bin"
+            binary.mkdir()
+            find = binary / "find"
+            find.write_text("#!/bin/sh\nexit 19\n")
+            find.chmod(0o755)
+            result = subprocess.run(
+                [str(root / "scripts/clean_artifacts.sh")],
+                env={**os.environ, "PATH": f"{binary}:{os.environ['PATH']}"},
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 19)
 
 
 if __name__ == "__main__":

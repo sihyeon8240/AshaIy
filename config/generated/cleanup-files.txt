@@ -16,6 +16,7 @@
 *.idx
 *.ind
 *.ilg
+__latexindent_temp_*.tex
 *.orig
 *.rej
 *.bak

@@ -64,6 +64,7 @@ groups:
     - '*.ind'
     - '*.ilg'
   temporary:
+    - __latexindent_temp_*.tex
     - '*.orig'
     - '*.rej'
     - '*.bak'

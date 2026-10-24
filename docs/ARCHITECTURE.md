@@ -217,7 +217,7 @@ implementation ownership.
 | `site/books/*.md` | `ashaiy site generate`, from the registry and proof coverage | Ignored; regenerate before local site builds |
 | PDFs, LaTeX logs, proof-link probes, verified-build metadata | `build/` | Ignored; never commit |
 | LaTeX Workshop output | `vscode-build/` | Ignored; never commit |
-| Python, Ruff, LaTeX formatter, and Mathlib download caches | `.cache/{python,ruff,latexindent,mathlib}/` by default | Ignored; never commit |
+| Python, Ruff, LaTeX formatter, Mathlib, Coverage, and Hypothesis caches | `.cache/{python,ruff,latexindent,mathlib,coverage}/` and `.hypothesis/` by default | Ignored; never commit |
 | Lake dependencies, configuration cache, and build results | `lean/.lake/` | Ignored; never commit |
 | Persistent container home | Host `${XDG_CACHE_HOME:-$HOME/.cache}/ashaiy-container/<repository-id>` | Outside the checkout; preserved by cache cleanup |
 | Release staging and source-check site rendering | Automatically cleaned temporary directories | Never commit |

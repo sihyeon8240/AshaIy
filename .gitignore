@@ -24,6 +24,7 @@
 *.ind
 *.ilg
 *.pyc
+__latexindent_temp_*.tex
 *.orig
 *.rej
 *.bak

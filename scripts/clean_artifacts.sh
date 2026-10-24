@@ -22,8 +22,5 @@ find_arguments+=(-type f '(')
 for pattern in "${cleanup_files[@]}"; do
   find_arguments+=(-name "$pattern" -o)
 done
-find_arguments+=(-false ')' -print0)
-
-while IFS= read -r -d '' artifact; do
-  rm -f -- "$artifact"
-done < <(find "$repo_root" "${find_arguments[@]}")
+find_arguments+=(-false ')' -exec rm -f -- '{}' +)
+find "$repo_root" "${find_arguments[@]}"

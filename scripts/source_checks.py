@@ -87,7 +87,9 @@ def check_repository_files() -> None:
         )
         return
     pattern = re.compile(
-        r"(^|/)(vscode-build|build|dist|\.lake|\.cache|context.tex|tree.txt)/"
+        r"(^|/)(vscode-build|build|dist|\.lake|\.cache|\.hypothesis)/"
+        r"|^site/(books/|_data/books\.json$)"
+        r"|(^|/)(context\.tex|tree\.txt|__latexindent_temp_[^/]+\.tex)$"
         r"|\.(aux|bbl|bcf|blg|fdb_latexmk|fls|idx|ilg|ind|lof|log|lot|out|pdf|pyc"
         r"|run\.xml|synctex\.gz|toc|xdv)$"
     )

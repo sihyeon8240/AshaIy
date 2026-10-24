@@ -9,6 +9,7 @@ clean_directory() {
   case "$directory" in
   "$repo_root/.cache/latexindent" | "$repo_root/.cache/ruff" | \
     "$repo_root/.cache/python" | "$repo_root/.cache/mathlib" | \
+    "$repo_root/.cache/coverage" | "$repo_root/.hypothesis" | \
     "$repo_root/lean/.lake") ;;
   *)
     echo "error: refusing unsafe cache path" >&2
@@ -43,15 +44,23 @@ ruff)
 py)
   clean_directory "$repo_root/.cache/python"
   ;;
+coverage)
+  clean_directory "$repo_root/.cache/coverage"
+  ;;
+hypothesis)
+  clean_directory "$repo_root/.hypothesis"
+  ;;
 all)
   clean_directory "$repo_root/.cache/mathlib"
   clean_directory "$repo_root/lean/.lake"
   clean_directory "$repo_root/.cache/latexindent"
   clean_directory "$repo_root/.cache/ruff"
   clean_directory "$repo_root/.cache/python"
+  clean_directory "$repo_root/.cache/coverage"
+  clean_directory "$repo_root/.hypothesis"
   ;;
 *)
-  echo "usage: clean_cache.sh {lake|mathlib|tex|ruff|py|all}" >&2
+  echo "usage: clean_cache.sh {lake|mathlib|tex|ruff|py|coverage|hypothesis|all}" >&2
   exit 2
   ;;
 esac

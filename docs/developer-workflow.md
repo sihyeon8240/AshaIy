@@ -169,9 +169,12 @@ reopen the Dev Container after changing its configuration.
 | `py` | `.cache/python/` |
 | `mathlib` | `.cache/mathlib/` |
 | `lake` | `lean/.lake/` |
-| `all` | All five categories |
+| `coverage` | `.cache/coverage/` |
+| `hypothesis` | `.hypothesis/` |
+| `all` | All seven categories |
 
-Source cleanup preserves build output and caches. Cache cleanup preserves unknown
+Source cleanup includes interrupted LaTeX Workshop temporary sources and reports
+traversal or removal failures. It preserves build output and caches. Cache cleanup preserves unknown
 `.cache/` directories, override paths, shared user caches, and the persistent
 container home. It rejects symlinks at cache roots or their immediate parents.
 Avoid cleanup while tools are running.
