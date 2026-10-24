@@ -194,7 +194,9 @@ eligibility, run/attempt identity, and artifact digest checks. PDF, image, and
 release modules retain their own file, size, and domain validation rules.
 
 After a merge, each affected PDF job first looks for a successful `build.yml`
-PR run for the merged PR's head in this repository. Reuse requires an identical
+PR run, or an exact-pin dispatch, for the merged PR's head in this repository.
+A dispatch must match the PR branch and record the explicit validated commit;
+manual dispatches without `expected_sha` do not produce reusable validation artifacts. Reuse requires an identical
 full Git tree (including workflows and build settings), image index digest,
 platform, validation policy, run ID/attempt, and PDF/log checksums. The downloaded
 archive must also match GitHub's artifact digest, and its log is strictly checked

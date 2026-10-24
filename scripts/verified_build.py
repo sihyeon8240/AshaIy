@@ -66,6 +66,13 @@ def record(expected: dict, directory: Path) -> None:
         "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
         "checksums": {name: checksum(data) for name, data in files.items()},
     }
+    if os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch":
+        validated = os.environ.get("VALIDATION_SHA", "")
+        if not re.fullmatch(
+            validation_pattern("git_commit"), validated
+        ) or validated != os.environ.get("GITHUB_SHA"):
+            raise ValueError("dispatch must validate an explicit, matching commit")
+        manifest["validation_sha"] = validated
     (directory / "verified-build.json").write_text(
         json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8"
     )
@@ -160,11 +167,20 @@ def restore(expected: dict, directory: Path) -> bool:
             continue
         runs = api(
             f"repos/{repository}/actions/workflows/build.yml/runs"
-            f"?event=pull_request&status=success&head_sha={head}&per_page=30"
+            f"?status=success&head_sha={head}&per_page=30"
         )["workflow_runs"]
         for run in runs:
-            if not eligible_run(run, repository, head):
+            event = run.get("event")
+            if event not in {"pull_request", "workflow_dispatch"} or not eligible_run(
+                run, repository, head, event=event
+            ):
                 continue
+            run_expected = expected
+            if event == "workflow_dispatch":
+                branch = pull["head"].get("ref")
+                if not branch or run.get("head_branch") != branch:
+                    continue
+                run_expected = {**expected, "validation_sha": head}
             artifacts = api(
                 f"repos/{repository}/actions/runs/{run['id']}/artifacts?per_page=100"
             )["artifacts"]
@@ -176,7 +192,7 @@ def restore(expected: dict, directory: Path) -> bool:
                 ):
                     continue
                 try:
-                    restore_artifact(repository, artifact, expected, run, directory)
+                    restore_artifact(repository, artifact, run_expected, run, directory)
                     print(
                         f"Reused verified PDF from PR #{pull['number']}, run {run['id']}"
                     )
