@@ -1,6 +1,11 @@
 name: Validate and publish toolchain image
 on:
   workflow_dispatch:
+    inputs:
+      refresh_cache:
+        description: Refresh intermediate build caches even when the image is already published
+        type: boolean
+        default: false
 permissions:
   contents: read
   actions: read
@@ -17,4 +22,4 @@ jobs:
     uses: ./.github/workflows/prepare-image.yml
     with:
       ref: ${{ github.sha }}
-      refresh_cache: true
+      refresh_cache: ${{ inputs.refresh_cache }}

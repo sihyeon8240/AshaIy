@@ -16,6 +16,9 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class ImagePolicyTests(unittest.TestCase):
+    def test_published_tag_transcript_is_stable_across_deployed_readers(self) -> None:
+        self.assertEqual(self.output("hash"), "48b8ac41ce30")
+
     def setUp(self) -> None:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -59,12 +62,14 @@ class ImagePolicyTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         return result.stdout.strip()
 
-    def test_executable_modes_and_paths_change_identity_and_symlinks_fail(self) -> None:
+    def test_checkout_modes_are_normalized_but_paths_and_symlinks_are_checked(
+        self,
+    ) -> None:
         original = self.output("hash")
         source = self.root / "input.bin"
         source.chmod(0o755)
         executable = self.output("hash")
-        self.assertNotEqual(executable, original)
+        self.assertEqual(executable, original)
         source.chmod(0o644)
         self.assertEqual(self.output("hash"), original)
         target = self.root / "renamed.bin"
@@ -82,13 +87,13 @@ class ImagePolicyTests(unittest.TestCase):
         self,
     ) -> None:
         original = self.output("hash")
-        self.config["platforms"].append({"arch": "riscv64", "runner": "custom-runner"})
+        self.config["platforms"].reverse()
         self.config["policy_version"] = "native-multiarch-v2"
         self.save()
         self.assertEqual(
             json.loads(self.output("matrix")), {"include": self.config["platforms"]}
         )
-        self.assertEqual(self.output("architectures"), "amd64 arm64 riscv64")
+        self.assertEqual(self.output("architectures"), "arm64 amd64")
         self.assertNotEqual(self.output("hash"), original)
 
     def test_only_declared_inputs_change_hash_and_missing_input_fails(self) -> None:
@@ -111,3 +116,40 @@ class ImagePolicyTests(unittest.TestCase):
                 result = self.command(consumer)
                 self.assertEqual(result.returncode, 1)
                 self.assertEqual(result.stdout, "")
+
+    def test_copy_permissions_and_unregistered_sources_fail_before_tagging(
+        self,
+    ) -> None:
+        recipe = self.root / ".devcontainer/Dockerfile"
+        recipe.parent.mkdir()
+        recipe.write_text("FROM scratch\nCOPY input.bin /input\n")
+        result = self.command("hash")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("explicit --chmod", result.stderr)
+        recipe.write_text("FROM scratch\nCOPY --chmod=0644 input.bin /input\n")
+        result = self.command("hash")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unhashed Docker build inputs", result.stderr)
+        self.config["inputs"] += [
+            ".devcontainer/Dockerfile",
+            ".devcontainer/Dockerfile.dockerignore",
+        ]
+        (recipe.parent / "Dockerfile.dockerignore").write_text("build/\n")
+        self.save()
+        self.assertEqual(self.command("hash").returncode, 0)
+        recipe.write_text(
+            recipe.read_text().replace("FROM scratch", "FROM debian:latest")
+        )
+        self.assertIn("immutable digest", self.command("hash").stderr)
+        recipe.write_text(
+            recipe.read_text().replace("FROM debian:latest", "FROM scratch")
+        )
+        recipe.write_text(
+            recipe.read_text() + "COPY --from=other:latest /file /other\n"
+        )
+        self.assertIn("immutable digest", self.command("hash").stderr)
+        recipe.write_text("FROM scratch\nCOPY --chmod=0644 input.bin /input\n")
+        recipe.write_text(
+            recipe.read_text() + 'COPY --chmod=0644 ["unknown.bin", "/other"]\n'
+        )
+        self.assertIn("unknown.bin", self.command("hash").stderr)

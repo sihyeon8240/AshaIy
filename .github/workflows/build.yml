@@ -156,7 +156,6 @@ jobs:
     uses: ./.github/workflows/prepare-image.yml
     with:
       ref: ${{ github.sha }}
-      refresh_cache: ${{ needs.source.outputs.image_changed == 'true' }}
   latex:
     name: Source formatting and site tests
     needs: prepare-image
@@ -284,13 +283,6 @@ jobs:
           input_hash="$(python3 scripts/image_policy.py hash)"
           tag="${IMAGE_NAME}:texlive-${input_hash}"
           IMAGE_REF="$tag" REQUIRE_IMAGE=true ./scripts/check_image_tag.sh
-          digest="$(docker buildx imagetools inspect "$tag" --format '{{.Manifest.Digest}}')"
-          # validation-pattern: image_digest
-          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
-          image="${IMAGE_NAME}@${digest}"
-          IMAGE_REF="$image" REQUIRE_IMAGE=true ./scripts/check_image_tag.sh
-          echo "image=$image" >> "$GITHUB_OUTPUT"
-          echo "digest=${image##*@sha256:}" >> "$GITHUB_OUTPUT"
   plan:
     runs-on: ubuntu-latest
     timeout-minutes: 10

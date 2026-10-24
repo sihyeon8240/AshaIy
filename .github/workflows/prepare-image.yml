@@ -11,7 +11,7 @@ on:
         type: boolean
         default: false
       refresh_cache:
-        description: Refresh intermediate caches for an image promoted from a PR
+        description: Explicitly refresh intermediate caches for an existing image
         type: boolean
         default: false
     outputs:

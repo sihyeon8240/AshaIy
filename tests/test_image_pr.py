@@ -113,7 +113,15 @@ class ImagePrSelectionTests(unittest.TestCase):
                 )
                 api.assert_not_called()
 
-    def publish(self, *, exists=False, artifacts=None, paths=None, load_error=None):
+    def publish(
+        self,
+        *,
+        exists=False,
+        artifacts=None,
+        paths=None,
+        load_error=None,
+        registry_output=None,
+    ):
         pull = pull_request()
         artifacts = (
             artifacts
@@ -138,7 +146,13 @@ class ImagePrSelectionTests(unittest.TestCase):
             if args[:2] == ("bash", "scripts/check_image_tag.sh"):
                 output = kwargs["env"].get("GITHUB_OUTPUT")
                 if output:
-                    Path(output).write_text(f"exists={str(exists).lower()}\n")
+                    found = exists or kwargs["env"].get("REQUIRE_IMAGE") == "true"
+                    text = f"exists={str(found).lower()}\n"
+                    if found:
+                        text += f"image={IMAGE}\ndigest={'a' * 64}\n"
+                    if registry_output is not None:
+                        text = registry_output
+                    Path(output).write_text(text)
             if args[:4] == ("docker", "buildx", "imagetools", "inspect"):
                 return "sha256:" + "a" * 64
             return ""
@@ -190,7 +204,12 @@ class ImagePrSelectionTests(unittest.TestCase):
         self.assertEqual(load.call_count, 2)
         self.assertEqual(
             load.call_args_list[0].args[2],
-            {"tree": "tree", "arch": "amd64", "policy": "policy"},
+            {
+                "tree": "tree",
+                "arch": "amd64",
+                "policy": "policy",
+                "image_tag": "texlive-0123456789ab",
+            },
         )
         self.assertEqual(
             len([call for call in calls if call[:2] == ("docker", "push")]), 2
@@ -238,6 +257,20 @@ class ImagePrSelectionTests(unittest.TestCase):
         load.assert_not_called()
         pin.assert_not_called()
         self.assertFalse(any(call[0] == "docker" for call in calls))
+
+    def test_ambiguous_registry_output_never_starts_publication(self):
+        for output in (
+            "",
+            "exists=unknown\n",
+            "exists=true\n",
+            "exists=true\nimage=other\ndigest=" + "a" * 64 + "\n",
+        ):
+            with self.subTest(output=output):
+                calls, load, pin, error = self.publish(registry_output=output)
+                self.assertIsInstance(error, ValueError)
+                load.assert_not_called()
+                pin.assert_not_called()
+                self.assertFalse(any(call[0] == "docker" for call in calls))
 
 
 class ImagePrCommitTests(unittest.TestCase):
@@ -329,6 +362,19 @@ class ImagePrCommitTests(unittest.TestCase):
 
 
 class ImageDispatchTests(unittest.TestCase):
+    def test_transient_dispatch_failures_retry_the_same_committed_pin(self):
+        with (
+            patch.object(
+                image_pr,
+                "command",
+                side_effect=[subprocess.CalledProcessError(1, "gh"), None],
+            ) as command,
+            patch.object(image_pr.time, "sleep"),
+        ):
+            image_pr.dispatch_validation("owner/repo", "topic", "a" * 40)
+        self.assertEqual(command.call_count, 2)
+        self.assertEqual(command.call_args_list[0], command.call_args_list[1])
+
     def test_dispatch_uses_structured_exact_commit_input(self):
         with patch.object(image_pr, "command") as command:
             image_pr.dispatch_validation("owner/repo", "topic", "a" * 40)

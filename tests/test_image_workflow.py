@@ -28,6 +28,8 @@ class ImageWorkflowTests(unittest.TestCase):
         manifest=None,
         require_image=False,
         errors=(),
+        digest="sha256:" + "a" * 64,
+        pinned_manifest=None,
     ):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -45,6 +47,10 @@ exit 2
             )
             (root / "docker").write_text(
                 """#!/usr/bin/env bash
+if [[ "$1" == buildx ]]; then
+  printf '%s\\n' "$INDEX_DIGEST"
+  exit 0
+fi
 attempt="$(cat "$ATTEMPTS" 2>/dev/null || echo 0)"
 attempt=$((attempt + 1))
 echo "$attempt" > "$ATTEMPTS"
@@ -57,7 +63,11 @@ if [[ "${TAG_EXISTS:-false}" != true ]]; then
   echo 'no such manifest: ghcr.io/example/latex:immutable' >&2
   exit 1
 fi
-printf '%s\\n' "$MANIFEST"
+if [[ "$3" == *@sha256:* && -n "${PINNED_MANIFEST:-}" ]]; then
+  printf '%s\\n' "$PINNED_MANIFEST"
+else
+  printf '%s\\n' "$MANIFEST"
+fi
 """,
                 encoding="utf-8",
             )
@@ -70,6 +80,8 @@ printf '%s\\n' "$MANIFEST"
                 "GITHUB_OUTPUT": str(output),
                 "ATTEMPTS": str(root / "attempts"),
                 "ERRORS": str(root / "errors"),
+                "INDEX_DIGEST": digest,
+                "PINNED_MANIFEST": pinned_manifest or "",
                 "IMAGE_NAME": "ghcr.io/example/latex",
                 "RELEASE_TAG": "immutable",
                 "TAG_EXISTS": str(tag_exists).lower(),
@@ -124,7 +136,14 @@ printf '%s\\n' "$MANIFEST"
             errors=("registry: HTTP 503 Service Unavailable",),
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(output, "exists=true\n")
+        self.assertEqual(
+            dict(line.split("=", 1) for line in output.splitlines()),
+            {
+                "exists": "true",
+                "image": "ghcr.io/example/latex@sha256:" + "a" * 64,
+                "digest": "a" * 64,
+            },
+        )
 
     def test_queue_validation_rejects_invalid_settings(self):
         script = (ROOT / "scripts/check_actions.sh").read_text().split("root_dir=")[0]
@@ -229,17 +248,72 @@ printf '%s\\n' "$MANIFEST"
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(output, "exists=false\n")
 
+    def test_bad_digest_or_changed_pinned_platforms_never_authorize_builds(self):
+        for digest, pinned_manifest in (
+            ("invalid", None),
+            ("sha256:" + "a" * 64, '{"manifests": []}'),
+        ):
+            with self.subTest(digest=digest, pinned_manifest=pinned_manifest):
+                result, output = self.run_image(
+                    "push",
+                    tag_exists=True,
+                    inputs_changed=False,
+                    digest=digest,
+                    pinned_manifest=pinned_manifest,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(output, "")
+
+    def test_existing_image_cache_refresh_requires_explicit_manual_input(self):
+        workflow = yaml.safe_load(
+            (ROOT / ".github/workflows/build-toolchain.yml").read_text()
+        )
+        main_inputs = build_workflow()["jobs"]["main-image"]["with"]
+        manual = yaml.safe_load(
+            (ROOT / ".github/workflows/build-image.yml").read_text()
+        )
+        # SafeLoader treats the YAML 1.1 key "on" as True.
+        default = manual[True]["workflow_dispatch"]["inputs"]["refresh_cache"][
+            "default"
+        ]
+        for requested in (main_inputs.get("refresh_cache", False), default, True):
+            context = {
+                "needs.publish.result": "success",
+                "needs.prepare.outputs.exists": "true",
+                "inputs.refresh_cache": requested,
+                "github.event_name": "workflow_dispatch",
+                "github.ref": "refs/heads/main",
+            }
+            self.assertEqual(
+                condition_allows(workflow["jobs"]["refresh-cache"]["if"], context),
+                requested is True,
+            )
+
     def test_existing_content_tag_is_reused(self):
         result, output = self.run_image("push", tag_exists=True, inputs_changed=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(output, "exists=true\n")
+        self.assertEqual(
+            dict(line.split("=", 1) for line in output.splitlines()),
+            {
+                "exists": "true",
+                "image": "ghcr.io/example/latex@sha256:" + "a" * 64,
+                "digest": "a" * 64,
+            },
+        )
 
     def test_dispatch_never_overwrites_existing_tag(self):
         result, output = self.run_image(
             "workflow_dispatch", tag_exists=True, inputs_changed=True
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(output, "exists=true\n")
+        self.assertEqual(
+            dict(line.split("=", 1) for line in output.splitlines()),
+            {
+                "exists": "true",
+                "image": "ghcr.io/example/latex@sha256:" + "a" * 64,
+                "digest": "a" * 64,
+            },
+        )
 
     def test_manual_recovery_uses_the_runtime_content_tag(self):
         wrapper = (ROOT / ".github/workflows/build-image.yml").read_text(
@@ -405,7 +479,7 @@ printf '%s\\n' "$MANIFEST"
                     self.assertEqual(
                         output.read_text(),
                         f"digest={'a' * 64}\n"
-                        "reference=ghcr.io/example/toolchain:build-123-2-amd64\n",
+                        "image=ghcr.io/example/toolchain:build-123-2-amd64\n",
                     )
                 else:
                     self.assertFalse(output.exists())
@@ -529,7 +603,14 @@ printf '%s\\n' "$MANIFEST"
             "push", tag_exists=True, inputs_changed=False, manifest=json.dumps(manifest)
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(output, "exists=true\n")
+        self.assertEqual(
+            dict(line.split("=", 1) for line in output.splitlines()),
+            {
+                "exists": "true",
+                "image": "ghcr.io/example/latex@sha256:" + "a" * 64,
+                "digest": "a" * 64,
+            },
+        )
 
 
 if __name__ == "__main__":

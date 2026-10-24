@@ -19,7 +19,12 @@ ROOT = Path(__file__).resolve().parent.parent
 
 class ImageCandidateTests(unittest.TestCase):
     def setUp(self):
-        self.expected = {"policy": CANDIDATE.POLICY, "tree": "tree", "arch": "amd64"}
+        self.expected = {
+            "policy": CANDIDATE.POLICY,
+            "tree": "tree",
+            "arch": "amd64",
+            "image_tag": "texlive-0123456789ab",
+        }
         self.workflow_run = {
             "id": 123,
             "run_attempt": 2,
@@ -163,6 +168,17 @@ class ImageCandidateTests(unittest.TestCase):
                 ),
             ):
                 CANDIDATE.check_archive(archive)
+            command.assert_not_called()
+
+    def test_invalid_candidate_archive_is_rejected_before_recording_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / "image.tar.gz").write_bytes(b"")
+            with (
+                patch.object(CANDIDATE, "command") as command,
+                self.assertRaisesRegex(ValueError, "empty or too large"),
+            ):
+                CANDIDATE.record("amd64", "image", directory)
             command.assert_not_called()
 
     def test_archive_is_verified_before_loading_or_tagging(self):

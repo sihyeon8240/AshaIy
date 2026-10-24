@@ -176,7 +176,7 @@ class ConfigurationTests(unittest.TestCase):
             config = json.loads(path.read_text())
             config["inputs"].append("scripts/new-image-input.sh")
             config["policy_version"] = "native-multiarch-v2"
-            config["platforms"].append({"arch": "riscv64", "runner": "custom-runner"})
+            config["platforms"].reverse()
             path.write_text(json.dumps(config))
 
             runtime_workflows = {

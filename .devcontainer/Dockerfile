@@ -1,6 +1,6 @@
 FROM debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f AS tool-downloader
 
-COPY .devcontainer/generated/tools.env /tmp/toolchain.env
+COPY --chmod=0644 .devcontainer/generated/tools.env /tmp/toolchain.env
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     --no-install-recommends ca-certificates curl \
   && set -a && . /tmp/toolchain.env && set +a \
@@ -44,7 +44,7 @@ FROM debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl perl xz-utils \
   && rm -rf /var/lib/apt/lists/*
-COPY .devcontainer/generated/texlive.env /tmp/texlive.env
+COPY --chmod=0644 .devcontainer/generated/texlive.env /tmp/texlive.env
 RUN set -a && . /tmp/texlive.env && set +a \
   && repository="https://texlive.info/tlnet-archive/${TEXLIVE_ARCHIVE_DATE}/tlnet" \
   && curl -fsSL -o /tmp/install-tl.tgz "$repository/install-tl-unx.tar.gz" \
@@ -101,14 +101,14 @@ RUN curl -fsSL -o /root/.zshrc \
   && rm -rf /root/.oh-my-zsh/.git \
       /root/.oh-my-zsh/custom/themes/powerlevel10k/.git \
   && usermod --shell /bin/zsh root
-COPY --from=tool-downloader /out/bin/elan-init /usr/local/bin/elan-init
-COPY .devcontainer/generated/lean.env /tmp/lean.env
+COPY --from=tool-downloader --chmod=0755 /out/bin/elan-init /usr/local/bin/elan-init
+COPY --chmod=0644 .devcontainer/generated/lean.env /tmp/lean.env
 RUN set -a && . /tmp/lean.env && set +a \
   && /usr/local/bin/elan-init -y --no-modify-path --default-toolchain none \
   && rm /usr/local/bin/elan-init \
   && elan toolchain install "$LEAN_TOOLCHAIN" \
   && elan default "$LEAN_TOOLCHAIN"
-COPY .devcontainer/generated/python.env /tmp/python.env
+COPY --chmod=0644 .devcontainer/generated/python.env /tmp/python.env
 RUN set -a && . /tmp/python.env && set +a \
   && python3 -m pip install \
     --disable-pip-version-check --no-cache-dir --only-binary=:all: \
@@ -120,12 +120,12 @@ RUN set -a && . /tmp/python.env && set +a \
     "yamllint==${YAMLLINT_VERSION}" \
     "djlint==${DJLINT_VERSION}" \
     "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}"
-COPY --from=tool-downloader /out/bin/ruff /out/bin/shfmt \
+COPY --from=tool-downloader --chmod=0755 /out/bin/ruff /out/bin/shfmt \
     /out/bin/latexindent /out/bin/shellcheck /out/bin/gh /usr/local/bin/
 COPY --from=texlive /usr/local/texlive /usr/local/texlive
-COPY scripts/ashaiy_launcher.sh /usr/local/bin/ashaiy
-COPY config/toolchain.env /workspace/config/toolchain.env
-COPY scripts/check_toolchain.sh /workspace/scripts/check_toolchain.sh
+COPY --chmod=0755 scripts/ashaiy_launcher.sh /usr/local/bin/ashaiy
+COPY --chmod=0644 config/toolchain.env /workspace/config/toolchain.env
+COPY --chmod=0755 scripts/check_toolchain.sh /workspace/scripts/check_toolchain.sh
 RUN set -a && . /workspace/config/toolchain.env && set +a \
   && lualatex --version | head -n1 | grep -F "TeX Live ${TEXLIVE_YEAR}" \
   && ./scripts/check_toolchain.sh

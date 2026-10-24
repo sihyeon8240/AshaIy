@@ -140,6 +140,8 @@ def load_image_build(root: Path = ROOT) -> dict:
         ):
             raise ValueError(f"{path}: invalid platform or runner")
     architectures = [platform["arch"] for platform in platforms]
+    if not set(architectures) <= {"amd64", "arm64"}:
+        raise ValueError(f"{path}: Dockerfile supports only amd64 and arm64")
     if len(architectures) != len(set(architectures)) or "amd64" not in architectures:
         raise ValueError(
             f"{path}: architectures must be unique and include the PR consumer's amd64 platform"

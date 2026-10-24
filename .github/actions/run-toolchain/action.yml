@@ -43,7 +43,7 @@ runs:
       run: |
         if [[ -z "$TOOLCHAIN_ARTIFACT" ]]; then
           [[ "$TOOLCHAIN_IMAGE" == *@sha256:"$TOOLCHAIN_DIGEST" ]]
-          docker pull "$TOOLCHAIN_IMAGE"
+          docker pull --platform linux/amd64 "$TOOLCHAIN_IMAGE"
         fi
         docker run --rm --platform linux/amd64 --pull=never \
           -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \

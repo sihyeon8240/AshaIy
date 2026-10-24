@@ -229,6 +229,13 @@ Main waits for publication before using the immutable index. The manual
 `build-image.yml` recovery workflow does not also run on pushes. Ordinary PRs resolve
 the published tag for their inputs; `config/container-image.txt` remains the local
 and Dev Container pin. Registry errors fail explicitly.
+Resolution fixes one verified index digest for platform validation and consumers;
+each builder pulls that digest instead of resolving the tag again.
+
+Reusing a published image does not refresh intermediate Docker caches automatically.
+The manual **Validate and publish toolchain image** workflow has an opt-in
+`refresh_cache` input for that separate operation. Normal main CI reuses the
+published image without repeating a cache-only build.
 
 #### Validating an image PR
 
@@ -256,7 +263,7 @@ open PRs targeting main whose current head matches the successful run, including
 Dependabot PRs. Bring fork image changes into a same-repository PR for promotion.
 
 Promotion verifies both architecture artifacts, GitHub digests, policy, source
-tree, run/attempt, archive checksums, image IDs, and architectures. It never
+tree, content tag, run/attempt, archive checksums, image IDs, and architectures. It never
 executes PR scripts or candidate containers with write credentials. Changed or
 closed heads are skipped; mismatched merge trees require fresh CI.
 
@@ -281,6 +288,7 @@ configuration; no separate pin PR or branch is created.
 After pushing a pin with `GITHUB_TOKEN`, the publisher dispatches **Build
 textbooks** on the PR branch with the exact expected commit. Dispatch events run
 automatically without a GitHub App, PAT, or approval of the separate PR-event run.
+Transient dispatch failures retry the same committed pin up to three times.
 The source gate rejects a dispatch if the branch moved before it started. Final
 consumer CI resolves the published image and does not trigger another publisher.
 If dispatch fails, manually dispatch **Build textbooks** on the PR branch with
@@ -288,7 +296,18 @@ If dispatch fails, manually dispatch **Build textbooks** on the PR branch with
 Ordinary textbook PRs neither publish images nor update pins.
 
 The content tag hashes inputs and build policy from `config/image-build.json`.
-It includes each input's path, bytes, and Git executable flag; symlinks are rejected.
+The published transcript contains each input's SHA-256 and path, followed by the
+policy version and ordered platforms. This format is a wire contract shared by
+the independently deployed PR validator and trusted main publisher. Keep it stable
+when either side is updated first; a policy-version bump alone cannot teach an
+older publisher a different serialization algorithm.
+
+Docker `COPY --chmod` fixes executable and data permissions in the recipe. Checkout
+mode bits therefore do not affect the image; permission-policy changes modify the
+Dockerfile bytes and its content tag. The hash command rejects symlinks, unhashed
+repository COPY sources, and repository COPY instructions without explicit modes.
+Base images and external COPY sources require immutable digests; local build
+inputs use literal COPY paths rather than ADD.
 This identifies declared build inputs and a tested publication. It does not promise
 identical bytes from independent rebuilds: apt resolution and Python transitive
 dependencies are not fully locked. Consumers use the published immutable digest.

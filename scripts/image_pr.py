@@ -7,6 +7,7 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 from typing import Callable
 
@@ -29,7 +30,7 @@ def command(
         text=True,
         capture_output=not stream,
         check=True,
-        timeout=600 if stream else 1800,
+        timeout=60 if args[0] == "gh" else (600 if stream else 1800),
     )
     return (result.stdout or "").strip()
 
@@ -98,16 +99,26 @@ def summary(message: str) -> None:
 
 
 def dispatch_validation(repository: str, branch: str, commit: str) -> None:
-    command(
-        "gh",
-        "api",
-        "--method",
-        "POST",
-        f"repos/{repository}/actions/workflows/build.yml/dispatches",
-        "--input",
-        "-",
-        data=json.dumps({"ref": branch, "inputs": {"expected_sha": commit}}),
-    )
+    for attempt in range(1, 4):
+        try:
+            command(
+                "gh",
+                "api",
+                "--method",
+                "POST",
+                f"repos/{repository}/actions/workflows/build.yml/dispatches",
+                "--input",
+                "-",
+                data=json.dumps({"ref": branch, "inputs": {"expected_sha": commit}}),
+            )
+            break
+        except subprocess.SubprocessError:
+            if attempt == 3:
+                summary(
+                    f"Pin `{commit}` is saved. Dispatch Build textbooks on `{branch}` with `expected_sha={commit}` to finish validation."
+                )
+                raise
+            time.sleep(attempt)
     summary(f"Started final consumer CI for `{commit}` on `{branch}` automatically.")
 
 
@@ -181,6 +192,36 @@ def append_pin(repository: str, pull: dict, image: str) -> bool:
     return True
 
 
+def published_image(name: str, tag: str, *, required: bool = False) -> str | None:
+    """Only an explicit absent manifest permits publication of a new index."""
+    with tempfile.TemporaryDirectory() as temporary:
+        output = Path(temporary) / "output"
+        command(
+            "bash",
+            "scripts/check_image_tag.sh",
+            env={
+                **os.environ,
+                "IMAGE_NAME": name,
+                "RELEASE_TAG": tag,
+                "IMAGE_REF": f"{name}:{tag}",
+                "REQUIRE_IMAGE": str(required).lower(),
+                "GITHUB_OUTPUT": str(output),
+            },
+        )
+        values = dict(line.split("=", 1) for line in output.read_text().splitlines())
+    if values.get("exists") == "false" and not required:
+        return None
+    image = values.get("image", "")
+    digest = values.get("digest", "")
+    if (
+        values.get("exists") != "true"
+        or not re.fullmatch(validation_pattern("sha256"), digest)
+        or image != f"{name}@sha256:{digest}"
+    ):
+        raise ValueError("registry did not return a verified immutable image")
+    return image
+
+
 def publish(load_candidate: Callable, *, policy: str, max_bytes: int) -> None:
     repository = os.environ["GITHUB_REPOSITORY"]
     run_id = int(os.environ["SOURCE_RUN_ID"])
@@ -213,16 +254,8 @@ def publish(load_candidate: Callable, *, policy: str, max_bytes: int) -> None:
     if image_name(source_pin) != name:
         raise ValueError("image registry migration requires manual publication")
     release = f"{name}:{tag}"
-    env = {**os.environ, "IMAGE_NAME": name, "RELEASE_TAG": tag}
-    with tempfile.TemporaryDirectory() as temporary:
-        output = Path(temporary) / "output"
-        command(
-            "bash",
-            "scripts/check_image_tag.sh",
-            env={**env, "GITHUB_OUTPUT": str(output)},
-        )
-        exists = output.read_text().strip() == "exists=true"
-    if not exists:
+    image = published_image(name, tag)
+    if image is None:
         artifacts = github_artifacts.api(
             f"repos/{repository}/actions/runs/{run_id}/artifacts?per_page=100"
         )["artifacts"]
@@ -239,7 +272,7 @@ def publish(load_candidate: Callable, *, policy: str, max_bytes: int) -> None:
         sources = []
         for arch in architectures:
             image = f"{name}:pr-{pull['number']}-{run_id}-{run['run_attempt']}-{arch}"
-            expected = {"policy": policy, "tree": tree, "arch": arch}
+            expected = {"policy": policy, "tree": tree, "arch": arch, "image_tag": tag}
             load_candidate(
                 repository, candidates[f"toolchain-image-{arch}"], expected, run, image
             )
@@ -262,23 +295,7 @@ def publish(load_candidate: Callable, *, policy: str, max_bytes: int) -> None:
             command("docker", "image", "rm", image)
         print(f"Publishing multi-platform index: {release}", flush=True)
         command("docker", "buildx", "imagetools", "create", "--tag", release, *sources)
-
-    digest = command(
-        "docker",
-        "buildx",
-        "imagetools",
-        "inspect",
-        release,
-        "--format",
-        "{{.Manifest.Digest}}",
-    )
-    if not re.fullmatch(validation_pattern("image_digest"), digest):
-        raise ValueError("invalid published index digest")
-    image = f"{name}@{digest}"
-    command(
-        "bash",
-        "scripts/check_image_tag.sh",
-        env={**env, "IMAGE_REF": image, "REQUIRE_IMAGE": "true"},
-    )
+        image = published_image(name, tag, required=True)
+    assert image is not None
     print(f"Updating PR #{pull['number']} with verified image pin", flush=True)
     append_pin(repository, pull, image)

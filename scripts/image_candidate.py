@@ -20,6 +20,8 @@ if __package__ in (None, ""):
 
 from scripts import github_artifacts
 from scripts.github_artifacts import checksum, eligible_run
+from scripts.image_policy import input_hash
+from scripts.repository_config import load_image_build
 from scripts.validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -41,16 +43,20 @@ def identity(arch: str) -> dict:
         "policy": POLICY,
         "tree": command("git", "rev-parse", "HEAD^{tree}"),
         "arch": arch,
+        "image_tag": "texlive-" + input_hash(ROOT),
     }
 
 
 def record(arch: str, image: str, directory: Path) -> None:
+    archive = directory / "image.tar.gz"
+    if not 0 < archive.stat().st_size <= MAX_BYTES:
+        raise ValueError("candidate archive is empty or too large")
     manifest = {
         **identity(arch),
         "run_id": os.environ["GITHUB_RUN_ID"],
         "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
         "image_id": command("docker", "image", "inspect", image, "--format", "{{.Id}}"),
-        "checksum": checksum(directory / "image.tar.gz"),
+        "checksum": checksum(archive),
     }
     (directory / "candidate.json").write_text(json.dumps(manifest) + "\n")
 
@@ -169,8 +175,11 @@ def restore(arch: str, image: str) -> bool:
                 if not artifact.get("expired", True)
                 and artifact.get("size_in_bytes", MAX_BYTES + 1) <= MAX_BYTES
             }
+            architectures = [
+                item["arch"] for item in load_image_build(ROOT)["platforms"]
+            ]
             if not all(
-                f"toolchain-image-{item}" in candidates for item in ("amd64", "arm64")
+                f"toolchain-image-{item}" in candidates for item in architectures
             ):
                 continue
             load_candidate(

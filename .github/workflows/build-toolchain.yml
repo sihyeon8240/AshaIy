@@ -15,7 +15,7 @@ on:
         type: boolean
         default: false
       refresh_cache:
-        description: Refresh intermediate caches for an image promoted from a PR
+        description: Explicitly refresh intermediate caches for an existing image
         type: boolean
         default: false
     outputs:
@@ -39,6 +39,8 @@ jobs:
     outputs:
       exists: ${{ steps.release-tag.outputs.exists }}
       tag: ${{ inputs.tag }}
+      image: ${{ steps.release-tag.outputs.image }}
+      digest: ${{ steps.release-tag.outputs.digest }}
       matrix: ${{ steps.policy.outputs.matrix }}
     steps:
       - name: Checkout image inputs
@@ -70,6 +72,7 @@ jobs:
         id: release-tag
         run: ./scripts/check_image_tag.sh
   build:
+    name: Validate toolchain (${{ matrix.arch }})
     needs: prepare
     if: needs.prepare.outputs.exists != 'true' || inputs.validate_existing
     strategy:
@@ -117,13 +120,11 @@ jobs:
       - name: Pull the published image for current validation
         if: needs.prepare.outputs.exists == 'true'
         env:
-          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+          PUBLISHED_IMAGE: ${{ needs.prepare.outputs.image }}
         run: |
-          digest="$(docker buildx imagetools inspect "${IMAGE_NAME}:${RELEASE_TAG}" --format '{{.Manifest.Digest}}')"
-          # validation-pattern: image_digest
-          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
-          docker pull --platform "linux/$ARCH" "${IMAGE_NAME}@${digest}"
-          docker tag "${IMAGE_NAME}@${digest}" "$BUILD_TAG"
+          echo "Reusing $PUBLISHED_IMAGE for linux/$ARCH"
+          docker pull --platform "linux/$ARCH" "$PUBLISHED_IMAGE"
+          docker tag "$PUBLISHED_IMAGE" "$BUILD_TAG"
       - name: Build image for smoke testing
         if: needs.prepare.outputs.exists != 'true' && steps.candidate.outputs.reused != 'true'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
@@ -235,7 +236,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
-      image: ${{ steps.image.outputs.reference }}
+      image: ${{ steps.image.outputs.image }}
       digest: ${{ steps.image.outputs.digest }}
       artifact: ${{ steps.local.outputs.artifact }}
     env:
@@ -311,25 +312,23 @@ jobs:
         run: echo "artifact=toolchain-image-amd64" >> "$GITHUB_OUTPUT"
       - name: Resolve and validate the tested index digest
         id: image
+        env:
+          PUBLISHED_IMAGE: ${{ needs.prepare.outputs.image }}
         run: |
           if [[ "$GITHUB_EVENT_NAME" == pull_request && -f build/image-digests/amd64 ]]; then
             digest="$(cat build/image-digests/amd64)"
             # validation-pattern: image_digest
             [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
             echo "digest=${digest#sha256:}" >> "$GITHUB_OUTPUT"
-            echo "reference=${IMAGE_NAME}:build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-amd64" >> "$GITHUB_OUTPUT"
+            echo "image=${IMAGE_NAME}:build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-amd64" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          digest="$(docker buildx imagetools inspect "${IMAGE_NAME}:${RELEASE_TAG}" --format '{{.Manifest.Digest}}')"
-          # validation-pattern: image_digest
-          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
-          IMAGE_REF="${IMAGE_NAME}@${digest}" REQUIRE_IMAGE=true ./scripts/check_image_tag.sh
-          echo "digest=${digest#sha256:}" >> "$GITHUB_OUTPUT"
-          echo "reference=${IMAGE_NAME}@${digest}" >> "$GITHUB_OUTPUT"
+          IMAGE_REF="${PUBLISHED_IMAGE:-${IMAGE_NAME}:${RELEASE_TAG}}" \
+            REQUIRE_IMAGE=true ./scripts/check_image_tag.sh
       - name: Promote current main aliases and report image access
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
-          IMAGE_REF: ${{ steps.image.outputs.reference }}
+          IMAGE_REF: ${{ steps.image.outputs.image }}
         run: python3 scripts/image_registry.py
   refresh-cache:
     needs: [prepare, publish]
