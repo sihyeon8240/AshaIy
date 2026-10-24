@@ -11,32 +11,22 @@ import sys
 import tempfile
 from pathlib import Path
 
-try:
-    from scripts import (
-        architecture_checks,
-        contents_generation,
-        documentation_checks,
-        label_checks,
-        lean_generation,
-        proof_links,
-        site_pages,
-    )
-    from scripts.book_manifest import load_manifest, manifest_warnings
-    from scripts.config_sync import synchronize
-    from scripts.repository_config import load_image
-    from scripts.source_reads import reuse_source_reads
-except ModuleNotFoundError:
-    import architecture_checks
-    import contents_generation
-    import documentation_checks
-    import label_checks
-    import lean_generation
-    import proof_links
-    import site_pages
-    from book_manifest import load_manifest, manifest_warnings
-    from config_sync import synchronize
-    from repository_config import load_image
-    from source_reads import reuse_source_reads
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts import (
+    architecture_checks,
+    contents_generation,
+    documentation_checks,
+    label_checks,
+    lean_generation,
+    proof_links,
+    site_pages,
+)
+from scripts.book_manifest import load_manifest, manifest_warnings
+from scripts.config_sync import synchronize
+from scripts.repository_config import load_image
+from scripts.source_reads import reuse_source_reads
 
 ROOT = Path(__file__).resolve().parent.parent
 

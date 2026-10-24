@@ -8,23 +8,16 @@ import json
 import sys
 from pathlib import Path
 
-try:
-    from scripts.book_manifest import (
-        add_book,
-        load_manifest,
-        manifest_warnings,
-        require_book,
-        validate_new_book_input,
-    )
-except ModuleNotFoundError:
-    # Direct execution places scripts/, rather than the repository root, on sys.path.
-    from book_manifest import (  # type: ignore[no-redef]
-        add_book,
-        load_manifest,
-        manifest_warnings,
-        require_book,
-        validate_new_book_input,
-    )
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.book_manifest import (
+    add_book,
+    load_manifest,
+    manifest_warnings,
+    require_book,
+    validate_new_book_input,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:

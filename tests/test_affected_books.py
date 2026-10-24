@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import contextlib
-import importlib.util
 import io
 import json
 import os
@@ -17,16 +16,10 @@ from unittest import mock
 import yaml
 from test_support import git_environment
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-affected = importlib.import_module("book_impact")
+from scripts import affected_books as cli
+from scripts import book_impact as affected
 
-spec = importlib.util.spec_from_file_location(
-    "affected_books", ROOT / "scripts/affected_books.py"
-)
-assert spec and spec.loader
-cli = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(cli)
+ROOT = Path(__file__).resolve().parent.parent
 
 
 class AffectedBookTests(unittest.TestCase):
@@ -70,6 +63,11 @@ class AffectedBookTests(unittest.TestCase):
         ):
             return affected.plan(paths, old)
 
+    def test_pages_workflow_advances_site_source_without_rebuilding_pdfs(self):
+        result = self.plan([".github/workflows/pages.yml"])
+        self.assertEqual(result["book"], [])
+        self.assertTrue(result["site_changed"])
+
     def test_release_matrix_forces_build_after_snapshot_has_advanced(self):
         output = io.StringIO()
         with (
@@ -100,6 +98,39 @@ class AffectedBookTests(unittest.TestCase):
     def test_common_style_selects_only_actual_consumer(self):
         self.assertEqual(self.plan(["common/styles/alpha.sty"])["book"], ["alpha"])
 
+    def test_unknown_shared_assets_are_conservative_but_scaffolds_are_exempt(self):
+        self.assertEqual(
+            self.plan(["common/templates/diagram.png"])["book"], ["alpha", "beta"]
+        )
+        self.assertEqual(self.plan(["common/templates/section.tex"])["book"], [])
+
+    def test_graphics_are_tracked_as_shared_book_dependencies(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            asset = root / "common/templates/diagram.png"
+            asset.parent.mkdir(parents=True)
+            asset.write_bytes(b"image bytes")
+            source = root / "books/alpha/book.tex"
+            source.parent.mkdir(parents=True)
+            source.write_text(r"\includegraphics[width=2cm]{common/templates/diagram}")
+            beta = root / "books/beta/book.tex"
+            beta.parent.mkdir(parents=True)
+            beta.write_text("No graphic.\n")
+            with (
+                mock.patch.object(affected, "ROOT", root),
+                mock.patch.object(
+                    affected, "load_manifest", return_value=self.manifest
+                ),
+            ):
+                self.assertEqual(
+                    affected.plan(["common/templates/diagram.png"])["book"], ["alpha"]
+                )
+                asset.unlink()
+                self.assertEqual(
+                    affected.plan(["common/templates/diagram.png"])["book"],
+                    ["alpha", "beta"],
+                )
+
     def test_ci_only_helpers_select_no_books(self):
         for path in (
             "scripts/snapshot_base.sh",
@@ -117,6 +148,16 @@ class AffectedBookTests(unittest.TestCase):
         ):
             with self.subTest(path=path):
                 self.assertEqual(self.plan([path])["book"], ["alpha", "beta"])
+
+    def test_shared_validation_changes_select_books_and_dependent_consumers(self):
+        for path in (
+            "config/validation-patterns.json",
+            "scripts/validation_patterns.py",
+        ):
+            with self.subTest(path=path):
+                result = self.plan([path])
+                self.assertEqual(result["book"], ["alpha", "beta"])
+                self.assertTrue(result["site_changed"])
 
     def test_changed_canonical_image_reference_selects_all_books(self):
         self.assertEqual(
@@ -201,7 +242,7 @@ class AffectedBookTests(unittest.TestCase):
     def test_site_activation_builds_pdf_required_by_snapshot(self):
         from copy import deepcopy
 
-        from snapshot_state import plan_snapshot
+        from scripts.snapshot_state import plan_snapshot
 
         previous = deepcopy(self.manifest)
         current = deepcopy(previous)
@@ -313,7 +354,9 @@ class AffectedBookTests(unittest.TestCase):
             git("add", "-A")
             git("commit", "-qm", "after")
             with mock.patch.object(affected, "ROOT", root):
-                self.assertEqual(set(affected.changed_paths(base, "HEAD")), {old, new})
+                paths = affected.changed_paths(base, "HEAD")
+                assert paths is not None
+                self.assertEqual(set(paths), {old, new})
 
     def test_invalid_historical_manifests_fall_back_without_creating_paths(self):
         for text in (
@@ -358,6 +401,7 @@ class AffectedBookTests(unittest.TestCase):
             affected, "git_output", return_value=yaml.safe_dump(manifest)
         ):
             result = affected.manifest_at("base")
+        assert result is not None
         self.assertEqual(result["books"][0]["slug"], "deleted")
         self.assertTrue(result["books"][0]["build"])
 

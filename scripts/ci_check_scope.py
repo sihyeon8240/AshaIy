@@ -4,9 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import sys
+from pathlib import Path
 
-from ci_changes import changed_paths
-from impact_plan import source_selection
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.ci_changes import changed_paths
+from scripts.impact_plan import source_selection
 
 
 def main() -> None:

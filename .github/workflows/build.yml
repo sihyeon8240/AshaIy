@@ -1,6 +1,12 @@
 name: Build textbooks
 on:
   workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact pin commit to validate (empty for a manual rebuild)
+        required: false
+        default: ''
+        type: string
   pull_request:
   push:
     branches: [main]
@@ -24,6 +30,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+      - name: Verify the dispatched pin commit
+        if: github.event_name == 'workflow_dispatch' && inputs.expected_sha != ''
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: test "$GITHUB_SHA" = "$EXPECTED_SHA"
       - id: changes
         name: Classify changed files
         env:
@@ -133,8 +144,10 @@ jobs:
     uses: ./.github/workflows/prepare-image.yml
     with:
       ref: ${{ github.sha }}
+      validate_existing: true
   main-image:
     name: Prepare main toolchain image
+    needs: source
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     permissions:
       contents: read
@@ -160,9 +173,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/latexindent
-          key: latexindent-v2-${{ runner.os }}-${{ runner.arch }}-${{ needs.prepare-image.outputs.digest }}-${{ hashFiles('scripts/format_tex.sh', 'scripts/format_tex_file.sh', 'scripts/normalize_eof.sh', 'config/latexindent.yaml') }}-${{ hashFiles('**/*.tex', '**/*.sty') }}
+          key: latexindent-v2-${{ runner.os }}-${{ runner.arch }}-${{ needs.prepare-image.outputs.digest }}-${{ hashFiles('scripts/format_tex.py', 'scripts/normalize_eof.py', 'scripts/latex_scan.py', 'scripts/lean_source.py', 'scripts/format_tex.sh', 'scripts/format_tex_file.sh', 'scripts/normalize_eof.sh', 'config/latexindent.yaml') }}-${{ hashFiles('**/*.tex', '**/*.sty') }}
           restore-keys: |
-            latexindent-v2-${{ runner.os }}-${{ runner.arch }}-${{ needs.prepare-image.outputs.digest }}-${{ hashFiles('scripts/format_tex.sh', 'scripts/format_tex_file.sh', 'scripts/normalize_eof.sh', 'config/latexindent.yaml') }}-
+            latexindent-v2-${{ runner.os }}-${{ runner.arch }}-${{ needs.prepare-image.outputs.digest }}-${{ hashFiles('scripts/format_tex.py', 'scripts/normalize_eof.py', 'scripts/latex_scan.py', 'scripts/lean_source.py', 'scripts/format_tex.sh', 'scripts/format_tex_file.sh', 'scripts/normalize_eof.sh', 'config/latexindent.yaml') }}-
       - uses: ./.github/actions/run-toolchain
         with:
           image: ${{ needs.prepare-image.outputs.image }}
@@ -172,7 +185,8 @@ jobs:
           run: |
             git config --global --add safe.directory "$(pwd)"
             ./scripts/ashaiy format sh --check
-            ./scripts/ashaiy format tex --check
+            python3 scripts/format_tex.py --check --prune-cache
+            REQUIRE_TEX_TESTS=1 python3 -m unittest discover -s tests -p test_code_fonts.py -v
             ./scripts/ashaiy site test
       - name: Upload failed browser trace
         if: failure()
@@ -269,12 +283,6 @@ jobs:
           input_hash="$(python3 scripts/image_policy.py hash)"
           tag="${IMAGE_NAME}:texlive-${input_hash}"
           IMAGE_REF="$tag" REQUIRE_IMAGE=true ./scripts/check_image_tag.sh
-          digest="$(docker buildx imagetools inspect "$tag" --format '{{.Manifest.Digest}}')"
-          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
-          image="${IMAGE_NAME}@${digest}"
-          IMAGE_REF="$image" REQUIRE_IMAGE=true ./scripts/check_image_tag.sh
-          echo "image=$image" >> "$GITHUB_OUTPUT"
-          echo "digest=${image##*@sha256:}" >> "$GITHUB_OUTPUT"
   plan:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -365,7 +373,7 @@ jobs:
           BOOK: ${{ matrix.book }}
         run: |
           mkdir -p "build/$BOOK"
-          echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
+          echo "sources=$(python3 scripts/book_cache.py "$BOOK")" >> "$GITHUB_OUTPUT"
           echo "image=$DIGEST" >> "$GITHUB_OUTPUT"
       - name: Download PDF validation results from the candidate image job
         if: needs.prepare-image.outputs.artifact != ''
@@ -394,9 +402,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/${{ matrix.book }}
-          key: latex-v1-${{ runner.os }}-${{ runner.arch }}-${{ matrix.book }}-${{ steps.inputs.outputs.image }}-${{ steps.inputs.outputs.tree }}
+          key: latex-v2-${{ runner.os }}-${{ runner.arch }}-${{ matrix.book }}-${{ steps.inputs.outputs.image }}-${{ steps.inputs.outputs.sources }}
           restore-keys: |
-            latex-v1-${{ runner.os }}-${{ runner.arch }}-${{ matrix.book }}-${{ steps.inputs.outputs.image }}-
+            latex-v2-${{ runner.os }}-${{ runner.arch }}-${{ matrix.book }}-${{ steps.inputs.outputs.image }}-
       - name: Build and strictly check in the prepared image
         if: steps.reuse.outputs.reused != 'true'
         uses: ./.github/actions/run-toolchain
@@ -489,6 +497,7 @@ jobs:
             echo "::error::Build planning ended with: $PLAN_RESULT"
             exit 1
           fi
+          # validation-pattern: nonnegative_integer
           if [[ ! "$BOOK_COUNT" =~ ^[0-9]+$ ]]; then
             echo "::error::Invalid textbook build count: ${BOOK_COUNT:-<empty>}"
             exit 1
@@ -507,6 +516,7 @@ jobs:
     concurrency:
       group: development-pdf-snapshot
       cancel-in-progress: false
+      queue: max
     needs: [plan, book, check, build-check]
     if: >-
       always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
@@ -535,6 +545,8 @@ jobs:
           merge-multiple: true
       - id: publish
         name: Update generated-pdfs snapshot
+        env:
+          BUILD_PLAN: ${{ needs.plan.outputs.matrix }}
         shell: bash
         run: ./scripts/publish_snapshot.sh
   pages:

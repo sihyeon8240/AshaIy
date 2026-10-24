@@ -8,15 +8,18 @@ open Set BoxIntegral
 noncomputable section
 
 /-- Definition: a nondegenerate real interval represented by a one-dimensional
-box in the reversed coordinate, so its cells are left-closed and right-open. -/
+box in reversed coordinates, whose membership describes half-open ownership. -/
 def intervalBox (a b : ℝ) (hab : a < b) : Box Unit :=
   ⟨fun _ => -b, fun _ => -a, fun _ => neg_lt_neg hab⟩
 
-/-- Definition: the real half-open interval corresponding to a one-dimensional box. -/
-def cell (I : Box Unit) : Set ℝ := Ico (-I.upper ()) (-I.lower ())
+/-- Definition: the half-open interval used only for disjoint partition ownership. -/
+def halfOpenCell (I : Box Unit) : Set ℝ := Ico (-I.upper ()) (-I.lower ())
 
-/-- Definition: a partition is a finite disjoint family of interval cells covering
-the interval. The final endpoint is omitted from the cells. -/
+/-- Definition: the closed subinterval on which Darboux extrema and tags are evaluated. -/
+def cell (I : Box Unit) : Set ℝ := Icc (-I.upper ()) (-I.lower ())
+
+/-- Definition: a partition is a finite family of boxes whose half-open cells
+are disjoint and cover the half-open ambient interval. Evaluation includes both endpoints. -/
 abbrev Partition (I : Box Unit) := {P : Prepartition I // P.IsPartition}
 
 /-- Definition: refinement means that every cell of the finer partition lies
@@ -33,9 +36,30 @@ def cellLength (I : Box Unit) : ℝ := I.upper () - I.lower ()
 def mesh {I : Box Unit} (P : Partition I) : ℝ :=
   P.val.boxes.sup' P.property.nonempty_boxes cellLength
 
-/-- Lemma: the reversed box cell represents the stated half-open interval. -/
-theorem cell_intervalBox (a b : ℝ) (hab : a < b) : cell (intervalBox a b hab) = Ico a b := by
+/-- Lemma: a box's evaluation cell is the stated closed interval. -/
+theorem cell_intervalBox (a b : ℝ) (hab : a < b) : cell (intervalBox a b hab) = Icc a b := by
   simp only [cell, intervalBox, neg_neg]
+
+/-- Lemma: a box's ownership cell is the stated half-open interval. -/
+theorem halfOpenCell_intervalBox (a b : ℝ) (hab : a < b) :
+    halfOpenCell (intervalBox a b hab) = Ico a b := by
+  simp only [halfOpenCell, intervalBox, neg_neg]
+
+/-- Lemma: reversing the coordinate identifies ownership cells with boxes. -/
+theorem neg_mem_box (I : Box Unit) (x : ℝ) :
+    (fun _ : Unit => -x) ∈ I ↔ x ∈ halfOpenCell I := by
+  constructor
+  · intro h
+    have hx := h ()
+    exact ⟨by linarith [hx.2], by linarith [hx.1]⟩
+  · intro hx i
+    cases i
+    exact ⟨by linarith [hx.2], by linarith [hx.1]⟩
+
+/-- Lemma: containment of boxes preserves their ownership cells. -/
+theorem halfOpenCell_mono {I J : Box Unit} (h : I ≤ J) : halfOpenCell I ⊆ halfOpenCell J := by
+  intro x hx
+  exact (neg_mem_box J x).mp (h ((neg_mem_box I x).mpr hx))
 
 /-- Lemma: every cell has positive length. -/
 theorem cellLength_pos (I : Box Unit) : 0 < cellLength I := sub_pos.mpr (I.lower_lt_upper ())

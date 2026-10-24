@@ -8,7 +8,7 @@ import os
 import subprocess
 import sys
 
-from repository_config import ROOT, load_authoring
+from scripts.repository_config import ROOT, load_authoring
 
 
 def run(script: str, *options: str, environment=None) -> int:
@@ -25,7 +25,7 @@ def run(script: str, *options: str, environment=None) -> int:
 def book_command(arguments: argparse.Namespace) -> int:
     action = arguments.action
     if action == "list":
-        from book_manifest import load_manifest
+        from scripts.book_manifest import load_manifest
 
         books = load_manifest()["books"]
         if arguments.format == "json":
@@ -69,7 +69,7 @@ def doctor_command(arguments: argparse.Namespace) -> int:
     action = arguments.action
     if action == "env":
         return run("check_environment.sh", arguments.profile)
-    from book_manifest import load_manifest
+    from scripts.book_manifest import load_manifest
 
     slugs = (
         [arguments.book]
@@ -128,6 +128,7 @@ def test_command(arguments: argparse.Namespace) -> int:
         "-p",
         authoring["test_pattern"],
         "-v",
+        "--buffer",
     ]
     if not arguments.coverage:
         return subprocess.run(
@@ -167,7 +168,7 @@ def report_command(arguments: argparse.Namespace) -> int:
 
 
 def tree_command(arguments: argparse.Namespace) -> int:
-    from ignore_patterns import load_patterns
+    from scripts.ignore_patterns import load_patterns
 
     patterns = load_patterns(ROOT / "config/ignore-patterns.yml")["tree"]
     output = ROOT / "build/tree.txt"

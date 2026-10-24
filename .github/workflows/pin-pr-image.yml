@@ -20,13 +20,13 @@ jobs:
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 180
     concurrency:
       group: toolchain-image-publication
       cancel-in-progress: false
       queue: max
     permissions:
-      actions: read
+      actions: write
       contents: write
       packages: write
       pull-requests: read
@@ -60,4 +60,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
-        run: python3 scripts/image_candidate.py publish-pr
+        run: python3 -u scripts/image_candidate.py publish-pr

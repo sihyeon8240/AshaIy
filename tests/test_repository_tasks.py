@@ -2,22 +2,18 @@
 
 from __future__ import annotations
 
-import importlib
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from typing import cast
 from unittest.mock import patch
 
+from scripts import contents_generation as contents
+from scripts import lean_generation as lean
+from scripts import repository_tasks as tasks
+from scripts import site_pages as site
+from scripts import task_stages as stages
 from scripts.source_reads import read_yaml
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-tasks = importlib.import_module("repository_tasks")
-lean = importlib.import_module("lean_generation")
-contents = importlib.import_module("contents_generation")
-site = importlib.import_module("site_pages")
-stages = importlib.import_module("task_stages")
 
 
 class RepositoryTaskTests(unittest.TestCase):

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import contextlib
-import importlib
 import io
 import json
 import sys
@@ -15,13 +14,11 @@ from unittest.mock import patch
 import yaml
 from test_support import write_yaml
 
+from scripts import book_manifest as books_module
+from scripts import books as books_cli
+from scripts.book_manifest import load_manifest, manifest_warnings
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT / "scripts"))
-
-import book_manifest as books_module  # noqa: E402
-from book_manifest import load_manifest, manifest_warnings  # noqa: E402
-
-books_cli = importlib.import_module("books")
 
 
 class ManifestWarningTests(unittest.TestCase):
@@ -107,6 +104,22 @@ class ManifestModuleTests(unittest.TestCase):
         self.assertTrue(book["check"])
         self.assertFalse(book["release"])
         self.assertTrue(book["site"])
+        self.assertEqual(book["label_prefix"], "s")
+
+    def test_version_and_status_defaults_allow_book_overrides(self) -> None:
+        root, path, _ = self.fixture({"slug": "sample", "title": "Sample", "order": 10})
+        manifest = yaml.safe_load(path.read_text(encoding="utf-8"))
+        manifest["defaults"].update(version="0.1.0", status="draft")
+        del manifest["books"][0]["version"]
+        write_yaml(path, manifest)
+
+        book = load_manifest(path, root)["books"][0]
+        self.assertEqual((book["version"], book["status"]), ("0.1.0", "draft"))
+
+        manifest["books"][0].update(version="0.2.0", status="review")
+        write_yaml(path, manifest)
+        book = load_manifest(path, root)["books"][0]
+        self.assertEqual((book["version"], book["status"]), ("0.2.0", "review"))
 
     def test_manifest_accepts_semver_hyphenated_prereleases(self) -> None:
         for version in ("1.2.3--alpha", "1.2.3-alpha--beta", "1.2.3-rc.1"):

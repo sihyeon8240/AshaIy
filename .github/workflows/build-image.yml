@@ -1,26 +1,11 @@
 name: Validate and publish toolchain image
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - '.devcontainer/Dockerfile'
-      - '.github/actions/load-toolchain/action.yml'
-      - '.github/actions/run-toolchain/action.yml'
-      - '.github/workflows/build-image.yml'
-      - '.github/workflows/build-toolchain.yml'
-      - '.github/workflows/build.yml'
-      - '.github/workflows/pin-pr-image.yml'
-      - '.github/workflows/prepare-image.yml'
-      - 'config/image-build.json'
-      - 'config/toolchain.env'
-      - 'scripts/ashaiy_launcher.sh'
-      - 'scripts/check_toolchain.sh'
-      - 'scripts/github_artifacts.py'
-      - 'scripts/image_candidate.py'
-      - 'scripts/image_policy.py'
-      - 'scripts/image_pr.py'
-      - 'scripts/repository_config.py'
+    inputs:
+      refresh_cache:
+        description: Refresh intermediate build caches even when the image is already published
+        type: boolean
+        default: false
 permissions:
   contents: read
   actions: read
@@ -37,3 +22,4 @@ jobs:
     uses: ./.github/workflows/prepare-image.yml
     with:
       ref: ${{ github.sha }}
+      refresh_cache: ${{ inputs.refresh_cache }}

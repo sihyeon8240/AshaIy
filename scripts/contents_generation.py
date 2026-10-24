@@ -6,9 +6,12 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from book_manifest import load_manifest
-from contents_manifest import expected_files, proof_index_paths
-from file_updates import changed_files, write_updates
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.book_manifest import load_manifest
+from scripts.contents_manifest import expected_files, proof_index_paths
+from scripts.file_updates import changed_files, write_updates
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -50,7 +53,7 @@ def generate(scope: str, *, book: str | None = None, check: bool = False) -> int
 
 
 def main() -> int:
-    from repository_cli import contents_main
+    from scripts.repository_cli import contents_main
 
     return contents_main()
 

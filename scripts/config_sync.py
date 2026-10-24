@@ -9,11 +9,13 @@ import re
 import sys
 from pathlib import Path
 
-from book_manifest import normalize_manifest
-from ci_changes import IMAGE_PIPELINE
-from file_updates import changed_files, write_updates
-from ignore_patterns import rendered_ignore_consumers
-from repository_config import (
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.book_manifest import normalize_manifest
+from scripts.file_updates import changed_files, write_updates
+from scripts.ignore_patterns import rendered_ignore_consumers
+from scripts.repository_config import (
     IMAGE_PATH,
     ROOT,
     image_name,
@@ -22,9 +24,11 @@ from repository_config import (
     load_image_build,
     load_toolchain,
 )
-from source_reads import read_yaml
+from scripts.source_reads import read_yaml
+from scripts.validation_patterns import validation_pattern
+from scripts.validation_sync import rendered_validation_consumers
 
-SHA256 = re.compile(r"[0-9a-f]{64}")
+SHA256 = re.compile(validation_pattern("sha256"))
 
 
 def replace_once(text: str, pattern: str, replacement: str, path: Path) -> str:
@@ -47,11 +51,11 @@ def formalization_versions(root: Path, lean_version: str) -> str:
         raise ValueError(f"{path}: expected exactly one Mathlib package")
     package = packages[0]
     release, revision = package["inputRev"], package["rev"]
-    if not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?", release):
+    if not re.fullmatch("v" + validation_pattern("lean_version"), release):
         raise ValueError(f"{path}: expected a Mathlib release tag")
-    if not re.fullmatch(r"[0-9a-f]{40}", revision):
+    if not re.fullmatch(validation_pattern("git_commit"), revision):
         raise ValueError(f"{path}: expected a full Mathlib commit hash")
-    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?", lean_version):
+    if not re.fullmatch(validation_pattern("lean_version"), lean_version):
         raise ValueError("expected a Lean release version")
     return (
         "% Generated from config/toolchain.env and lean/lake-manifest.json; do not edit.\n"
@@ -62,24 +66,39 @@ def formalization_versions(root: Path, lean_version: str) -> str:
     )
 
 
-def rendered_image_filters(root: Path) -> dict[Path, str]:
-    config = load_image_build(root)
-    wrapper = root / ".github/workflows/build-image.yml"
-    paths = "".join(
-        f"      - '{path}'\n" for path in sorted(set(config["inputs"]) | IMAGE_PIPELINE)
-    )
-    wrapper_text = replace_once(
-        wrapper.read_text(encoding="utf-8"),
-        r"(?<=    paths:\n)[\s\S]*?(?=permissions:)",
-        paths,
-        wrapper,
-    )
-    return {wrapper: wrapper_text}
+def rendered_toolchain_groups(root: Path, toolchain: dict[str, str]) -> dict[Path, str]:
+    groups = {
+        "tools": ("ELAN_", "RUFF_", "SHFMT_", "LATEXINDENT_", "SHELLCHECK_", "GH_"),
+        "texlive": ("TEXLIVE_",),
+        "lean": ("LEAN_",),
+        "python": (
+            "PYYAML_",
+            "PLAYWRIGHT_",
+            "HYPOTHESIS_",
+            "COVERAGE_",
+            "BASEDPYRIGHT_",
+            "YAMLLINT_",
+            "DJLINT_",
+            "CHECK_JSONSCHEMA_",
+        ),
+    }
+    return {
+        root / ".devcontainer/generated" / f"{group}.env": (
+            "# Generated from config/toolchain.env; do not edit.\n"
+            + "".join(
+                f"{key}={value}\n"
+                for key, value in toolchain.items()
+                if key.startswith(prefixes)
+            )
+        )
+        for group, prefixes in groups.items()
+    }
 
 
 def rendered_consumers(
     root: Path = ROOT, *, image: str | None = None
 ) -> dict[Path, str]:
+    load_image_build(root)
     toolchain = load_toolchain(root / "config/toolchain.env")
     if image is None:
         image = load_image(root / "config/container-image.txt")
@@ -157,7 +176,8 @@ def rendered_consumers(
     ignore_updates[settings_path] = json.dumps(settings, indent=2) + "\n"
     return {
         **ignore_updates,
-        **rendered_image_filters(root),
+        **rendered_validation_consumers(root),
+        **rendered_toolchain_groups(root, toolchain),
         root / "common/templates/formalization-versions.tex": formalization_versions(
             root, toolchain["LEAN_VERSION"]
         ),

@@ -9,12 +9,8 @@ from collections.abc import Callable
 from contextlib import nullcontext
 from pathlib import Path
 
-from task_stages import Stage, StageResult, run_stages
-
-try:
-    from scripts.source_reads import reuse_source_reads
-except ModuleNotFoundError:
-    from source_reads import reuse_source_reads
+from scripts.source_reads import reuse_source_reads
+from scripts.task_stages import Stage, StageResult, run_stages
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -85,9 +81,7 @@ def build_books(
 
 
 def generate(*, book: str | None = None, check: bool = False) -> StageResult:
-    import contents_generation
-    import lean_generation
-    import site_pages
+    from scripts import contents_generation, lean_generation, site_pages
 
     stages = (
         Stage(

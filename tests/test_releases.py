@@ -2,7 +2,6 @@
 
 import contextlib
 import copy
-import importlib
 import io
 import subprocess
 import sys
@@ -14,9 +13,9 @@ from unittest.mock import patch
 
 from test_support import git_environment
 
+from scripts import releases
+
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-releases = importlib.import_module("releases")
 
 
 class ReleasePlanTests(unittest.TestCase):
@@ -254,6 +253,65 @@ class ReleasePlanTests(unittest.TestCase):
                 if field:
                     self.assertIn("# retain comment", result)
                 self.assertTrue(expected.call_args.kwargs["book"]["release"])
+
+    def test_prepare_inherited_version_preserves_other_books_and_generates_assembly(
+        self,
+    ):
+        from test_support import book_record, manifest_document, write_yaml
+
+        from scripts.book_manifest import load_manifest
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            records = [book_record("alpha"), book_record("beta", order=20)]
+            for record in records:
+                del record["version"]
+                entry = root / "books" / record["slug"] / "book.tex"
+                entry.parent.mkdir(parents=True)
+                entry.write_text("old assembly\n")
+            path = root / "config/books.yml"
+            write_yaml(path, manifest_document(records, version="1.0.0"))
+            source = path.read_text().replace("version: 1.0.0", "version: 1.0.0 # keep")
+            path.write_text(source)
+            book = root / "books/alpha"
+            write_yaml(
+                book / "chapters.yml",
+                {
+                    "schema_version": 1,
+                    "chapters": [{"slug": "start", "title": "Start"}],
+                },
+            )
+            write_yaml(
+                book / "chapters/start/sections.yml",
+                {
+                    "schema_version": 1,
+                    "sections": [{"slug": "first", "title": "First"}],
+                },
+            )
+            (book / "chapters/start/first.tex").write_text("%\n")
+            with (
+                patch.object(releases, "ROOT", root),
+                patch.object(
+                    releases,
+                    "load_manifest",
+                    side_effect=lambda: load_manifest(path, root),
+                ),
+                patch.object(
+                    releases.subprocess, "check_output", return_value="local-work\n"
+                ),
+            ):
+                releases.prepare("alpha", "1.1.0")
+            manifest = load_manifest(path, root)
+            self.assertEqual(
+                [item["version"] for item in manifest["books"]], ["1.1.0", "1.0.0"]
+            )
+            self.assertEqual(
+                [item["release"] for item in manifest["books"]], [True, False]
+            )
+            self.assertIn("version: 1.0.0 # keep", path.read_text())
+            self.assertIn(
+                r"\newcommand{\version}{1.1.0}", (book / "book.tex").read_text()
+            )
 
     def test_prepare_rejects_main_detached_disabled_and_nonincrease(self):
         for branch in ["main\n", "\n"]:

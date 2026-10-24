@@ -5,8 +5,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from ci_changes import ROOT, changed_paths, consumer_selections
-from source_impact import lean_reasons
+from scripts.ci_changes import ROOT, changed_paths, consumer_selections
+from scripts.source_impact import lean_reasons
 
 
 def revision(reference: str) -> str | None:
@@ -54,7 +54,7 @@ def pdf_selection(
     release_books: tuple[str, ...] = (),
     explain: bool = False,
 ) -> dict:
-    import book_impact
+    from scripts import book_impact
 
     result = book_impact.plan(
         paths,

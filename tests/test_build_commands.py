@@ -11,7 +11,7 @@ import textwrap
 import unittest
 from pathlib import Path
 
-from test_support import write_executable
+from test_support import copy_validation_configuration, write_executable
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -84,7 +84,7 @@ class FullCheckTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             scripts = root / "scripts"
-            scripts.mkdir()
+            scripts.mkdir(exist_ok=True)
             shutil.copy2(ROOT / "scripts/check.sh", scripts)
             for name in (
                 "repository_cli.py",
@@ -162,7 +162,7 @@ class BuildVSCodeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             scripts = root / "scripts"
-            scripts.mkdir()
+            scripts.mkdir(exist_ok=True)
             shutil.copy2(ROOT / "scripts/build_vscode.sh", scripts / "build_vscode.sh")
             shutil.copy2(
                 ROOT / "scripts/build_support.sh", scripts / "build_support.sh"
@@ -222,6 +222,7 @@ class BookCommandTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
+        copy_validation_configuration(self.root)
         from test_support import book_record, manifest_document, write_yaml
 
         write_yaml(
@@ -432,8 +433,9 @@ class BuildBookTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
+        copy_validation_configuration(self.root)
         scripts = self.root / "scripts"
-        scripts.mkdir()
+        scripts.mkdir(exist_ok=True)
         shutil.copy2(ROOT / "scripts/build_book.sh", scripts / "build_book.sh")
         shutil.copy2(ROOT / "scripts/build_support.sh", scripts / "build_support.sh")
         (scripts / "books.py").write_text(

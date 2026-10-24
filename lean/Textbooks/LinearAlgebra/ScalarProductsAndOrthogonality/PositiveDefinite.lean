@@ -1,6 +1,7 @@
 import Mathlib.Analysis.InnerProductSpace.Orthonormal
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
+import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.NormConstruction
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 
@@ -58,45 +59,22 @@ theorem exists_unique_innerComponent (v w : E) (hw : w ≠ 0) :
 
 /-- Theorem: Schwarz's inequality follows from the nonnegative projection remainder. -/
 theorem norm_inner_le_norm (v w : E) : ‖⟪v, w⟫‖ ≤ ‖v‖ * ‖w‖ := by
-  by_cases hw : w = 0
+  have hl (u : E) : formLength (C := InnerProductSpace.toCore (𝕜 := 𝕜)) u = ‖u‖ := by
+    dsimp [formLength]
+    rw [inner_self_eq_norm_sq]
+    exact Real.sqrt_sq (norm_nonneg u)
 
-  · subst w
-    simp only [inner_zero_right, norm_zero, mul_zero, le_refl]
-
-  have hp : ⟪innerComponent (𝕜 := 𝕜) v w • w, v - innerComponent (𝕜 := 𝕜) v w • w⟫ = 0 := by
-    rw [inner_smul_left, inner_sub_projection, mul_zero]
-
-  have he := pythagoras hp
-  rw [add_sub_cancel] at he
-
-  have hs : ‖innerComponent (𝕜 := 𝕜) v w • w‖ = ‖⟪v, w⟫‖ / ‖w‖ := by
-    rw [norm_smul, innerComponent, norm_div, inner_self_eq_norm_sq_to_K, ← RCLike.ofReal_pow,
-      RCLike.norm_ofReal, abs_of_nonneg (sq_nonneg _), norm_inner_symm]
-
-    have hn : ‖w‖ ≠ 0 := norm_ne_zero_iff.mpr hw
-    field_simp
-
-  rw [hs] at he
-  have hb : ‖⟪v, w⟫‖ / ‖w‖ ≤ ‖v‖ := by
-    have hq := sq_nonneg ‖v - innerComponent (𝕜 := 𝕜) v w • w‖
-    have hd := div_nonneg (norm_nonneg ⟪v, w⟫) (norm_nonneg w)
-    nlinarith [norm_nonneg v]
-
-  exact (div_le_iff₀ (norm_pos_iff.mpr hw)).mp hb
+  simpa only [hl] using form_schwarz (C := InnerProductSpace.toCore (𝕜 := 𝕜)) v w
 
 include 𝕜 in
 /-- Theorem: the triangle inequality follows by expanding the square and applying Schwarz. -/
 theorem norm_add_le (v w : E) : ‖v + w‖ ≤ ‖v‖ + ‖w‖ := by
-  have hs := norm_inner_le_norm (𝕜 := 𝕜) v w
-  have hr := RCLike.re_le_norm ⟪v, w⟫
+  have hl (u : E) : formLength (C := InnerProductSpace.toCore (𝕜 := 𝕜)) u = ‖u‖ := by
+    dsimp [formLength]
+    rw [inner_self_eq_norm_sq]
+    exact Real.sqrt_sq (norm_nonneg u)
 
-  have he : ‖v + w‖ ^ 2 = ‖v‖ ^ 2 + 2 * RCLike.re ⟪v, w⟫ + ‖w‖ ^ 2 := by
-    rw [← inner_self_eq_norm_sq (𝕜 := 𝕜), inner_add_left,
-      inner_add_right, inner_add_right]
-    simp only [map_add, inner_self_eq_norm_sq, inner_re_symm w v]
-    ring
-
-  nlinarith [norm_nonneg (v + w), norm_nonneg v, norm_nonneg w]
+  simpa only [hl] using formLength_add_le (C := InnerProductSpace.toCore (𝕜 := 𝕜)) v w
 
 /-- Lemma: the inner product of an orthogonal combination with one member isolates its
 coefficient. -/

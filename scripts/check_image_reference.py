@@ -5,9 +5,13 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
-from config_sync import set_image_digest, synchronize
-from repository_config import load_image
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.config_sync import set_image_digest, synchronize
+from scripts.repository_config import load_image
 
 
 def main() -> int:

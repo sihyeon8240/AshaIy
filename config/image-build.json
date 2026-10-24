@@ -1,12 +1,17 @@
 {
   "schema_version": 1,
-  "policy_version": "native-multiarch-v1",
+  "policy_version": "copy-modes-v3",
   "inputs": [
     ".devcontainer/Dockerfile",
+    ".devcontainer/Dockerfile.dockerignore",
     "config/toolchain.env",
     "scripts/check_toolchain.sh",
     "config/image-build.json",
-    "scripts/ashaiy_launcher.sh"
+    "scripts/ashaiy_launcher.sh",
+    ".devcontainer/generated/tools.env",
+    ".devcontainer/generated/texlive.env",
+    ".devcontainer/generated/lean.env",
+    ".devcontainer/generated/python.env"
   ],
   "platforms": [
     {

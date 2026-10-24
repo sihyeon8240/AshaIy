@@ -2,31 +2,20 @@
 
 from __future__ import annotations
 
-import importlib.util
 import json
+import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from scripts import config_sync as SYNC
+from scripts import repository_config as CONFIG
+
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-
-CONFIG_SPEC = importlib.util.spec_from_file_location(
-    "repository_config", ROOT / "scripts/repository_config.py"
-)
-assert CONFIG_SPEC and CONFIG_SPEC.loader
-CONFIG = importlib.util.module_from_spec(CONFIG_SPEC)
-CONFIG_SPEC.loader.exec_module(CONFIG)
-
-SYNC_SPEC = importlib.util.spec_from_file_location(
-    "config_sync", ROOT / "scripts/config_sync.py"
-)
-assert SYNC_SPEC and SYNC_SPEC.loader
-SYNC = importlib.util.module_from_spec(SYNC_SPEC)
-SYNC_SPEC.loader.exec_module(SYNC)
 
 
 class ConfigurationTests(unittest.TestCase):
@@ -34,6 +23,9 @@ class ConfigurationTests(unittest.TestCase):
         (root / ".vscode").mkdir(exist_ok=True)
         shutil.copy(ROOT / ".vscode/settings.json", root / ".vscode/settings.json")
         for relative in (
+            "scripts",
+            "config/schemas",
+            ".github/actions/load-toolchain",
             "config/generated",
             ".devcontainer",
             ".github",
@@ -47,6 +39,16 @@ class ConfigurationTests(unittest.TestCase):
             "config/ignore-patterns.yml",
             "config/image-build.json",
             "config/authoring.json",
+            "config/validation-patterns.json",
+            "config/schemas/books.schema.json",
+            "config/schemas/chapters.schema.json",
+            "config/schemas/sections.schema.json",
+            "config/schemas/modules.schema.json",
+            ".github/actions/load-toolchain/action.yml",
+            ".github/workflows/build.yml",
+            ".github/workflows/pages.yml",
+            "scripts/pages_current.sh",
+            "scripts/snapshot_base.sh",
             ".github/workflows/prepare-image.yml",
             ".github/workflows/build-image.yml",
             ".github/workflows/build-toolchain.yml",
@@ -59,6 +61,9 @@ class ConfigurationTests(unittest.TestCase):
             "config/books.yml",
         ):
             shutil.copy(ROOT / relative, root / relative)
+        shutil.copytree(
+            ROOT / ".devcontainer/generated", root / ".devcontainer/generated"
+        )
         shutil.copy(ROOT / "config/toolchain.env", root / "config/toolchain.env")
         shutil.copy(
             ROOT / "config/container-image.txt", root / "config/container-image.txt"
@@ -80,7 +85,90 @@ class ConfigurationTests(unittest.TestCase):
             root / "common/templates/formalization-versions.tex",
         )
 
-    def test_image_policy_changes_only_regenerate_static_trigger_filters(self) -> None:
+    def test_validation_changes_synchronize_runtime_schemas_and_standalone_shell(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.make_repository(root)
+            shutil.copy2(
+                ROOT / "scripts/validation_patterns.py",
+                root / "scripts/validation_patterns.py",
+            )
+            path = root / "config/validation-patterns.json"
+            data = json.loads(path.read_text())
+            data["patterns"]["book_slug"] = "[a-z]+"
+            data["patterns"]["git_commit"] = "[0-9a-f]{8}"
+            data["patterns"]["sha256"] = "[0-9a-f]{8}"
+            path.write_text(json.dumps(data))
+            before = (root / "scripts/pages_current.sh").read_text()
+            changed = SYNC.synchronize(root=root, check=True)
+            self.assertIn(root / "config/schemas/books.schema.json", changed)
+            self.assertIn(root / ".github/workflows/build-toolchain.yml", changed)
+            self.assertIn(root / "scripts/pages_current.sh", changed)
+            self.assertEqual((root / "scripts/pages_current.sh").read_text(), before)
+
+            SYNC.synchronize(root=root)
+            self.assertEqual(SYNC.synchronize(root=root, check=True), [])
+            schema = json.loads((root / "config/schemas/books.schema.json").read_text())
+            slug = schema["properties"]["books"]["items"]["properties"]["slug"]
+            self.assertIsNotNone(re.search(slug["pattern"], "alpha"))
+            self.assertIsNone(re.search(slug["pattern"], "alpha-beta"))
+            script = (root / "scripts/pages_current.sh").read_text()
+            operand = script.split("# validation-pattern: git_commit\n", 1)[
+                1
+            ].splitlines()[0]
+            for value, expected in (("a" * 8, 0), ("a" * 40, 1), ("g" * 8, 1)):
+                result = subprocess.run(
+                    ["bash", "-c", "SNAPSHOT_SHA=$1\n" + operand, "validation", value],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, expected, result.stderr)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-c",
+                    "from validation_patterns import validation_pattern\n"
+                    "\n"
+                    "print(validation_pattern('image_digest'))\n",
+                ],
+                cwd=root / "scripts",
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            self.assertEqual(result.stdout.strip(), "sha256:[0-9a-f]{8}")
+            self.assertEqual(script.replace("{8}", "{40}"), before)
+
+    def test_invalid_shared_validation_never_writes_consumers(self):
+        for updates in (
+            {"sha256": "["},
+            {"sha256": "${image_digest}"},
+            {"sha256": "${missing}"},
+            {"git_commit": "(?:[0-9a-f]){40}"},
+        ):
+            with (
+                self.subTest(updates=updates),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                root = Path(temporary)
+                self.make_repository(root)
+                path = root / "config/validation-patterns.json"
+                data = json.loads(path.read_text())
+                data["patterns"].update(updates)
+                path.write_text(json.dumps(data))
+                before = {
+                    file: file.read_bytes()
+                    for file in root.rglob("*")
+                    if file.is_file()
+                }
+                with self.assertRaises(ValueError):
+                    SYNC.synchronize(root=root)
+                self.assertEqual({file: file.read_bytes() for file in before}, before)
+
+    def test_image_policy_changes_are_consumed_without_workflow_generation(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             self.make_repository(root)
@@ -88,7 +176,7 @@ class ConfigurationTests(unittest.TestCase):
             config = json.loads(path.read_text())
             config["inputs"].append("scripts/new-image-input.sh")
             config["policy_version"] = "native-multiarch-v2"
-            config["platforms"].append({"arch": "riscv64", "runner": "custom-runner"})
+            config["platforms"].reverse()
             path.write_text(json.dumps(config))
 
             runtime_workflows = {
@@ -102,10 +190,30 @@ class ConfigurationTests(unittest.TestCase):
             self.assertNotIn(root / ".github/workflows/build-toolchain.yml", changed)
             SYNC.synchronize(root=root)
             wrapper = (root / ".github/workflows/build-image.yml").read_text()
-            self.assertIn("scripts/new-image-input.sh", wrapper)
+            self.assertNotIn("scripts/new-image-input.sh", wrapper)
+            self.assertNotIn("push:", wrapper)
             for workflow, original in runtime_workflows.items():
                 self.assertEqual(workflow.read_bytes(), original)
             self.assertEqual(SYNC.synchronize(root=root, check=True), [])
+
+    def test_tool_versions_only_change_their_installation_group(self) -> None:
+        toolchain = CONFIG.load_toolchain()
+        original = SYNC.rendered_toolchain_groups(ROOT, toolchain)
+        for key, group in (
+            ("RUFF_VERSION", "tools"),
+            ("PYYAML_VERSION", "python"),
+            ("GH_VERSION", "tools"),
+            ("TEXLIVE_ARCHIVE_DATE", "texlive"),
+            ("LEAN_TOOLCHAIN", "lean"),
+        ):
+            with self.subTest(key=key):
+                changed = SYNC.rendered_toolchain_groups(
+                    ROOT, {**toolchain, key: "changed"}
+                )
+                self.assertEqual(
+                    [path for path in original if original[path] != changed[path]],
+                    [ROOT / ".devcontainer/generated" / f"{group}.env"],
+                )
 
     def test_invalid_image_policy_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

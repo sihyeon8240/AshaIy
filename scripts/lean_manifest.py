@@ -7,21 +7,14 @@ from pathlib import Path
 
 import yaml
 
-try:
-    from scripts.source_reads import read_text, read_yaml
-except ModuleNotFoundError:
-    from source_reads import read_text, read_yaml
-
-try:
-    from scripts.book_manifest import load_manifest
-    from scripts.contents_manifest import load_book_contents
-except ModuleNotFoundError:
-    from book_manifest import load_manifest
-    from contents_manifest import load_book_contents
+from scripts.book_manifest import load_manifest
+from scripts.contents_manifest import load_book_contents
+from scripts.source_reads import read_text, read_yaml
+from scripts.validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
 GENERATED_NOTICE = "-- Generated from Lean module manifests; do not edit."
-TOPIC = re.compile(r"[A-Z][A-Za-z0-9]*")
+TOPIC = re.compile(validation_pattern("lean_name"))
 
 
 def load_modules(directory: Path) -> list[str]:

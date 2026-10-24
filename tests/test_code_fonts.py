@@ -12,10 +12,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TOOLS = ("latexmk", "lualatex", "latexminted")
+MISSING_TOOLS = [tool for tool in TOOLS if shutil.which(tool) is None]
+if os.environ.get("REQUIRE_TEX_TESTS") == "1" and MISSING_TOOLS:
+    raise RuntimeError("required rendering tools missing: " + ", ".join(MISSING_TOOLS))
 
 
 @unittest.skipUnless(
-    all(shutil.which(tool) for tool in TOOLS),
+    not MISSING_TOOLS,
     "Lean rendering checks require latexmk, lualatex, and latexminted",
 )
 class CodeFontTests(unittest.TestCase):

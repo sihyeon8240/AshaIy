@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import importlib.util
-import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,14 +9,9 @@ from unittest.mock import patch
 
 from test_support import book_record, manifest_document, write_yaml
 
+from scripts import proof_links as MODULE
+
 ROOT = Path(__file__).resolve().parent.parent
-SPEC = importlib.util.spec_from_file_location(
-    "check_proof_links", ROOT / "scripts/proof_links.py"
-)
-assert SPEC and SPEC.loader
-MODULE = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = MODULE
-SPEC.loader.exec_module(MODULE)
 
 
 class ProofLinkTests(unittest.TestCase):
@@ -231,8 +224,6 @@ class ProofLinkTests(unittest.TestCase):
             r"\begin{theorem}\end{theorem}\label{sa:thm:result}",
             r"\begin{theorem}\begin{equation}\label{sa:thm:result}"
             r"\end{equation}\end{theorem}",
-            r"\begin{lean}\begin{theorem}\label{sa:thm:result}"
-            r"\end{theorem}\end{lean}",
         ):
             with self.subTest(body=body):
                 tex.write_text(body + "\n")
@@ -242,6 +233,16 @@ class ProofLinkTests(unittest.TestCase):
                         for error in self.errors([self.entry])
                     )
                 )
+
+    def test_literal_result_is_absent_from_proof_index_sources(self) -> None:
+        tex = self.root / "books/sample/chapters/start/result.tex"
+        tex.write_text(
+            r"\begin{lean}\begin{theorem}\label{sa:thm:result}"
+            r"\end{theorem}\end{lean}" + "\n"
+        )
+        self.assertTrue(
+            any("label is absent" in error for error in self.errors([self.entry]))
+        )
 
     def test_appendix_shard_owns_its_sources_and_namespace(self) -> None:
         source = self.root / "books/sample/appendices/tables/result.tex"
@@ -414,9 +415,24 @@ class ProofLinkTests(unittest.TestCase):
             (textbooks / module).mkdir(parents=True)
         source = textbooks / "MathematicalAnalysis/BasicTopology/WellOrdering.lean"
         source.parent.mkdir(parents=True)
-        source.write_text("import Textbooks.LinearAlgebra.All\n", encoding="utf-8")
-        errors = MODULE.validate_import_boundaries(self.root)
-        self.assertTrue(any("cross-book import" in error for error in errors))
+        for separator in (" ", "\n  ", " /- explanatory comment -/\n  "):
+            source.write_text(
+                f"import{separator}Textbooks.LinearAlgebra.All\n", encoding="utf-8"
+            )
+            errors = MODULE.validate_import_boundaries(self.root)
+            self.assertTrue(
+                any("cross-book import" in error for error in errors), errors
+            )
+        source.write_text(
+            "-- import Textbooks.LinearAlgebra.All\n"
+            'def sample := r#"import Textbooks.LinearAlgebra.All"#\n'
+        )
+        self.assertFalse(
+            any(
+                "cross-book import" in error
+                for error in MODULE.validate_import_boundaries(self.root)
+            )
+        )
 
 
 if __name__ == "__main__":

@@ -21,6 +21,6 @@ directory = "${ASHAIY_TEST_ROOT?}/.cache/coverage/html"
 
 [tool.basedpyright]
 include = ["../scripts", "../tests"]
-extraPaths = ["..", "../scripts", "../tests"]
+extraPaths = ["..", "../tests"]
 typeCheckingMode = "basic"
 pythonVersion = "3.14"

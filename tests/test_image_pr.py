@@ -2,20 +2,21 @@
 
 from __future__ import annotations
 
-import importlib
 import json
 import os
 import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
+from test_support import git_environment
 
-image_pr = importlib.import_module("image_pr")
+from scripts import image_pr
+from scripts.image_policy import input_hash
+
+ROOT = Path(__file__).resolve().parent.parent
+
 
 IMAGE = "ghcr.io/example/toolchain@sha256:" + "a" * 64
 
@@ -30,6 +31,32 @@ def pull_request(head: str = "head") -> dict:
 
 
 class ImagePrSelectionTests(unittest.TestCase):
+    def test_historical_policy_preserves_blob_bytes_and_executable_modes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "config").mkdir()
+            policy = {
+                "schema_version": 1,
+                "policy_version": "native-multiarch-v2",
+                "inputs": ["input.bin", "config/image-build.json"],
+                "platforms": [{"arch": "amd64", "runner": "ubuntu-24.04"}],
+            }
+            (root / "config/image-build.json").write_text(json.dumps(policy))
+            source = root / "input.bin"
+            source.write_bytes(b"binary\x00\xff\n")
+            source.chmod(0o755)
+            for args in (("init", "-q"), ("add", "."), ("commit", "-qm", "input")):
+                subprocess.run(
+                    ["git", *args],
+                    cwd=root,
+                    env=git_environment(),
+                    check=True,
+                    capture_output=True,
+                )
+            expected = "texlive-" + input_hash(root)
+            with patch.object(image_pr, "ROOT", root):
+                self.assertEqual(image_pr.source_policy("HEAD"), (policy, expected))
+
     def setUp(self):
         self.workflow_run = {
             "id": 123,
@@ -86,7 +113,15 @@ class ImagePrSelectionTests(unittest.TestCase):
                 )
                 api.assert_not_called()
 
-    def publish(self, *, exists=False, artifacts=None, paths=None, load_error=None):
+    def publish(
+        self,
+        *,
+        exists=False,
+        artifacts=None,
+        paths=None,
+        load_error=None,
+        registry_output=None,
+    ):
         pull = pull_request()
         artifacts = (
             artifacts
@@ -111,7 +146,13 @@ class ImagePrSelectionTests(unittest.TestCase):
             if args[:2] == ("bash", "scripts/check_image_tag.sh"):
                 output = kwargs["env"].get("GITHUB_OUTPUT")
                 if output:
-                    Path(output).write_text(f"exists={str(exists).lower()}\n")
+                    found = exists or kwargs["env"].get("REQUIRE_IMAGE") == "true"
+                    text = f"exists={str(found).lower()}\n"
+                    if found:
+                        text += f"image={IMAGE}\ndigest={'a' * 64}\n"
+                    if registry_output is not None:
+                        text = registry_output
+                    Path(output).write_text(text)
             if args[:4] == ("docker", "buildx", "imagetools", "inspect"):
                 return "sha256:" + "a" * 64
             return ""
@@ -163,7 +204,12 @@ class ImagePrSelectionTests(unittest.TestCase):
         self.assertEqual(load.call_count, 2)
         self.assertEqual(
             load.call_args_list[0].args[2],
-            {"tree": "tree", "arch": "amd64", "policy": "policy"},
+            {
+                "tree": "tree",
+                "arch": "amd64",
+                "policy": "policy",
+                "image_tag": "texlive-0123456789ab",
+            },
         )
         self.assertEqual(
             len([call for call in calls if call[:2] == ("docker", "push")]), 2
@@ -212,6 +258,20 @@ class ImagePrSelectionTests(unittest.TestCase):
         pin.assert_not_called()
         self.assertFalse(any(call[0] == "docker" for call in calls))
 
+    def test_ambiguous_registry_output_never_starts_publication(self):
+        for output in (
+            "",
+            "exists=unknown\n",
+            "exists=true\n",
+            "exists=true\nimage=other\ndigest=" + "a" * 64 + "\n",
+        ):
+            with self.subTest(output=output):
+                calls, load, pin, error = self.publish(registry_output=output)
+                self.assertIsInstance(error, ValueError)
+                load.assert_not_called()
+                pin.assert_not_called()
+                self.assertFalse(any(call[0] == "docker" for call in calls))
+
 
 class ImagePrCommitTests(unittest.TestCase):
     def setUp(self):
@@ -237,6 +297,9 @@ class ImagePrCommitTests(unittest.TestCase):
         self.git("push", "origin", "HEAD:refs/heads/topic")
         self.head = self.git("rev-parse", "HEAD")
         self.pull = pull_request(self.head)
+        self.dispatch_patch = patch.object(image_pr, "dispatch_validation")
+        self.dispatch = self.dispatch_patch.start()
+        self.addCleanup(self.dispatch_patch.stop)
         self.root_patch = patch.object(image_pr, "ROOT", self.work)
         self.root_patch.start()
         self.addCleanup(self.root_patch.stop)
@@ -273,6 +336,8 @@ class ImagePrCommitTests(unittest.TestCase):
             self.git("ls-remote", "origin", "refs/heads/topic").split()[0], tip
         )
 
+        self.dispatch.assert_called_once_with("owner/repo", "topic", tip)
+
     def test_stale_and_closed_prs_never_modify_branch(self):
         for current in ({**self.pull, "state": "closed"}, pull_request("new")):
             with patch.object(image_pr.github_artifacts, "api", return_value=current):
@@ -293,6 +358,33 @@ class ImagePrCommitTests(unittest.TestCase):
             image_pr.append_pin("owner/repo", self.pull, IMAGE)
         self.assertEqual(
             self.git("ls-remote", "origin", "refs/heads/topic").split()[0], new_head
+        )
+
+
+class ImageDispatchTests(unittest.TestCase):
+    def test_transient_dispatch_failures_retry_the_same_committed_pin(self):
+        with (
+            patch.object(
+                image_pr,
+                "command",
+                side_effect=[subprocess.CalledProcessError(1, "gh"), None],
+            ) as command,
+            patch.object(image_pr.time, "sleep"),
+        ):
+            image_pr.dispatch_validation("owner/repo", "topic", "a" * 40)
+        self.assertEqual(command.call_count, 2)
+        self.assertEqual(command.call_args_list[0], command.call_args_list[1])
+
+    def test_dispatch_uses_structured_exact_commit_input(self):
+        with patch.object(image_pr, "command") as command:
+            image_pr.dispatch_validation("owner/repo", "topic", "a" * 40)
+        self.assertEqual(
+            json.loads(command.call_args.kwargs["data"]),
+            {"ref": "topic", "inputs": {"expected_sha": "a" * 40}},
+        )
+        self.assertIn(
+            "repos/owner/repo/actions/workflows/build.yml/dispatches",
+            command.call_args.args,
         )
 
 

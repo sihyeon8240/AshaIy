@@ -49,3 +49,5 @@ output use temporary directories.
 Lean audit and LaTeX rendering tests require their corresponding toolchains and
 report skips when their prerequisite executables are absent. LaTeX fixtures live
 in `fixtures/`; build output stays under ignored `build/` directories.
+The CI toolchain step runs `test_code_fonts.py` with `REQUIRE_TEX_TESTS=1`;
+missing rendering tools then fail discovery instead of skipping the checks.

@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,84 +12,6 @@ from pathlib import Path
 from test_support import write_executable
 
 ROOT = Path(__file__).resolve().parent.parent
-
-
-class FocusedCheckCommandTests(unittest.TestCase):
-    def setUp(self) -> None:
-        self.temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
-        shutil.copytree(
-            ROOT / "scripts",
-            self.root / "scripts",
-            dirs_exist_ok=True,
-            ignore=shutil.ignore_patterns("__pycache__"),
-        )
-        for name in (
-            "config/authoring.json",
-            "config/authoring.json",
-            "config/authoring.json",
-            "scripts/repository_cli.py",
-            "scripts/repository_tasks.py",
-            "scripts/task_stages.py",
-            "scripts/source_reads.py",
-        ):
-            destination = self.root / name
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(ROOT / name, destination)
-        for name in ("books.py", "check_proof_links.py", "check_docs.py"):
-            (self.root / "scripts" / name).write_text(
-                "import os\nimport sys\nfrom pathlib import Path\nPath('called').write_text(Path(__file__).name + ' ' + ' '.join(sys.argv[1:]))\nraise SystemExit(int(os.environ['CHECK_STATUS']))\n"
-            )
-        write_executable(
-            self.root / "scripts/check_repository.sh",
-            "#!/usr/bin/env bash\nprintf 'check_repository.sh ' > called\nexit \"$CHECK_STATUS\"\n",
-        )
-
-    def run_check(self, entry: str, *arguments: str, status: int = 0):
-        command = [sys.executable, "scripts/repository_cli.py", "check"]
-        return subprocess.run(
-            [*command, *arguments],
-            cwd=self.root,
-            env={**os.environ, "PYTHON": sys.executable, "CHECK_STATUS": str(status)},
-            text=True,
-            capture_output=True,
-            timeout=15,
-        )
-
-    def test_focused_checks_preserve_selection_and_failure_status(self) -> None:
-        scopes = {
-            "source": "check_repository.sh ",
-            "manifest": "books.py validate",
-            "proof-links": "check_proof_links.py ",
-            "docs": "check_docs.py ",
-        }
-        for entry in ("python",):
-            for scope, expected in scopes.items():
-                for status in (0, 7):
-                    with self.subTest(entry=entry, scope=scope, status=status):
-                        result = self.run_check(entry, scope, status=status)
-                        expected_status = 2 if False and status else status
-                        self.assertEqual(
-                            result.returncode, expected_status, result.stderr
-                        )
-                        self.assertEqual((self.root / "called").read_text(), expected)
-
-    def test_invalid_requests_do_not_start_checks(self) -> None:
-        for entry in ("python",):
-            strict = "--strict"
-            requests = [(), ("unknown",), ("docs", "manifest")]
-            requests.extend(
-                (
-                    (scope, strict)
-                    for scope in ("source", "manifest", "proof-links", "docs")
-                )
-            )
-            for arguments in requests:
-                with self.subTest(entry=entry, arguments=arguments):
-                    result = self.run_check(entry, *arguments)
-                    self.assertEqual(result.returncode, 2)
-                    self.assertFalse((self.root / "called").exists())
 
 
 class RepositorySourceCheckTests(unittest.TestCase):

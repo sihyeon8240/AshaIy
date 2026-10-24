@@ -7,8 +7,11 @@ import argparse
 import sys
 from pathlib import Path
 
-from file_updates import write_updates
-from lean_manifest import ROOT, expected_files, stale_files
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.file_updates import write_updates
+from scripts.lean_manifest import ROOT, expected_files, stale_files
 
 
 def generate(*, root: Path = ROOT, book: str | None = None, check: bool = False) -> int:

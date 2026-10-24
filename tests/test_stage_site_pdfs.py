@@ -2,23 +2,16 @@
 
 from __future__ import annotations
 
-import importlib.util
 import io
-import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
+from scripts import stage_site_pdfs as site_pdf_staging
+
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-spec = importlib.util.spec_from_file_location(
-    "site_pdf_staging", ROOT / "scripts/stage_site_pdfs.py"
-)
-assert spec and spec.loader
-site_pdf_staging = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(site_pdf_staging)
 
 
 class SnapshotLayoutTests(unittest.TestCase):

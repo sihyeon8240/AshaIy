@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import importlib
-import sys
 import unittest
 from pathlib import Path
 
+from scripts import ci_changes as CI
+
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-CI = importlib.import_module("ci_changes")
 
 
 class CiChangeTests(unittest.TestCase):
@@ -23,7 +21,13 @@ class CiChangeTests(unittest.TestCase):
                 self.assertTrue(CI.classify([path])["image_changed"])
 
     def test_runtime_image_policy_and_loader_select_image_validation(self):
-        for path in ("scripts/image_policy.py", "scripts/repository_config.py"):
+        for path in (
+            "scripts/image_policy.py",
+            "scripts/repository_config.py",
+            "config/validation-patterns.json",
+            "scripts/validation_patterns.py",
+            "scripts/validation_sync.py",
+        ):
             with self.subTest(path=path):
                 self.assertTrue(CI.classify([path])["image_changed"])
 

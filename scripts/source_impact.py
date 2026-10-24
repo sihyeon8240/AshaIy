@@ -6,16 +6,13 @@ import re
 import subprocess
 from pathlib import Path
 
-from ci_changes import SITE_FILES, is_documentation
+from scripts.ci_changes import is_documentation
+from scripts.path_policy import SAFE_PATHS, SITE_FILES
+from scripts.validation_patterns import validation_pattern
 
-SAFE_PATHS = {
-    ".github/dependabot.yml",
-    ".devcontainer/devcontainer.json",
-    "config/container-image.txt",
-}
 ARTIFACT_ACTION = re.compile(
     r"(?m)^([ \t]*(?:-[ \t]+)?uses:[ \t]+actions/(?:upload|download)-artifact)"
-    r"@[0-9a-f]{40}[ \t]*(?:#[^\n]*)?$"
+    rf"@{validation_pattern('git_commit')}[ \t]*(?:#[^\n]*)?$"
 )
 
 

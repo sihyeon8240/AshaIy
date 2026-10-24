@@ -1,5 +1,6 @@
 import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.ScalarProducts
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.PositiveDefinite
+import Mathlib.Analysis.InnerProductSpace.Defs
+import Mathlib.Analysis.Complex.Basic
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 

@@ -4,21 +4,30 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import zipfile
 from pathlib import Path
 
-import github_artifacts
-from github_artifacts import checksum, eligible_run
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts import github_artifacts
+from scripts.github_artifacts import checksum, eligible_run
+from scripts.image_policy import input_hash
+from scripts.repository_config import load_image_build
+from scripts.validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
 POLICY = "toolchain-candidate-v1"
 MAX_BYTES = 20 * 1024**3
+MAX_IMAGE_BYTES = 40 * 1024**3
 
 
 def command(*args: str) -> str:
@@ -34,24 +43,47 @@ def identity(arch: str) -> dict:
         "policy": POLICY,
         "tree": command("git", "rev-parse", "HEAD^{tree}"),
         "arch": arch,
+        "image_tag": "texlive-" + input_hash(ROOT),
     }
 
 
 def record(arch: str, image: str, directory: Path) -> None:
+    archive = directory / "image.tar.gz"
+    if not 0 < archive.stat().st_size <= MAX_BYTES:
+        raise ValueError("candidate archive is empty or too large")
     manifest = {
         **identity(arch),
         "run_id": os.environ["GITHUB_RUN_ID"],
         "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
         "image_id": command("docker", "image", "inspect", image, "--format", "{{.Id}}"),
-        "checksum": checksum(directory / "image.tar.gz"),
+        "checksum": checksum(archive),
     }
     (directory / "candidate.json").write_text(json.dumps(manifest) + "\n")
 
 
 def validate_manifest(manifest: dict, expected: dict, run: dict) -> None:
     github_artifacts.validate_identity(manifest, expected, run, label="candidate")
-    if not re.fullmatch(r"sha256:[0-9a-f]{64}", manifest.get("image_id", "")):
+    if not re.fullmatch(
+        validation_pattern("image_digest"), manifest.get("image_id", "")
+    ):
         raise ValueError("invalid candidate image ID")
+
+
+def check_archive(image_path: Path) -> int:
+    expanded = 0
+    with gzip.open(image_path, "rb") as stream:
+        while chunk := stream.read(8 * 1024**2):
+            expanded += len(chunk)
+            if expanded > MAX_IMAGE_BYTES:
+                raise ValueError("expanded Docker image is too large")
+    if not expanded:
+        raise ValueError("empty Docker image archive")
+    storage = Path(command("docker", "info", "--format", "{{.DockerRootDir}}"))
+    if not storage.is_absolute() or not storage.is_dir():
+        raise ValueError("Docker storage must be locally accessible for disk checks")
+    github_artifacts.require_space(storage, expanded, operation="load Docker image")
+    print(f"Expanded Docker archive: {expanded / 1024**3:.1f} GiB", flush=True)
+    return expanded
 
 
 def load_candidate(
@@ -63,6 +95,7 @@ def load_candidate(
         github_artifacts.download(
             repository, artifact, archive_path, max_bytes=MAX_BYTES
         )
+        print(f"Extracting {expected['arch']} candidate archive", flush=True)
         with zipfile.ZipFile(archive_path) as archive:
             if sorted(archive.namelist()) != ["candidate.json", "image.tar.gz"]:
                 raise ValueError("unexpected candidate files")
@@ -74,6 +107,11 @@ def load_candidate(
             if not isinstance(manifest, dict):
                 raise ValueError("invalid candidate manifest")
             validate_manifest(manifest, expected, run)
+            github_artifacts.require_space(
+                directory,
+                archive.getinfo("image.tar.gz").file_size,
+                operation="extract candidate archive",
+            )
             image_path = directory / "image.tar.gz"
             with (
                 archive.open("image.tar.gz") as source,
@@ -81,11 +119,15 @@ def load_candidate(
             ):
                 shutil.copyfileobj(source, target)
         archive_path.unlink()
+        print(f"Verifying {expected['arch']} image checksum", flush=True)
         if checksum(image_path) != manifest["checksum"]:
             raise ValueError("candidate image checksum mismatch")
+        check_archive(image_path)
+        print(f"Loading {expected['arch']} image into Docker", flush=True)
         subprocess.run(
-            ["docker", "load", "--input", str(image_path)], check=True, timeout=1800
+            ["docker", "load", "--input", str(image_path)], check=True, timeout=600
         )
+        image_path.unlink()
         image_id = manifest["image_id"]
         arch = command(
             "docker", "image", "inspect", image_id, "--format", "{{.Architecture}}"
@@ -93,6 +135,7 @@ def load_candidate(
         if arch != expected["arch"]:
             raise ValueError("candidate architecture mismatch")
         command("docker", "tag", image_id, image)
+        print(f"Loaded and verified {expected['arch']} image", flush=True)
 
 
 def restore(arch: str, image: str) -> bool:
@@ -132,8 +175,11 @@ def restore(arch: str, image: str) -> bool:
                 if not artifact.get("expired", True)
                 and artifact.get("size_in_bytes", MAX_BYTES + 1) <= MAX_BYTES
             }
+            architectures = [
+                item["arch"] for item in load_image_build(ROOT)["platforms"]
+            ]
             if not all(
-                f"toolchain-image-{item}" in candidates for item in ("amd64", "arm64")
+                f"toolchain-image-{item}" in candidates for item in architectures
             ):
                 continue
             load_candidate(
@@ -146,12 +192,18 @@ def restore(arch: str, image: str) -> bool:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("record", "restore", "publish-pr"))
+    parser.add_argument("mode", choices=("record", "restore", "publish-pr", "inspect"))
     parser.add_argument("--arch", choices=("amd64", "arm64"))
     parser.add_argument("--image")
+    parser.add_argument("--archive", type=Path)
     args = parser.parse_args()
+    if args.mode == "inspect":
+        if not args.archive:
+            parser.error("--archive is required for inspect")
+        check_archive(args.archive)
+        return
     if args.mode == "publish-pr":
-        import image_pr
+        from scripts import image_pr
 
         image_pr.publish(load_candidate, policy=POLICY, max_bytes=MAX_BYTES)
         return

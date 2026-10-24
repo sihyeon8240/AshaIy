@@ -1,8 +1,7 @@
-"""Runtime image policy output and compatibility with immutable tag hashing."""
+"""Runtime image policy output and complete declared-input identity."""
 
 from __future__ import annotations
 
-import hashlib
 import json
 import shutil
 import subprocess
@@ -11,16 +10,22 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from test_support import copy_validation_configuration
+
 ROOT = Path(__file__).resolve().parent.parent
 
 
 class ImagePolicyTests(unittest.TestCase):
+    def test_published_tag_transcript_is_stable_across_deployed_readers(self) -> None:
+        self.assertEqual(self.output("hash"), "48b8ac41ce30")
+
     def setUp(self) -> None:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
-        (self.root / "scripts").mkdir()
-        (self.root / "config").mkdir()
+        copy_validation_configuration(self.root)
+        (self.root / "scripts").mkdir(exist_ok=True)
+        (self.root / "config").mkdir(exist_ok=True)
         for name in ("image_policy.py", "repository_config.py"):
             shutil.copyfile(ROOT / "scripts" / name, self.root / "scripts" / name)
         self.config = {
@@ -57,29 +62,38 @@ class ImagePolicyTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         return result.stdout.strip()
 
-    def test_hash_preserves_sha256sum_transcript_and_input_order(self) -> None:
-        for inputs in (self.config["inputs"], list(reversed(self.config["inputs"]))):
-            with self.subTest(inputs=inputs):
-                self.config["inputs"] = inputs
-                self.save()
-                transcript = subprocess.check_output(
-                    ["sha256sum", *inputs], cwd=self.root
-                )
-                transcript += b"native-multiarch-v1\nlinux/amd64,linux/arm64\n"
-                expected = hashlib.sha256(transcript).hexdigest()[:12]
-                self.assertEqual(self.output("hash"), expected)
+    def test_checkout_modes_are_normalized_but_paths_and_symlinks_are_checked(
+        self,
+    ) -> None:
+        original = self.output("hash")
+        source = self.root / "input.bin"
+        source.chmod(0o755)
+        executable = self.output("hash")
+        self.assertEqual(executable, original)
+        source.chmod(0o644)
+        self.assertEqual(self.output("hash"), original)
+        target = self.root / "renamed.bin"
+        source.rename(target)
+        self.config["inputs"][0] = "renamed.bin"
+        self.save()
+        self.assertNotEqual(self.output("hash"), original)
+        target.rename(source)
+        target.symlink_to(source)
+        result = self.command("hash")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("without symlinks", result.stderr)
 
     def test_runtime_matrix_and_architectures_follow_policy_without_generation(
         self,
     ) -> None:
         original = self.output("hash")
-        self.config["platforms"].append({"arch": "riscv64", "runner": "custom-runner"})
+        self.config["platforms"].reverse()
         self.config["policy_version"] = "native-multiarch-v2"
         self.save()
         self.assertEqual(
             json.loads(self.output("matrix")), {"include": self.config["platforms"]}
         )
-        self.assertEqual(self.output("architectures"), "amd64 arm64 riscv64")
+        self.assertEqual(self.output("architectures"), "arm64 amd64")
         self.assertNotEqual(self.output("hash"), original)
 
     def test_only_declared_inputs_change_hash_and_missing_input_fails(self) -> None:
@@ -102,3 +116,40 @@ class ImagePolicyTests(unittest.TestCase):
                 result = self.command(consumer)
                 self.assertEqual(result.returncode, 1)
                 self.assertEqual(result.stdout, "")
+
+    def test_copy_permissions_and_unregistered_sources_fail_before_tagging(
+        self,
+    ) -> None:
+        recipe = self.root / ".devcontainer/Dockerfile"
+        recipe.parent.mkdir()
+        recipe.write_text("FROM scratch\nCOPY input.bin /input\n")
+        result = self.command("hash")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("explicit --chmod", result.stderr)
+        recipe.write_text("FROM scratch\nCOPY --chmod=0644 input.bin /input\n")
+        result = self.command("hash")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unhashed Docker build inputs", result.stderr)
+        self.config["inputs"] += [
+            ".devcontainer/Dockerfile",
+            ".devcontainer/Dockerfile.dockerignore",
+        ]
+        (recipe.parent / "Dockerfile.dockerignore").write_text("build/\n")
+        self.save()
+        self.assertEqual(self.command("hash").returncode, 0)
+        recipe.write_text(
+            recipe.read_text().replace("FROM scratch", "FROM debian:latest")
+        )
+        self.assertIn("immutable digest", self.command("hash").stderr)
+        recipe.write_text(
+            recipe.read_text().replace("FROM debian:latest", "FROM scratch")
+        )
+        recipe.write_text(
+            recipe.read_text() + "COPY --from=other:latest /file /other\n"
+        )
+        self.assertIn("immutable digest", self.command("hash").stderr)
+        recipe.write_text("FROM scratch\nCOPY --chmod=0644 input.bin /input\n")
+        recipe.write_text(
+            recipe.read_text() + 'COPY --chmod=0644 ["unknown.bin", "/other"]\n'
+        )
+        self.assertIn("unknown.bin", self.command("hash").stderr)

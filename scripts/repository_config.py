@@ -6,13 +6,15 @@ import json
 import re
 from pathlib import Path
 
+from scripts.validation_patterns import validation_pattern
+
 ROOT = Path(__file__).resolve().parent.parent
 TOOLCHAIN_PATH = ROOT / "config/toolchain.env"
 IMAGE_PATH = ROOT / "config/container-image.txt"
 
 ASSIGNMENT = re.compile(r"([A-Z][A-Z0-9_]*)=([A-Za-z0-9._:/+-]+)")
-IMAGE = re.compile(r"ghcr\.io/[a-z0-9-]+/[a-z0-9-]+@sha256:[0-9a-f]{64}")
-SHA256 = re.compile(r"[0-9a-f]{64}")
+IMAGE = re.compile(validation_pattern("pinned_image"))
+SHA256 = re.compile(validation_pattern("sha256"))
 REQUIRED_TOOLCHAIN_KEYS = {
     "TEXLIVE_YEAR",
     "TEXLIVE_ARCHIVE_DATE",
@@ -50,7 +52,8 @@ REQUIRED_TOOLCHAIN_KEYS = {
     "LEAN_VERSION",
     "LEAN_TOOLCHAIN",
     "GH_VERSION",
-    "GH_KEYRING_SHA256",
+    "GH_SHA256_AMD64",
+    "GH_SHA256_ARM64",
 }
 
 
@@ -101,6 +104,7 @@ def load_image_build(root: Path = ROOT) -> dict:
     if (
         not isinstance(data, dict)
         or set(data) != {"schema_version", "policy_version", "inputs", "platforms"}
+        or type(data["schema_version"]) is not int
         or data["schema_version"] != 1
     ):
         raise ValueError(f"{path}: unsupported image build configuration")
@@ -114,7 +118,7 @@ def load_image_build(root: Path = ROOT) -> dict:
         or not inputs
         or not all(
             isinstance(item, str)
-            and re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", item)
+            and re.fullmatch(validation_pattern("relative_path"), item)
             and not any(part in {".", ".."} for part in item.split("/"))
             for item in inputs
         )
@@ -136,6 +140,8 @@ def load_image_build(root: Path = ROOT) -> dict:
         ):
             raise ValueError(f"{path}: invalid platform or runner")
     architectures = [platform["arch"] for platform in platforms]
+    if not set(architectures) <= {"amd64", "arm64"}:
+        raise ValueError(f"{path}: Dockerfile supports only amd64 and arm64")
     if len(architectures) != len(set(architectures)) or "amd64" not in architectures:
         raise ValueError(
             f"{path}: architectures must be unique and include the PR consumer's amd64 platform"
@@ -150,6 +156,7 @@ def load_authoring(root: Path = ROOT) -> dict:
         not isinstance(data, dict)
         or set(data)
         != {"schema_version", "shell_args", "test_directory", "test_pattern"}
+        or type(data["schema_version"]) is not int
         or data["schema_version"] != 1
     ):
         raise ValueError(f"{path}: unsupported authoring configuration")
@@ -159,7 +166,7 @@ def load_authoring(root: Path = ROOT) -> dict:
         or len(args) != 4
         or args[:3] != ["-ln", "bash", "-i"]
         or not isinstance(args[3], str)
-        or not re.fullmatch(r"[1-9][0-9]*", args[3])
+        or not re.fullmatch(validation_pattern("positive_integer"), args[3])
     ):
         raise ValueError(
             f"{path}: expected bash shell arguments with positive indentation"

@@ -7,17 +7,9 @@ from typing import Any
 
 import yaml
 
-try:
-    from scripts.source_reads import read_yaml
-except ModuleNotFoundError:
-    from source_reads import read_yaml
-
-try:
-    from scripts.book_manifest import load_manifest
-    from scripts.contents_manifest import proof_index_paths
-except ModuleNotFoundError:
-    from book_manifest import load_manifest
-    from contents_manifest import proof_index_paths
+from scripts.book_manifest import load_manifest
+from scripts.contents_manifest import proof_index_paths
+from scripts.source_reads import read_yaml
 
 SHARD_FIELDS = {"proofs"}
 

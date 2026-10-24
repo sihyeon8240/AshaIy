@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import itertools
+import json
 import os
 import shutil
 import subprocess
@@ -11,7 +12,13 @@ import unittest
 from pathlib import Path
 
 import yaml
-from test_support import book_record, manifest_document, write_executable, write_yaml
+from test_support import (
+    book_record,
+    copy_validation_configuration,
+    manifest_document,
+    write_executable,
+    write_yaml,
+)
 from workflow_support import build_workflow, condition_allows
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -137,6 +144,7 @@ elif args[-2:] == ["rev-parse", "HEAD"]:
 """,
             )
             (root / "tmp").mkdir()
+            copy_validation_configuration(root)
             for name in ("snapshot_state.py", "book_manifest.py", "source_reads.py"):
                 shutil.copy2(ROOT / "scripts" / name, root / "scripts" / name)
             write_yaml(
@@ -173,6 +181,9 @@ elif args[-2:] == ["rev-parse", "HEAD"]:
                     "FIXTURE": str(root),
                     "TMPDIR": str(root / "tmp"),
                     "GITHUB_SHA": "a" * 40,
+                    "BUILD_PLAN": json.dumps(
+                        {"book": [Path(name).stem for name in updated]}
+                    ),
                     "GITHUB_OUTPUT": str(root / "output"),
                     **environment,
                 },
@@ -361,6 +372,17 @@ esac
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(snapshot, expected)
 
+    def test_missing_planned_artifact_preserves_pdfs_and_never_pushes(self):
+        existing = {"alpha.pdf": b"old-a", "beta.pdf": b"old-b"}
+        result, snapshot, report = self.run_pdf_update(
+            {}, existing, BUILD_PLAN='{"book":["alpha"]}'
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("artifacts differ from the build plan", result.stderr)
+        self.assertEqual(snapshot, existing)
+        self.assertNotIn("push origin", report["git"])
+        self.assertEqual(report["outputs"], "")
+
     def test_pdf_update_prunes_files_that_are_no_longer_for_site(self):
         result, snapshot, _ = self.run_pdf_update(
             {},
@@ -488,6 +510,24 @@ esac
         self.assertEqual(report["outputs"], "current=false\n")
         self.assertNotIn("push origin", report["git"])
         self.assertEqual(report["temporary"], [])
+
+    def test_superseded_pages_skip_all_build_upload_and_deploy_steps(self):
+        workflow = yaml.safe_load((ROOT / ".github/workflows/pages.yml").read_text())
+        steps = workflow["jobs"]["deploy"]["steps"]
+        early = next(
+            index for index, step in enumerate(steps) if step.get("id") == "eligible"
+        )
+        for step in steps[early + 1 :]:
+            with self.subTest(step=step.get("name", step.get("uses"))):
+                self.assertFalse(
+                    condition_allows(
+                        step["if"],
+                        {
+                            "steps.eligible.outputs.current": "false",
+                            "steps.current.outputs.current": "",
+                        },
+                    )
+                )
 
     def test_pages_requires_snapshot_source_correspondence(self):
         workflow = yaml.safe_load((ROOT / ".github/workflows/pages.yml").read_text())

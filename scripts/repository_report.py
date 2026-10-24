@@ -3,32 +3,23 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
-try:
-    from scripts.bibtex import entry_keys
-    from scripts.book_manifest import load_manifest
-    from scripts.contents_manifest import (
-        appendix_directory,
-        chapter_directory,
-        load_book_contents,
-        load_sections,
-        section_filenames,
-    )
-    from scripts.latex_scan import theorem_label_groups
-    from scripts.lean_coverage import registered_results, result_metrics
-except ModuleNotFoundError:
-    from bibtex import entry_keys
-    from book_manifest import load_manifest
-    from contents_manifest import (
-        appendix_directory,
-        chapter_directory,
-        load_book_contents,
-        load_sections,
-        section_filenames,
-    )
-    from latex_scan import theorem_label_groups
-    from lean_coverage import registered_results, result_metrics
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.bibtex import entry_keys
+from scripts.book_manifest import load_manifest
+from scripts.contents_manifest import (
+    appendix_directory,
+    chapter_directory,
+    load_book_contents,
+    load_sections,
+    section_filenames,
+)
+from scripts.latex_scan import theorem_label_groups
+from scripts.lean_coverage import registered_results, result_metrics
 
 ROOT = Path(__file__).resolve().parent.parent
 ENVIRONMENTS = {

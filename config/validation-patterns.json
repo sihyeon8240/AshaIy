@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "patterns": {
+    "book_slug": "[a-z0-9]+(?:-[a-z0-9]+)*",
+    "chapter_slug": "[a-z][a-z0-9]*(?:-[a-z0-9]+)*",
+    "section_slug": "[a-z][a-z0-9]*(?:'[a-z0-9]+)*(?:-[a-z0-9]+(?:'[a-z0-9]+)*)*",
+    "label_prefix": "[a-z][a-z0-9]*",
+    "lean_name": "[A-Z][A-Za-z0-9]*",
+    "reserved_lean_namespace": "(?:Chapter|Appendix)[0-9]+",
+    "git_commit": "[0-9a-f]{40}",
+    "sha256": "[0-9a-f]{64}",
+    "image_digest": "sha256:${sha256}",
+    "pinned_image": "ghcr\\.io/[a-z0-9-]+/[a-z0-9-]+@sha256:${sha256}",
+    "verified_image": "ghcr\\.io/[a-z0-9/_.-]+@sha256:${sha256}",
+    "image_tag": "texlive-[0-9a-f]{12}",
+    "positive_integer": "[1-9][0-9]*",
+    "nonnegative_integer": "[0-9]+",
+    "relative_path": "[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*",
+    "lean_version": "[0-9]+\\.[0-9]+\\.[0-9]+(?:-[A-Za-z0-9.-]+)?",
+    "book_version": "(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?",
+    "single_line_text": "[^\\r\\n]*\\S[^\\r\\n]*"
+  }
+}

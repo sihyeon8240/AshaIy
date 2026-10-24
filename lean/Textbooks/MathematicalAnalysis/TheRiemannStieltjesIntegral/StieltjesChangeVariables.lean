@@ -7,16 +7,6 @@ open Set BoxIntegral
 
 noncomputable section
 
-private theorem neg_mem_box (K : Box Unit) (x : ℝ) :
-    (fun _ : Unit => -x) ∈ K ↔ x ∈ cell K := by
-  constructor
-  · intro h
-    have hh := h ()
-    exact ⟨by linarith [hh.2], by linarith [hh.1]⟩
-  · intro h i
-    cases i
-    exact ⟨by linarith [h.2], by linarith [h.1]⟩
-
 /-- Definition: an increasing bijection transports interval endpoints. -/
 def mapInterval (φ : ℝ ≃o ℝ) (I : Box Unit) : Box Unit :=
   intervalBox (φ (-I.upper ())) (φ (-I.lower ())) (φ.strictMono (neg_lt_neg (I.lower_lt_upper ())))
@@ -24,6 +14,11 @@ def mapInterval (φ : ℝ ≃o ℝ) (I : Box Unit) : Box Unit :=
 private theorem mapInterval_cell (φ : ℝ ≃o ℝ) (I : Box Unit) :
     cell (mapInterval φ I) = φ '' cell I := by
   rw [mapInterval, cell_intervalBox]
+  exact (φ.image_Icc _ _).symm
+
+private theorem mapInterval_halfOpenCell (φ : ℝ ≃o ℝ) (I : Box Unit) :
+    halfOpenCell (mapInterval φ I) = φ '' halfOpenCell I := by
+  rw [mapInterval, halfOpenCell_intervalBox]
   exact (φ.image_Ico _ _).symm
 
 private theorem mapInterval_le (φ : ℝ ≃o ℝ) {I J : Box Unit} (h : I ≤ J) :
@@ -63,7 +58,7 @@ def mapPartition (φ : ℝ ≃o ℝ) {I : Box Unit} (P : Partition I) :
         intro u hu hv
         have ha := (neg_mem_box _ (-u ())).mp (by simpa using hu)
         have hb := (neg_mem_box _ (-u ())).mp (by simpa using hv)
-        rw [mapInterval_cell] at ha hb
+        rw [mapInterval_halfOpenCell] at ha hb
 
         obtain ⟨x, hx, he⟩ := ha
         obtain ⟨y, hy, hf⟩ := hb
@@ -78,14 +73,14 @@ def mapPartition (φ : ℝ ≃o ℝ) {I : Box Unit} (P : Partition I) :
   refine ⟨Q, ?_⟩
   intro u hu
   have ht := (neg_mem_box _ (-u ())).mp (by simpa using hu)
-  rw [mapInterval_cell] at ht
+  rw [mapInterval_halfOpenCell] at ht
 
   obtain ⟨x, hx, hval⟩ := ht
   obtain ⟨K, hK, hmem⟩ := P.property _ ((neg_mem_box I x).mpr hx)
   refine ⟨mapInterval φ K, Finset.mem_image.mpr ⟨K, hK, rfl⟩, ?_⟩
 
-  have hm : -u () ∈ cell (mapInterval φ K) := by
-    rw [mapInterval_cell]
+  have hm : -u () ∈ halfOpenCell (mapInterval φ K) := by
+    rw [mapInterval_halfOpenCell]
     exact ⟨x, (neg_mem_box K x).mp hmem, hval⟩
 
   have hh := (neg_mem_box _ (-u ())).mpr hm

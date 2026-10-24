@@ -4,12 +4,26 @@ from __future__ import annotations
 
 import re
 
-try:
-    from scripts.latex_scan import braced_argument, command_arguments
-except ModuleNotFoundError:
-    from latex_scan import braced_argument, command_arguments
+from scripts.latex_scan import braced_argument, command_arguments
 
 TEXORPDFSTRING = re.compile(r"\\texorpdfstring\s*")
+
+
+def tex_text(text: str) -> str:
+    """Render plain registry text without granting it TeX command semantics."""
+    escapes = {
+        "\\": r"\textbackslash{}",
+        "{": r"\{",
+        "}": r"\}",
+        "&": r"\&",
+        "%": r"\%",
+        "#": r"\#",
+        "_": r"\_",
+        "$": r"\$",
+        "~": r"\textasciitilde{}",
+        "^": r"\textasciicircum{}",
+    }
+    return "".join(escapes.get(character, character) for character in text)
 
 
 def chapter_titles(text: str) -> list[str]:

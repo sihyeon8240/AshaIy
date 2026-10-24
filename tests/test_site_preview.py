@@ -2,21 +2,14 @@
 
 from __future__ import annotations
 
-import importlib.util
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
+from scripts import site_preview as preview
+
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-spec = importlib.util.spec_from_file_location(
-    "site_preview", ROOT / "scripts/site_preview.py"
-)
-assert spec and spec.loader
-preview = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(preview)
 
 
 class SitePreviewTests(unittest.TestCase):

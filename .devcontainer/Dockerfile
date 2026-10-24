@@ -1,6 +1,6 @@
 FROM debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f AS tool-downloader
 
-COPY config/toolchain.env /tmp/toolchain.env
+COPY --chmod=0644 .devcontainer/generated/tools.env /tmp/toolchain.env
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     --no-install-recommends ca-certificates curl \
   && set -a && . /tmp/toolchain.env && set +a \
@@ -10,14 +10,14 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
       ruff_target=x86_64-unknown-linux-gnu; ruff_sha256="$RUFF_SHA256_AMD64"; \
       shfmt_sha256="$SHFMT_SHA256_AMD64"; latexindent_asset=latexindent-linux; \
       latexindent_sha256="$LATEXINDENT_SHA256_AMD64"; shellcheck_target=x86_64; \
-      shellcheck_sha256="$SHELLCHECK_SHA256_AMD64" ;; \
+      shellcheck_sha256="$SHELLCHECK_SHA256_AMD64"; gh_sha256="$GH_SHA256_AMD64" ;; \
     arm64) elan_target=aarch64-unknown-linux-gnu; elan_sha256="$ELAN_SHA256_ARM64"; \
       ruff_target=aarch64-unknown-linux-gnu; ruff_sha256="$RUFF_SHA256_ARM64"; \
       shfmt_sha256="$SHFMT_SHA256_ARM64"; latexindent_asset=latexindent-linux-arm64; \
       latexindent_sha256="$LATEXINDENT_SHA256_ARM64"; shellcheck_target=aarch64; \
-      shellcheck_sha256="$SHELLCHECK_SHA256_ARM64" ;; \
+      shellcheck_sha256="$SHELLCHECK_SHA256_ARM64"; gh_sha256="$GH_SHA256_ARM64" ;; \
     *) echo "Unsupported architecture: $architecture" >&2; exit 1 ;; esac \
-  && mkdir -p /out/bin /tmp/ruff /tmp/shellcheck \
+  && mkdir -p /out/bin /tmp/ruff /tmp/shellcheck /tmp/gh \
   && curl -fsSL -o /tmp/elan.tgz "https://github.com/leanprover/elan/releases/download/v${ELAN_VERSION}/elan-${elan_target}.tar.gz" \
   && echo "${elan_sha256}  /tmp/elan.tgz" | sha256sum --check - \
   && tar -xzf /tmp/elan.tgz -C /out/bin elan-init \
@@ -34,7 +34,30 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
   && curl -fsSL -o /tmp/shellcheck.tgz "https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VERSION}/shellcheck-v${SHELLCHECK_VERSION}.linux.${shellcheck_target}.tar.gz" \
   && echo "${shellcheck_sha256}  /tmp/shellcheck.tgz" | sha256sum --check - \
   && tar -xzf /tmp/shellcheck.tgz -C /tmp/shellcheck --strip-components=1 \
-  && install /tmp/shellcheck/shellcheck /out/bin/shellcheck
+  && install /tmp/shellcheck/shellcheck /out/bin/shellcheck \
+  && curl -fsSL -o /tmp/gh.tgz "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${architecture}.tar.gz" \
+  && echo "${gh_sha256}  /tmp/gh.tgz" | sha256sum --check - \
+  && tar -xzf /tmp/gh.tgz -C /tmp/gh --strip-components=1 \
+  && install /tmp/gh/bin/gh /out/bin/gh
+
+FROM debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f AS texlive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl perl xz-utils \
+  && rm -rf /var/lib/apt/lists/*
+COPY --chmod=0644 .devcontainer/generated/texlive.env /tmp/texlive.env
+RUN set -a && . /tmp/texlive.env && set +a \
+  && repository="https://texlive.info/tlnet-archive/${TEXLIVE_ARCHIVE_DATE}/tlnet" \
+  && curl -fsSL -o /tmp/install-tl.tgz "$repository/install-tl-unx.tar.gz" \
+  && echo "${TEXLIVE_INSTALLER_SHA256}  /tmp/install-tl.tgz" | sha256sum --check - \
+  && mkdir /tmp/install-tl \
+  && tar -xzf /tmp/install-tl.tgz -C /tmp/install-tl --strip-components=1 \
+  && printf '%s\n' 'selected_scheme scheme-full' 'instopt_letter 0' \
+    'tlpdbopt_autobackup 0' 'tlpdbopt_desktop_integration 0' \
+    'tlpdbopt_file_assocs 0' 'tlpdbopt_install_docfiles 0' \
+    'tlpdbopt_install_srcfiles 0' > /tmp/install-tl/profile \
+  && TEXLIVE_INSTALL_NO_CONTEXT_CACHE=1 TEXLIVE_INSTALL_NO_WELCOME=1 \
+    perl /tmp/install-tl/install-tl -profile /tmp/install-tl/profile -repository "$repository" \
+  && rm -rf /tmp/install-tl /tmp/install-tl.tgz "/usr/local/texlive/${TEXLIVE_YEAR}"/*.log
 
 FROM python:3.14.8-slim-trixie@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170
 LABEL org.opencontainers.image.description="AshaIy textbook toolchain"
@@ -43,21 +66,10 @@ ENV ELAN_HOME=/usr/local/elan
 ENV ASHAIY_ROOT=/workspace
 ENV PATH="/usr/local/elan/bin:/usr/local/bin:/usr/local/texlive/2026/bin/x86_64-linux:/usr/local/texlive/2026/bin/aarch64-linux:${PATH}"
 WORKDIR /workspace
-COPY config/toolchain.env /workspace/config/toolchain.env
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash ca-certificates chromium curl ghostscript \
     git git-man jekyll jq less locales man-db nano openssh-client perl \
     poppler-utils ripgrep ruby ruby-bundler tree tzdata xz-utils zsh \
-  && set -a && . /workspace/config/toolchain.env && set +a \
-  && mkdir -p -m 755 /etc/apt/keyrings \
-  && curl -fsSL -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
-    https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-  && echo "${GH_KEYRING_SHA256}  /etc/apt/keyrings/githubcli-archive-keyring.gpg" \
-    | sha256sum --check - \
-  && chmod 644 /etc/apt/keyrings/githubcli-archive-keyring.gpg \
-  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
-    > /etc/apt/sources.list.d/github-cli.list \
-  && apt-get update && apt-get install -y --no-install-recommends "gh=${GH_VERSION}" \
   && echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen \
   && locale-gen \
   && rm -rf /var/lib/apt/lists/*
@@ -89,9 +101,15 @@ RUN curl -fsSL -o /root/.zshrc \
   && rm -rf /root/.oh-my-zsh/.git \
       /root/.oh-my-zsh/custom/themes/powerlevel10k/.git \
   && usermod --shell /bin/zsh root
-COPY --from=tool-downloader /out/bin/ /usr/local/bin/
-COPY scripts/ashaiy_launcher.sh /usr/local/bin/ashaiy
-RUN set -a && . /workspace/config/toolchain.env && set +a \
+COPY --from=tool-downloader --chmod=0755 /out/bin/elan-init /usr/local/bin/elan-init
+COPY --chmod=0644 .devcontainer/generated/lean.env /tmp/lean.env
+RUN set -a && . /tmp/lean.env && set +a \
+  && /usr/local/bin/elan-init -y --no-modify-path --default-toolchain none \
+  && rm /usr/local/bin/elan-init \
+  && elan toolchain install "$LEAN_TOOLCHAIN" \
+  && elan default "$LEAN_TOOLCHAIN"
+COPY --chmod=0644 .devcontainer/generated/python.env /tmp/python.env
+RUN set -a && . /tmp/python.env && set +a \
   && python3 -m pip install \
     --disable-pip-version-check --no-cache-dir --only-binary=:all: \
     "PyYAML==${PYYAML_VERSION}" \
@@ -102,26 +120,12 @@ RUN set -a && . /workspace/config/toolchain.env && set +a \
     "yamllint==${YAMLLINT_VERSION}" \
     "djlint==${DJLINT_VERSION}" \
     "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}"
-RUN set -a && . /workspace/config/toolchain.env && set +a \
-  && repository="https://texlive.info/tlnet-archive/${TEXLIVE_ARCHIVE_DATE}/tlnet" \
-  && curl -fsSL -o /tmp/install-tl.tgz "$repository/install-tl-unx.tar.gz" \
-  && echo "${TEXLIVE_INSTALLER_SHA256}  /tmp/install-tl.tgz" | sha256sum --check - \
-  && mkdir /tmp/install-tl \
-  && tar -xzf /tmp/install-tl.tgz -C /tmp/install-tl --strip-components=1 \
-  && printf '%s\n' 'selected_scheme scheme-full' 'instopt_letter 0' \
-    'tlpdbopt_autobackup 0' 'tlpdbopt_desktop_integration 0' \
-    'tlpdbopt_file_assocs 0' 'tlpdbopt_install_docfiles 0' \
-    'tlpdbopt_install_srcfiles 0' > /tmp/install-tl/profile \
-  && TEXLIVE_INSTALL_NO_CONTEXT_CACHE=1 TEXLIVE_INSTALL_NO_WELCOME=1 \
-    perl /tmp/install-tl/install-tl -profile /tmp/install-tl/profile -repository "$repository" \
-  && tlmgr remove --force aliascnt \
-  && rm -rf /tmp/install-tl /tmp/install-tl.tgz "/usr/local/texlive/${TEXLIVE_YEAR}"/*.log
-RUN set -a && . /workspace/config/toolchain.env && set +a \
-  && /usr/local/bin/elan-init -y --no-modify-path --default-toolchain none \
-  && rm /usr/local/bin/elan-init \
-  && elan toolchain install "$LEAN_TOOLCHAIN" \
-  && elan default "$LEAN_TOOLCHAIN"
-COPY scripts/check_toolchain.sh /workspace/scripts/check_toolchain.sh
+COPY --from=tool-downloader --chmod=0755 /out/bin/ruff /out/bin/shfmt \
+    /out/bin/latexindent /out/bin/shellcheck /out/bin/gh /usr/local/bin/
+COPY --from=texlive /usr/local/texlive /usr/local/texlive
+COPY --chmod=0755 scripts/ashaiy_launcher.sh /usr/local/bin/ashaiy
+COPY --chmod=0644 config/toolchain.env /workspace/config/toolchain.env
+COPY --chmod=0755 scripts/check_toolchain.sh /workspace/scripts/check_toolchain.sh
 RUN set -a && . /workspace/config/toolchain.env && set +a \
   && lualatex --version | head -n1 | grep -F "TeX Live ${TEXLIVE_YEAR}" \
   && ./scripts/check_toolchain.sh

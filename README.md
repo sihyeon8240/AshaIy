@@ -77,14 +77,14 @@ the [contributing guide](docs/CONTRIBUTING.md); authors should also follow the
 
 ## Licensing
 
-Textbook content is licensed under [CC BY 4.0](LICENSES/CC-BY-4.0.txt).
+Textbook content is licensed under [CC BY 4.0](LICENSE-CC-BY-4.0).
 Copyright (c) 2026 Muho Choi. This grant does not relicense third-party material
 or establish that every existing passage is original. Third-party names,
 trademarks, and material used under separate terms are excluded from this grant.
 Their inclusion does not imply ownership or authorization. Contributors must
 identify citations and rights for new text, exercises, solutions, and figures.
 
-Repository code and automation are under the [MIT License](LICENSES/MIT.txt),
+Repository code and automation are under the [MIT License](LICENSE-MIT),
 including `scripts/`, repository-authored build, validation, distribution and release
 automation, repository-authored workflow and development-environment
 configuration, and `common/styles/`. This does not apply MIT to textbook

@@ -154,7 +154,7 @@ theorem riemannIntegral_linear (I : Box Unit) (f g : ℝ → ℝ) (A B : ℝ)
   let τ := fun J : Box Unit => -J.upper ()
   have hτ : ∀ J ∈ R.val.boxes, τ J ∈ cell J := by
     intro J _
-    exact ⟨le_rfl, neg_lt_neg (J.lower_lt_upper ())⟩
+    exact ⟨le_rfl, neg_le_neg (J.lower_le_upper ())⟩
 
   have he (k : ℝ → ℝ) (hk : RiemannIntegrable I k) (T : Partition I)
       (hRT : Refines R T) (hT : upperSum k id T - lowerSum k id T < δ) :

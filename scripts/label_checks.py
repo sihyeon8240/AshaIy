@@ -9,13 +9,12 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-try:
-    from scripts.source_reads import read_text
-except ModuleNotFoundError:
-    from source_reads import read_text
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from book_manifest import load_manifest
-from latex_scan import command_arguments
+from scripts.book_manifest import load_manifest
+from scripts.latex_scan import command_arguments
+from scripts.source_reads import read_text
 
 KIND = r"(ch|sec|ax|def|thm|lem|prop|cor|ex|exc|prob|eq|fig|tab)"
 PLACEHOLDER = re.compile(r"^xx:(ch|sec):[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$")

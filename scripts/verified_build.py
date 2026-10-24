@@ -9,11 +9,16 @@ import json
 import os
 import re
 import subprocess
+import sys
 import zipfile
 from pathlib import Path
 
-import github_artifacts
-from github_artifacts import checksum, eligible_run
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts import github_artifacts
+from scripts.github_artifacts import checksum, eligible_run
+from scripts.validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
 POLICY = "strict-pdf-v1"
@@ -30,12 +35,12 @@ def api(endpoint: str):
 
 
 def identity(book: str, image: str, *, candidate: bool = False) -> dict:
-    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", book):
+    if not re.fullmatch(validation_pattern("book_slug"), book):
         raise ValueError("invalid book slug")
     pattern = (
-        r"sha256:[0-9a-f]{64}"
+        validation_pattern("image_digest")
         if candidate
-        else r"ghcr\.io/[a-z0-9/_.-]+@sha256:[0-9a-f]{64}"
+        else validation_pattern("verified_image")
     )
     if not re.fullmatch(pattern, image):
         raise ValueError(
@@ -148,6 +153,11 @@ def restore(expected: dict, directory: Path) -> bool:
         ):
             continue
         head = pull["head"]["sha"]
+        if (
+            api(f"repos/{repository}/git/commits/{head}")["tree"]["sha"]
+            != expected["tree"]
+        ):
+            continue
         runs = api(
             f"repos/{repository}/actions/workflows/build.yml/runs"
             f"?event=pull_request&status=success&head_sha={head}&per_page=30"

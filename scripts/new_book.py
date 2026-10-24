@@ -7,14 +7,17 @@ import shutil
 import sys
 from pathlib import Path
 
-from book_manifest import (
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.book_manifest import (
     add_book,
     load_manifest,
     manifest_warnings,
     require_book,
     validate_new_book_input,
 )
-from contents_generation import generate
+from scripts.contents_generation import generate
 
 ROOT = Path(__file__).resolve().parent.parent
 

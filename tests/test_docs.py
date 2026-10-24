@@ -2,20 +2,13 @@
 
 from __future__ import annotations
 
-import importlib.util
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
+from scripts import documentation_checks as docs
+
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-spec = importlib.util.spec_from_file_location(
-    "check_docs", ROOT / "scripts/documentation_checks.py"
-)
-assert spec and spec.loader
-docs = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(docs)
 
 
 class DocumentationTests(unittest.TestCase):

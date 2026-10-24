@@ -6,20 +6,18 @@ import os
 import re
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, NotRequired, TypedDict, cast
 
 import yaml
 
-try:
-    from scripts.source_reads import read_yaml
-except ModuleNotFoundError:
-    from source_reads import read_yaml
+from scripts.source_reads import read_yaml
+from scripts.validation_patterns import validation_pattern
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MANIFEST_PATH = REPO_ROOT / "config/books.yml"
-SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-LABEL_PREFIX_PATTERN = re.compile(r"[a-z][a-z0-9]*")
-LEAN_MODULE_PATTERN = re.compile(r"[A-Z][A-Za-z0-9]*")
+SLUG_PATTERN = re.compile("^" + validation_pattern("book_slug") + "$")
+LABEL_PREFIX_PATTERN = re.compile(validation_pattern("label_prefix"))
+LEAN_MODULE_PATTERN = re.compile(validation_pattern("lean_name"))
 STATUS_LABELS = {
     "draft": "Draft",
     "review": "In Review",
@@ -28,7 +26,7 @@ STATUS_LABELS = {
 }
 ALLOWED_STATUSES = frozenset(STATUS_LABELS)
 ROOT_FIELDS = {"schema_version", "defaults", "books"}
-DEFAULT_FIELDS = {"author", "build", "check", "release", "site"}
+DEFAULT_FIELDS = {"author", "version", "status", "build", "check", "release", "site"}
 BOOK_FIELDS = {
     "slug",
     "title",
@@ -45,11 +43,25 @@ BOOK_FIELDS = {
 }
 
 
+class BookMetadata(TypedDict):
+    slug: str
+    title: str
+    author: str
+    version: str
+    status: str
+    order: int
+    label_prefix: str
+    lean_module: NotRequired[str]
+    build: bool
+    check: bool
+    release: bool
+    site: bool
+
+
 def version_key(value: str) -> tuple:
     """SemVer precedence, excluding build metadata (unsupported by config/books.yml)."""
     match = re.fullmatch(
-        r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
-        r"(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?",
+        validation_pattern("book_version"),
         value,
     )
     if not match:
@@ -190,7 +202,7 @@ def normalize_manifest(data: object) -> dict[str, Any]:
             "manifest has unknown field(s): " + ", ".join(sorted(unknown_root_fields))
         )
 
-    if data.get("schema_version") != 1:
+    if type(data.get("schema_version")) is not int or data["schema_version"] != 1:
         raise ValueError("unsupported or missing schema_version")
 
     defaults = data.get("defaults", {})
@@ -207,6 +219,15 @@ def normalize_manifest(data: object) -> dict[str, Any]:
         )
 
     for flag, value in defaults.items():
+        if flag == "version":
+            if not isinstance(value, str):
+                raise ValueError("defaults field 'version' must be a semantic version")
+            version_key(value)
+            continue
+        if flag == "status":
+            if not isinstance(value, str) or value not in ALLOWED_STATUSES:
+                raise ValueError(f"defaults field 'status' is invalid: {value!r}")
+            continue
         if flag == "author":
             if (
                 not isinstance(value, str)
@@ -222,7 +243,7 @@ def normalize_manifest(data: object) -> dict[str, Any]:
     if not isinstance(books, list):
         raise ValueError("'books' must be a list")
 
-    normalized_books: list[dict[str, Any]] = []
+    normalized_books: list[BookMetadata] = []
     seen_slugs: set[str] = set()
     seen_label_prefixes: set[str] = set()
     seen_lean_modules: set[str] = set()
@@ -289,6 +310,7 @@ def normalize_manifest(data: object) -> dict[str, Any]:
         if label_prefix in seen_label_prefixes:
             raise ValueError(f"duplicate label_prefix: {label_prefix}")
         seen_label_prefixes.add(label_prefix)
+        book["label_prefix"] = label_prefix
 
         lean_module = book.get("lean_module")
         if lean_module is not None:
@@ -300,7 +322,7 @@ def normalize_manifest(data: object) -> dict[str, Any]:
                 raise ValueError(f"duplicate lean_module: {lean_module}")
             seen_lean_modules.add(lean_module)
 
-        if status not in ALLOWED_STATUSES:
+        if not isinstance(status, str) or status not in ALLOWED_STATUSES:
             raise ValueError(f"book '{slug}' has invalid status: {status!r}")
 
         if not isinstance(order, int) or isinstance(order, bool):
@@ -313,7 +335,7 @@ def normalize_manifest(data: object) -> dict[str, Any]:
         if book["site"] and not book["build"]:
             raise ValueError(f"book '{slug}' cannot have site=true when build=false")
 
-        normalized_books.append(book)
+        normalized_books.append(cast(BookMetadata, book))
 
     data["books"] = sorted(
         normalized_books,
@@ -353,9 +375,9 @@ def manifest_warnings(manifest: dict[str, Any]) -> list[str]:
     return warnings
 
 
-def require_book(slug: str) -> dict[str, Any]:
+def require_book(slug: str) -> BookMetadata:
     manifest = load_manifest()
     for book in manifest["books"]:
         if book["slug"] == slug:
-            return book
+            return cast(BookMetadata, book)
     raise ValueError(f"book is not registered in config/books.yml: {slug}")

@@ -10,16 +10,6 @@ open scoped Topology
 
 noncomputable section
 
-private theorem neg_mem_box (K : Box Unit) (x : ℝ) :
-    (fun _ : Unit => -x) ∈ K ↔ x ∈ cell K := by
-  constructor
-  · intro h
-    have hh := h ()
-    exact ⟨by linarith [hh.2], by linarith [hh.1]⟩
-  · intro h i
-    cases i
-    exact ⟨by linarith [h.2], by linarith [h.1]⟩
-
 /-- Lemma: every cell length is at most the partition mesh. -/
 theorem cellLength_le_mesh {I : Box Unit} (P : Partition I) (J : Box Unit)
     (hJ : J ∈ P.val.boxes) : cellLength J ≤ mesh P := Finset.le_sup' cellLength hJ
@@ -60,7 +50,7 @@ theorem upperSum_mesh_bound (I : Box Unit) (f : ℝ → ℝ)
       (∑ L ∈ (P.val.restrict K).boxes, cellSup f L * cellLength L) ≤ 2 * C * w K := by
     intro K hK
     have hKI := Q.val.le_of_mem hK
-    have htag : -K.upper () ∈ cell I := cell_mono hKI
+    have htag : -K.upper () ∈ halfOpenCell I := halfOpenCell_mono hKI
       ⟨le_rfl, neg_lt_neg (K.lower_lt_upper ())⟩
 
     obtain ⟨L, hL, htagL⟩ := P.property _ ((neg_mem_box I _).mpr htag)
@@ -115,10 +105,10 @@ theorem upperSum_mesh_bound (I : Box Unit) (f : ℝ → ℝ)
         have hJI := ((P.val.restrict K).le_of_mem hJ).trans hKI
         have hs : -C ≤ cellSup f J := by
           have hp := hb (-J.upper ()) (cell_subset_closed hJI
-            ⟨le_rfl, neg_lt_neg (J.lower_lt_upper ())⟩)
+            ⟨le_rfl, neg_le_neg (J.lower_le_upper ())⟩)
           have hu := le_csSup (cell_image_bounded f hJI hf.1).bddAbove
             (show f (-J.upper ()) ∈ f '' cell J from ⟨_,
-              ⟨le_rfl, neg_lt_neg (J.lower_lt_upper ())⟩, rfl⟩)
+              ⟨le_rfl, neg_le_neg (J.lower_le_upper ())⟩, rfl⟩)
           change f (-J.upper ()) ≤ cellSup f J at hu
 
           linarith [(abs_le.mp hp).1]

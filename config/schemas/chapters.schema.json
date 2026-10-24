@@ -37,12 +37,14 @@
       "properties": {
         "slug": {
           "type": "string",
-          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+          "$comment": "validation-pattern: chapter_slug"
         },
         "title": {
           "type": "string",
           "minLength": 1,
-          "pattern": "^[^\\r\\n]*\\S[^\\r\\n]*$"
+          "pattern": "^[^\\r\\n]*\\S[^\\r\\n]*$",
+          "$comment": "validation-pattern: single_line_text"
         },
         "lean_namespace": {
           "type": "string",
@@ -56,10 +58,12 @@
                 ]
               },
               {
-                "pattern": "^(?:Chapter|Appendix)[0-9]+$"
+                "pattern": "^(?:Chapter|Appendix)[0-9]+$",
+                "$comment": "validation-pattern: reserved_lean_namespace"
               }
             ]
-          }
+          },
+          "$comment": "validation-pattern: lean_name"
         }
       }
     }

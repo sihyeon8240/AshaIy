@@ -4,20 +4,27 @@ from __future__ import annotations
 
 from pathlib import Path
 
-try:
-    from scripts.source_reads import read_text
-except ModuleNotFoundError:
-    from source_reads import read_text
-
-try:
-    from scripts.latex_scan import theorem_label_groups
-    from scripts.proof_index import load_proof_index
-except ModuleNotFoundError:
-    from latex_scan import theorem_label_groups
-    from proof_index import load_proof_index
-
+from scripts.contents_manifest import load_sections
+from scripts.latex_scan import theorem_label_groups, without_comments
+from scripts.proof_index import load_proof_index
+from scripts.source_reads import read_text
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def book_content_metrics(slug: str, root: Path = REPO_ROOT) -> dict[str, int]:
+    """Count actual section sources, excluding generated chapter assembly."""
+    sections = [
+        manifest.parent / f"{section['slug']}.tex"
+        for manifest in (root / "books" / slug).rglob("sections.yml")
+        for section in load_sections(manifest.parent)
+    ]
+    return {
+        "sections": len(sections),
+        "written": sum(
+            bool(without_comments(read_text(path)).strip()) for path in sections
+        ),
+    }
 
 
 def registered_results(root: Path = REPO_ROOT) -> dict[str, set[str]]:

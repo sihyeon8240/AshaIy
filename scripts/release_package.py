@@ -6,9 +6,13 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 
-from github_artifacts import checksum, command
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.github_artifacts import checksum, command
 
 
 def record(book: str, directory: Path) -> None:

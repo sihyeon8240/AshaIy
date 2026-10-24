@@ -7,10 +7,41 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.source_reads import read_text, read_yaml, reuse_source_reads
+import yaml
+
+from scripts.contents_manifest import load_sections
+from scripts.source_reads import parse_yaml, read_text, read_yaml, reuse_source_reads
 
 
 class SourceReadTests(unittest.TestCase):
+    def test_domain_loaders_share_the_invocation_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            path = directory / "sections.yml"
+            first = "schema_version: 1\nsections:\n- slug: one\n  title: First\n"
+            path.write_text(first)
+            with reuse_source_reads():
+                self.assertEqual(load_sections(directory)[0]["title"], "First")
+                path.write_text(first.replace("First", "Second"))
+                self.assertEqual(load_sections(directory)[0]["title"], "First")
+            self.assertEqual(load_sections(directory)[0]["title"], "Second")
+
+    def test_duplicate_keys_and_merges_fail_with_source_positions(self) -> None:
+        for source in (
+            "book:\n  release: false\n  release: true\n",
+            "base: &base {release: false}\nbook: {<<: *base}\n",
+        ):
+            with (
+                self.subTest(source=source),
+                self.assertRaises(yaml.YAMLError) as caught,
+            ):
+                parse_yaml(source)
+            self.assertIn("line", str(caught.exception))
+        self.assertEqual(
+            parse_yaml("first: &value [1, 2]\nsecond: *value\n"),
+            {"first": [1, 2], "second": [1, 2]},
+        )
+
     def test_reuses_text_and_yaml_only_inside_one_check(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "manifest.yml"

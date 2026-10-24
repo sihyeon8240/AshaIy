@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from test_support import write_executable
+from test_support import copy_validation_configuration, write_executable
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -21,6 +21,7 @@ class ContainerCommandTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix="math container ")
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
+        copy_validation_configuration(self.root)
         shutil.copytree(
             ROOT / "scripts",
             self.root / "scripts",
@@ -137,6 +138,13 @@ class ContainerCommandTests(unittest.TestCase):
         self.assertIn(f"{self.root}:/workspace", self.arguments())
         self.environment["DOCKER_EXIT"] = "23"
         self.assertNotEqual(self.cli("image", "run").returncode, 0)
+
+    def test_image_arguments_cannot_become_docker_options(self) -> None:
+        for image in ("--privileged", "bad image", "bad\nimage"):
+            with self.subTest(image=image):
+                result = self.cli("image", "run", "--image=" + image)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(self.arguments_path.exists())
 
     def test_container_entrypoint_sets_a_writable_lean_home(self) -> None:
         shutil.copy2(

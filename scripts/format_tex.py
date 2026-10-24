@@ -13,7 +13,13 @@ import tempfile
 from pathlib import Path
 from typing import cast
 
-from normalize_eof import normalized_bytes
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.latex_scan import source_spans, without_comments_and_literals
+from scripts.lean_source import ignored_spans
+from scripts.normalize_eof import normalized_bytes
+from scripts.validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
 LEAN_BLOCK = re.compile(
@@ -44,15 +50,52 @@ def format_file(file: Path) -> bytes:
     if not file.is_file():
         raise ValueError(f"FILE does not exist: {file}")
     settings = ROOT / "config/latexindent.yaml"
+    source = file.read_text(encoding="utf-8")
+    protected: dict[str, str] = {}
+    for span in reversed(source_spans(source)):
+        if span.kind == "comment":
+            continue
+        literal = source[span.start : span.end]
+        if span.kind == "lean" and not any(
+            kind == "literal" and "\n" in literal[start:end]
+            for start, end, kind in ignored_spans(literal)
+        ):
+            continue
+        marker = (
+            f"ASHAIYLITERAL{span.start}X"
+            + hashlib.sha256(literal.encode()).hexdigest().upper()
+        )
+        if marker in source:
+            raise ValueError("literal protection marker already occurs in source")
+        protected[marker] = literal
+        source = source[: span.start] + marker + source[span.end :]
     with tempfile.TemporaryDirectory() as temporary:
         cruft = Path(temporary)
         wrapped = cruft / f"wrapped{file.suffix}"
+        original = cruft / file.name
+        original.write_text(source, encoding="utf-8")
         options = ["latexindent", f"--local={settings}", f"--cruft={cruft}"]
-        result = subprocess.check_output([*options, "--modifylinebreaks", str(file)])
+        result = subprocess.check_output(
+            [*options, "--modifylinebreaks", str(original)]
+        )
         wrapped.write_bytes(result)
         # The second pass corrects indentation added to short wrapped sentences.
         result = subprocess.check_output([*options, str(wrapped)])
-    return normalized_bytes(normalize_lean_indentation(result), collapse=True)
+    result = normalized_bytes(normalize_lean_indentation(result), collapse=True)
+    text = result.decode()
+    clean = without_comments_and_literals(text)
+    labels = re.compile(
+        r"(\\begin\{(?:theorem|lemma|proposition|corollary|definition|axiom|example|exercise|problem)\})[ \t]*\n[ \t]*(\\label\{[^}\n]+\})"
+    )
+    for match in reversed(list(labels.finditer(clean))):
+        if text[match.end(1) : match.start(2)].isspace():
+            text = text[: match.end(1)] + " " + text[match.start(2) :]
+    result = text.encode()
+    for marker, literal in protected.items():
+        if result.count(marker.encode()) != 1:
+            raise ValueError("latexindent changed a protected literal marker")
+        result = result.replace(marker.encode(), literal.encode())
+    return result
 
 
 def selected_files(root: Path, file: Path | None) -> list[Path]:
@@ -79,7 +122,7 @@ def selected_files(root: Path, file: Path | None) -> list[Path]:
         raise ValueError("FILE must not be ignored by Git")
     if result.returncode != 1:
         raise subprocess.CalledProcessError(result.returncode, result.args)
-    return [path]
+    return [path.relative_to(root)]
 
 
 def cache_directory(root: Path) -> Path:
@@ -88,6 +131,8 @@ def cache_directory(root: Path) -> Path:
     for name in (
         "format_tex.py",
         "normalize_eof.py",
+        "latex_scan.py",
+        "lean_source.py",
         "format_tex.sh",
         "format_tex_file.sh",
         "normalize_eof.sh",
@@ -104,12 +149,28 @@ def cache_directory(root: Path) -> Path:
     return cache
 
 
-def format_sources(root: Path, *, check: bool, file: Path | None) -> int:
+def prune_cache(cache: Path) -> None:
+    """Remove obsolete generations only when no other formatter is using them."""
+    for entry in cache.parent.iterdir():
+        if (
+            entry != cache
+            and re.fullmatch(validation_pattern("sha256"), entry.name)
+            and not entry.is_symlink()
+            and entry.is_dir()
+        ):
+            shutil.rmtree(entry)
+
+
+def format_sources(
+    root: Path, *, check: bool, file: Path | None, prune: bool = False
+) -> int:
     files = selected_files(root, file)
     if shutil.which("latexindent") is None:
         print("error: latexindent is required", file=sys.stderr)
         return 127
     cache = cache_directory(root)
+    if prune:
+        prune_cache(cache)
     print(
         f"[tex] {'checking' if check else 'formatting'} LaTeX source files", flush=True
     )
@@ -152,11 +213,20 @@ def main() -> int:
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--file", type=Path)
     parser.add_argument(
+        "--prune-cache",
+        action="store_true",
+        help="remove obsolete cache generations; avoid concurrent formatter runs",
+    )
+    parser.add_argument(
         "--stdout", type=Path, help="format one file to stdout for the editor"
     )
     args = parser.parse_args()
-    if args.stdout is not None and (args.check or args.file is not None):
-        parser.error("--stdout cannot be combined with --check or --file")
+    if args.stdout is not None and (
+        args.check or args.file is not None or args.prune_cache
+    ):
+        parser.error(
+            "--stdout cannot be combined with --check, --file, or --prune-cache"
+        )
     try:
         if args.stdout is not None:
             sys.stdout.buffer.write(format_file(args.stdout))
@@ -169,7 +239,7 @@ def main() -> int:
             ).strip()
         )
         os.chdir(root)
-        return format_sources(root, check=args.check, file=file)
+        return format_sources(root, check=args.check, file=file, prune=args.prune_cache)
     except subprocess.CalledProcessError as error:
         return error.returncode
     except (OSError, ValueError) as error:

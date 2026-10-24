@@ -7,40 +7,29 @@ import subprocess
 from pathlib import Path, PurePosixPath
 
 import yaml
-from book_manifest import load_manifest, normalize_manifest
-from ci_changes import (
-    CI_ONLY_FILES,
-    SITE_FILES,
-    SNAPSHOT_FILES,
+
+from scripts.book_manifest import load_manifest, normalize_manifest
+from scripts.ci_changes import changed_paths as shared_changed_paths
+from scripts.ci_changes import (
     classify,
     is_documentation,
 )
-from ci_changes import changed_paths as shared_changed_paths
-from latex_scan import without_comments
-from repository_config import load_image_build
+from scripts.latex_scan import without_comments
+from scripts.path_policy import (
+    BUILD_INFRA,
+    CI_ONLY_FILES,
+    SCAFFOLD_FILES,
+    SITE_FILES,
+    SNAPSHOT_FILES,
+)
+from scripts.repository_config import load_image_build
+from scripts.source_reads import parse_yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 TEX_REF = re.compile(
-    r"\\(?P<command>input|include|addbibresource|bibliography|usepackage|RequirePackage)"
+    r"\\(?P<command>input|includegraphics|include|addbibresource|bibliography|usepackage|RequirePackage)"
     r"(?:\s*\[[^]]*\])?\s*\{(?P<reference>[^}]+)\}"
 )
-BUILD_INFRA = {
-    "scripts/ashaiy",
-    "scripts/repository_cli.py",
-    "scripts/repository_commands.py",
-    "scripts/repository_tasks.py",
-    "config/latexmkrc",
-    "scripts/build_book.sh",
-    "scripts/build_support.sh",
-    "scripts/build_all.sh",
-    "scripts/check_log.py",
-    "scripts/books.py",
-    "scripts/book_manifest.py",
-    "config/container-image.txt",
-    "common/templates/book.tex",
-    "scripts/contents_manifest.py",
-    "scripts/generate_contents.py",
-}
 IMAGE_INPUTS = set(load_image_build()["inputs"])
 
 
@@ -58,7 +47,7 @@ def manifest_at(revision: str | None) -> dict | None:
     except subprocess.CalledProcessError:
         return None
     try:
-        return normalize_manifest(yaml.safe_load(text))
+        return normalize_manifest(parse_yaml(text))
     except OSError, ValueError, TypeError, yaml.YAMLError:
         return None
 
@@ -76,6 +65,25 @@ def _resolve_tex(reference: str, source: Path, command: str) -> list[Path]:
         book_root = source.parent
     for name in (item.strip() for item in reference.split(",")):
         if not name:
+            continue
+        if command == "includegraphics":
+            suffixes = (
+                ("",)
+                if Path(name).suffix
+                else (".pdf", ".png", ".jpg", ".jpeg", ".eps")
+            )
+            for directory in (source.parent, book_root, ROOT):
+                found = next(
+                    (
+                        directory / (name + suffix)
+                        for suffix in suffixes
+                        if (directory / (name + suffix)).is_file()
+                    ),
+                    None,
+                )
+                if found is not None:
+                    result.append(found.resolve())
+                    break
             continue
         if command in {"usepackage", "RequirePackage"}:
             suffix = ".sty"
@@ -116,6 +124,8 @@ def dependencies(slug: str) -> set[str]:
         if source in seen or not source.is_file():
             continue
         seen.add(source)
+        if source.suffix not in {".tex", ".sty"}:
+            continue
         text = without_comments(source.read_text(encoding="utf-8", errors="ignore"))
         for match in TEX_REF.finditer(text):
             pending.extend(_resolve_tex(match["reference"], source, match["command"]))
@@ -194,9 +204,10 @@ def plan(
             | SITE_FILES
             | SNAPSHOT_FILES
             | CI_ONLY_FILES
+            | SCAFFOLD_FILES
             | {"config/books.yml"}
         )
-        ignored = ("site/", "docs/", ".github/", "tests/", "common/templates/")
+        ignored = ("site/", "docs/", ".github/", "tests/")
         unknown = sorted(
             path
             for path in path_set

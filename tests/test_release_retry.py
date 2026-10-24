@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import os
 import subprocess
-import sys
 import tempfile
 import unittest
 import zipfile
@@ -16,14 +14,9 @@ from unittest.mock import patch
 import yaml
 from test_support import book_record, manifest_document
 
+from scripts import release_retry as RETRY
+
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-SPEC = importlib.util.spec_from_file_location(
-    "release_retry", ROOT / "scripts/release_retry.py"
-)
-assert SPEC and SPEC.loader
-RETRY = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(RETRY)
 
 
 class ReleaseRetryTests(unittest.TestCase):
@@ -210,12 +203,8 @@ class ReleaseRetryTests(unittest.TestCase):
             download.assert_not_called()
 
     def test_package_recorder_round_trips_into_retry_validation(self):
-        spec = importlib.util.spec_from_file_location(
-            "release_package", ROOT / "scripts/release_package.py"
-        )
-        assert spec and spec.loader
-        package = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(package)
+        from scripts import release_package as package
+
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             for name, content in self.files.items():
@@ -250,7 +239,7 @@ class ReleaseRetryTests(unittest.TestCase):
         ):
             with (
                 self.subTest(artifact=artifact),
-                patch("github_artifacts.subprocess.run") as execute,
+                patch("scripts.github_artifacts.subprocess.run") as execute,
                 self.assertRaises(ValueError),
             ):
                 RETRY.download(

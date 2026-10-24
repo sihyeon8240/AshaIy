@@ -2,30 +2,29 @@
 
 from __future__ import annotations
 
-import importlib.util
+import gzip
 import json
 import os
 import subprocess
-import sys
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
+from scripts import image_candidate as CANDIDATE
+
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-SPEC = importlib.util.spec_from_file_location(
-    "image_candidate", ROOT / "scripts/image_candidate.py"
-)
-assert SPEC and SPEC.loader
-CANDIDATE = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(CANDIDATE)
 
 
 class ImageCandidateTests(unittest.TestCase):
     def setUp(self):
-        self.expected = {"policy": CANDIDATE.POLICY, "tree": "tree", "arch": "amd64"}
+        self.expected = {
+            "policy": CANDIDATE.POLICY,
+            "tree": "tree",
+            "arch": "amd64",
+            "image_tag": "texlive-0123456789ab",
+        }
         self.workflow_run = {
             "id": 123,
             "run_attempt": 2,
@@ -157,6 +156,31 @@ class ImageCandidateTests(unittest.TestCase):
         expired = [self.artifacts[0], {**self.artifacts[1], "expired": True}]
         self.assertEqual(self.restore(artifacts=expired), (False, 0))
 
+    def test_expanded_image_limit_is_checked_before_docker_access(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            archive = Path(temporary) / "image.gz"
+            archive.write_bytes(gzip.compress(b"x" * 100))
+            with (
+                patch.object(CANDIDATE, "MAX_IMAGE_BYTES", 10),
+                patch.object(CANDIDATE, "command") as command,
+                self.assertRaisesRegex(
+                    ValueError, "expanded Docker image is too large"
+                ),
+            ):
+                CANDIDATE.check_archive(archive)
+            command.assert_not_called()
+
+    def test_invalid_candidate_archive_is_rejected_before_recording_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / "image.tar.gz").write_bytes(b"")
+            with (
+                patch.object(CANDIDATE, "command") as command,
+                self.assertRaisesRegex(ValueError, "empty or too large"),
+            ):
+                CANDIDATE.record("amd64", "image", directory)
+            command.assert_not_called()
+
     def test_archive_is_verified_before_loading_or_tagging(self):
         for failure in (
             None,
@@ -172,7 +196,7 @@ class ImageCandidateTests(unittest.TestCase):
             ):
                 root = Path(temporary)
                 image = root / "image.tar.gz"
-                image.write_bytes(b"image bytes")
+                image.write_bytes(gzip.compress(b"image bytes"))
                 manifest = {**self.manifest, "checksum": CANDIDATE.checksum(image)}
                 if failure == "checksum":
                     manifest["checksum"] = "wrong"
@@ -193,19 +217,24 @@ class ImageCandidateTests(unittest.TestCase):
                 if failure == "github_digest":
                     artifact["digest"] = "wrong"
 
-                def execute(args, **kwargs):
-                    if args[0] == "gh":
-                        kwargs["stdout"].write(archive_path.read_bytes())
-                    return subprocess.CompletedProcess(args, 0)
+                def transfer(args, target, *unused):
+                    target.write_bytes(archive_path.read_bytes())
 
                 with (
+                    patch.object(CANDIDATE.subprocess, "run") as run,
                     patch.object(
-                        CANDIDATE.subprocess, "run", side_effect=execute
-                    ) as run,
+                        CANDIDATE.github_artifacts,
+                        "download_attempt",
+                        side_effect=transfer,
+                    ),
                     patch.object(
                         CANDIDATE,
                         "command",
-                        return_value="arm64" if failure == "architecture" else "amd64",
+                        side_effect=lambda *args: (
+                            str(root)
+                            if args[:2] == ("docker", "info")
+                            else ("arm64" if failure == "architecture" else "amd64")
+                        ),
                     ) as command,
                 ):
                     if failure:

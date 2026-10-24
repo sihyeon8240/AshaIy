@@ -19,8 +19,6 @@ LuaLaTeX, latexmk, and Biber. Follow the
 and add its platform-specific binary directory to PATH. The repository uses
 TeX Gyre Termes. Older TeX installations may produce different results or fail;
 use the configured TeX Live year and archive snapshot when matching CI matters.
-The image also deliberately removes `aliascnt`; consult `.devcontainer/Dockerfile`
-when reproducing the exact publishing toolchain.
 
 From the checkout root, create an isolated Python environment:
 

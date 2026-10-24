@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib.util
 import os
 import shutil
 import subprocess
@@ -12,12 +11,52 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-
-from contents_manifest import expected_files, load_sections, section_filenames
+from scripts.contents_manifest import (
+    expected_files,
+    load_sections,
+    render_metadata,
+    section_filenames,
+)
 
 
 class ContentsManifestTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("lualatex"), "lualatex is required")
+    def test_plain_registry_text_compiles_with_tex_special_characters(self) -> None:
+        record = {
+            **self.RECORD,
+            "title": r"Probability & Statistics 100% #1_{x} $5 ~ ^ \ naïve",
+            "author": "A & B",
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            tex = root / "metadata.tex"
+            tex.write_text(
+                "\\documentclass{article}\n\\usepackage{hyperref}\n"
+                + render_metadata(record)
+                + "\n\\begin{document}\\displaytitle\\quad\\name\\end{document}\n"
+            )
+            result = subprocess.run(
+                ["lualatex", "-interaction=nonstopmode", "-halt-on-error", str(tex)],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertTrue((root / "metadata.pdf").read_bytes().startswith(b"%PDF-"))
+
+    def test_percent_sign_requires_escape_in_latex_titles(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            book = self.fixture(Path(temporary))
+            path = book / "chapters/start/sections.yml"
+            path.write_text(
+                "schema_version: 1\nsections:\n- slug: first\n  title: 100% complete\n"
+            )
+            with self.assertRaisesRegex(ValueError, "unescaped percent"):
+                load_sections(path.parent)
+            path.write_text(path.read_text().replace("100%", r"100\%"))
+            self.assertEqual(load_sections(path.parent)[0]["title"], r"100\% complete")
+
     RECORD = {
         "slug": "sample",
         "title": "Sample Book",
@@ -82,12 +121,8 @@ class ContentsManifestTests(unittest.TestCase):
 
     def test_generator_initializes_proof_indexes_without_overwriting(self) -> None:
         repository = Path(__file__).resolve().parent.parent
-        spec = importlib.util.spec_from_file_location(
-            "generate_contents", repository / "scripts/contents_generation.py"
-        )
-        assert spec and spec.loader
-        generator = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(generator)
+        from scripts import contents_generation as generator
+
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             book = self.fixture(root)

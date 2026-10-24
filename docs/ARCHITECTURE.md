@@ -111,6 +111,7 @@ config/container-image.txt -> local and devcontainer image consumers
 config/ignore-patterns.yml -> Git, Docker, tree, and VS Code exclusion consumers
 config/image-build.json    -> image input detection, tag hashing, build matrix, and index checks
 config/authoring.json      -> CLI/editor shell formatting and unittest discovery
+config/validation-patterns.json -> Python validation and synchronized shell/schema expressions
 config/books.yml           -> VS Code task book choices
 .vscode/extensions.json   -> devcontainer extension installation
 ```
@@ -124,8 +125,8 @@ fails on drift.
 Commit synchronized consumers with their canonical sources. In particular:
 
 - `config/image-build.json` owns hashed image inputs, build policy, and platform/
-  runner pairs. Image jobs read it at runtime; only `build-image.yml` trigger
-  filters are generated because GitHub evaluates them before execution.
+  runner pairs. Image jobs read it at runtime; main CI owns automatic image
+  preparation and `build-image.yml` provides manual recovery.
 - `config/authoring.json` owns shell formatting and test discovery. Synchronization
   updates the corresponding editor fields, book choices, and container extensions.
 - `config/ignore-patterns.yml` owns tool-specific exclusion profiles. Generated
@@ -138,6 +139,27 @@ Commit synchronized consumers with their canonical sources. In particular:
 
 `config/generated/` contains committed outputs; edit their canonical sources.
 
+Shared lexical validation rules live in `config/validation-patterns.json`.
+Python consumers use `scripts/validation_patterns.py`, whose standard-library-only
+loader resolves `${name}` references and rejects unknown or cyclic references.
+Expressions are unanchored fragments; Python callers retain their matching and
+capture behavior. Book versions retain semantic checks beyond their expression,
+and pinned development images and verified-build image references retain distinct
+accepted grammars.
+
+`ashaiy config generate/check` synchronizes schema objects marked with
+`$comment: "validation-pattern: <name>"` and Bash expressions immediately following
+`# validation-pattern: <name>`. These comments designate generated values inside
+otherwise hand-maintained consumers. Schema and shell consumers receive anchored
+expressions. Shell synchronization accepts only the explicitly supported ERE
+subset; it does not translate Python syntax. Inline shell consumers stay runnable
+without loading configuration or Python during CI bootstrap and copied Pages
+script execution.
+
+Keep parser, replacement, diagnostic, and formatter expressions with their owning
+code or tool configuration. Glob exclusions remain in `config/ignore-patterns.yml`.
+Do not add unrelated tool-specific patterns to the shared validation registry.
+
 ### Configuration consumer boundaries
 
 | Consumer type | Ownership and reason |
@@ -146,7 +168,6 @@ Commit synchronized consumers with their canonical sources. In particular:
 | Complete generated files | Toolchain pins, CI requirements, exclusion lists, and publication version macros remain committed outputs for tools that consume those file formats directly. |
 | Mixed editor/container files | Synchronization owns the image, extension lists, book choices, and configured editor fields; remaining user-maintained settings are preserved. |
 | Mixed TOML files | Synchronization owns the Lean dependency revision and Ruff target version; package metadata, Lean options, and lint policy remain hand-maintained. |
-| Workflow trigger filters | Synchronization owns image workflow paths because event filtering happens before runtime configuration can be read. Other workflow logic remains hand-maintained. |
 
 Mixed consumers are intentional compatibility boundaries. Do not generate their
 entire files or introduce a parallel template merely to remove a field update.
@@ -259,13 +280,22 @@ an entire book or the fidelity of prose and displayed code.
 
 ## Stability policy
 
-The directory layout, `config/books.yml` and proof-index schemas, metadata loading,
-chapter/index pattern, Lean dependency boundary, build scripts, automation, and
-CI are public interfaces. Keep changes compatible and limited to a concrete
-maintenance need. Preserve independent book ownership and review interface
-changes explicitly.
+The directory layout, configuration schemas, metadata loading, chapter/index
+pattern, Lean dependency boundary, build scripts, automation, and CI are reviewed
+interfaces. Keep consumers, tests, and documentation aligned with their current
+contracts. Preserve independent book ownership and review interface changes explicitly.
+
+Repository YAML requires unique mapping keys and integer schema versions. Anchors
+and aliases are accepted; merge keys (`<<`) are rejected. Write fields explicitly
+so validation and source-preserving edits share an unambiguous field owner.
 
 ### Multi-platform toolchain images
+
+`config/toolchain.env` owns tool versions. `ashaiy config generate` derives
+`.devcontainer/generated/*.env` for the Python, Lean, binary-tool, and
+TeX Live installation steps. These committed inputs isolate Docker cache
+invalidation; the independent TeX Live stage is reused across other tool updates.
+Register generated image inputs in `config/image-build.json`.
 
 Local containers use `config/container-image.txt`. Main CI prepares and publishes
 its image before use; ordinary PRs resolve their published content tag to an
@@ -284,6 +314,10 @@ Cache hits alone never establish validation. See
 ## Repository automation modules
 
 `scripts/ashaiy` is the public command interface; argparse validates subcommands and options.
+Python domain modules use absolute `scripts.*` imports. Entry-point adapters add
+the checkout root to the import path when executed directly; internal readers,
+caches, and invocation snapshots retain one package identity. Tests import the
+same package rather than loading separate module copies.
 The main implementation responsibilities are:
 
 | Owner | Responsibility |
@@ -292,6 +326,7 @@ The main implementation responsibilities are:
 | `repository_tasks.py`, `task_stages.py` | Ordered execution, invocation-local stage results, and stopping on failure. |
 | `book_manifest.py`, `books.py` | Manifest policy and stable CLI presentation; Python checks import the domain module. |
 | `book_impact.py`, `source_impact.py`, `ci_changes.py` | PDF dependencies, Lean selection, and shared changed-path discovery. |
+| `path_policy.py` | Shared file roles for image, site, snapshot, source, and PDF consumers; unknown PDF inputs select conservatively. |
 | `releases.py` | Release eligibility and semantic-version policy. |
 | `impact_plan.py` | Source/PDF selection with independent event and snapshot baselines. Missing comparisons select conservatively. |
 | `source_checks.py`, `source_reads.py` | Read-only source checks with an invocation-scoped read snapshot. Writing generation reads preceding stages' output directly. |

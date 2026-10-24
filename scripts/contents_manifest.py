@@ -8,22 +8,15 @@ from typing import cast
 
 import yaml
 
-try:
-    from scripts.source_reads import read_text, read_yaml
-except ModuleNotFoundError:
-    from source_reads import read_text, read_yaml
-
-try:
-    from scripts.latex_scan import has_balanced_braces, without_comments
-except ModuleNotFoundError:
-    from latex_scan import has_balanced_braces, without_comments
+from scripts.latex_scan import has_balanced_braces, without_comments
+from scripts.latex_titles import tex_text
+from scripts.source_reads import read_text, read_yaml
+from scripts.validation_patterns import validation_pattern
 
 SCHEMA_VERSION = 1
-SLUG = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
-SECTION_SLUG = re.compile(
-    r"^[a-z][a-z0-9]*(?:'[a-z0-9]+)*(?:-[a-z0-9]+(?:'[a-z0-9]+)*)*$"
-)
-LEAN_NAMESPACE = re.compile(r"[A-Z][A-Za-z0-9]*")
+SLUG = re.compile("^" + validation_pattern("chapter_slug") + "$")
+SECTION_SLUG = re.compile("^" + validation_pattern("section_slug") + "$")
+LEAN_NAMESPACE = re.compile(validation_pattern("lean_name"))
 BEGIN_CHAPTERS = "% BEGIN GENERATED CHAPTERS"
 END_CHAPTERS = "% END GENERATED CHAPTERS"
 BEGIN_APPENDICES = "% BEGIN GENERATED APPENDICES"
@@ -40,7 +33,10 @@ def _mapping(path: Path) -> dict:
         raise ValueError(f"{path}: cannot read YAML: {error}") from error
     if not isinstance(value, dict):
         raise ValueError(f"{path}: root must be a mapping")
-    if value.get("schema_version") != SCHEMA_VERSION:
+    if (
+        type(value.get("schema_version")) is not int
+        or value["schema_version"] != SCHEMA_VERSION
+    ):
         raise ValueError(f"{path}: schema_version must be {SCHEMA_VERSION}")
     return value
 
@@ -82,6 +78,10 @@ def _validate_entries(
         if slug in seen:
             raise ValueError(f"{path}: duplicate {field[:-1]} slug {slug!r}")
         seen.add(slug)
+        if isinstance(title, str) and without_comments(title) != title:
+            raise ValueError(
+                f"{prefix}.title contains an unescaped percent sign; use \\%"
+            )
         if (
             not isinstance(title, str)
             or not title.strip()
@@ -125,7 +125,9 @@ def load_book_contents(book_dir: Path) -> tuple[list[dict], list[dict]]:
                 not isinstance(namespace, str)
                 or not LEAN_NAMESPACE.fullmatch(namespace)
                 or namespace in {"All", "Appendices"}
-                or re.fullmatch(r"(?:Chapter|Appendix)[0-9]+", namespace)
+                or re.fullmatch(
+                    validation_pattern("reserved_lean_namespace"), namespace
+                )
             ):
                 raise ValueError(f"{path}: invalid lean_namespace: {namespace!r}")
             if namespace in namespaces:
@@ -186,8 +188,8 @@ def render_metadata(book: dict) -> str:
     return "\n".join(
         (
             BEGIN_METADATA,
-            f"\\newcommand{{\\name}}{{{book['author']}}}",
-            f"\\newcommand{{\\displaytitle}}{{{book['title']}}}",
+            f"\\newcommand{{\\name}}{{{tex_text(book['author'])}}}",
+            f"\\newcommand{{\\displaytitle}}{{{tex_text(book['title'])}}}",
             f"\\newcommand{{\\version}}{{{book['version']}}}",
             f"\\newcommand{{\\slug}}{{{book['slug']}}}",
             r"\title{\displaytitle}",

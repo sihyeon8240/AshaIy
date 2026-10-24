@@ -27,12 +27,14 @@
             "pattern": "^[a-z][a-z0-9]*(?:'[a-z0-9]+)*(?:-[a-z0-9]+(?:'[a-z0-9]+)*)*$",
             "not": {
               "const": "index"
-            }
+            },
+            "$comment": "validation-pattern: section_slug"
           },
           "title": {
             "type": "string",
             "minLength": 1,
-            "pattern": "^[^\\r\\n]*\\S[^\\r\\n]*$"
+            "pattern": "^[^\\r\\n]*\\S[^\\r\\n]*$",
+            "$comment": "validation-pattern: single_line_text"
           }
         }
       }
