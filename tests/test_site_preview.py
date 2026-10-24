@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,6 +15,81 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class SitePreviewTests(unittest.TestCase):
+    def test_build_failures_preserve_the_previous_complete_preview(self):
+        for failure in ("render", "copy", "validate", "install"):
+            with (
+                self.subTest(failure=failure),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                root = Path(temporary)
+                destination = root / "build/site-preview"
+                (destination / "pdf").mkdir(parents=True)
+                (destination / "index.html").write_text("previous preview")
+                (destination / "pdf/alpha.pdf").write_bytes(b"previous PDF")
+                source = root / "build/alpha/book.pdf"
+                source.parent.mkdir()
+                source.write_bytes(b"%PDF-1.7\nnew PDF")
+                replace = os.replace
+
+                def fail_install(source, target):
+                    if Path(source).name == "next":
+                        raise OSError("installation failed")
+                    return replace(source, target)
+
+                with contextlib.ExitStack() as stack:
+                    stack.enter_context(mock.patch.object(preview, "ROOT", root))
+                    stack.enter_context(
+                        mock.patch.object(
+                            preview, "require_tool", return_value="jekyll"
+                        )
+                    )
+                    stack.enter_context(
+                        mock.patch.object(
+                            preview,
+                            "load_manifest",
+                            return_value={"books": [{"slug": "alpha", "site": True}]},
+                        )
+                    )
+                    stack.enter_context(mock.patch.object(preview.subprocess, "run"))
+                    stack.enter_context(mock.patch.object(preview, "check_output"))
+                    if failure == "render":
+                        stack.enter_context(
+                            mock.patch.object(
+                                preview, "render", side_effect=OSError("render failed")
+                            )
+                        )
+                    elif failure == "copy":
+                        stack.enter_context(
+                            mock.patch.object(
+                                preview.shutil,
+                                "copyfile",
+                                side_effect=OSError("copy failed"),
+                            )
+                        )
+                    elif failure == "validate":
+                        stack.enter_context(
+                            mock.patch.object(
+                                preview,
+                                "check_output",
+                                side_effect=ValueError("validation failed"),
+                            )
+                        )
+                    else:
+                        stack.enter_context(
+                            mock.patch.object(
+                                preview.os, "replace", side_effect=fail_install
+                            )
+                        )
+                    with self.assertRaises((ValueError, OSError)):
+                        preview.build()
+                self.assertEqual(
+                    (destination / "index.html").read_text(), "previous preview"
+                )
+                self.assertEqual(
+                    (destination / "pdf/alpha.pdf").read_bytes(), b"previous PDF"
+                )
+                self.assertEqual(list((root / "build").glob(".site-preview-*")), [])
+
     def test_missing_tool_fails_before_tests_can_skip(self) -> None:
         with mock.patch.object(preview.shutil, "which", return_value=None):
             with self.assertRaisesRegex(ValueError, "required tool not found: jekyll"):
@@ -63,6 +140,7 @@ class SitePreviewTests(unittest.TestCase):
                 mock.patch.object(preview, "require_tool", return_value="jekyll"),
                 mock.patch.object(preview, "load_manifest", return_value=books),
                 mock.patch.object(preview.subprocess, "run"),
+                mock.patch.object(preview, "check_output"),
             ):
                 preview.build()
             self.assertEqual([path.name for path in output.iterdir()], ["alpha.pdf"])

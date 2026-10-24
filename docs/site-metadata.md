@@ -48,10 +48,16 @@ participation is controlled separately by the boolean flags.
 
 ## Generated site pages
 
-`ashaiy site generate` writes ignored `site/books/<slug>.md` pages for
-`site: true` books. `ashaiy site check` compares them without writing and rejects
-missing, stale, or orphaned pages. Generate first in a clean checkout. Both accept
-`--book <slug>` for one site-enabled book.
+`ashaiy site generate` writes ignored `site/_data/books.json` and thin
+`site/books/<slug>.html` pages for `site: true` books. JSON holds projected registry
+metadata, coverage, content counts, URLs, and source/snapshot revisions. Pages
+contain only layout settings and a book slug; they are Jekyll routing adapters,
+not additional metadata sources.
+
+`ashaiy site check` compares both outputs without writing and rejects missing,
+stale, or orphaned pages. Generate first in a clean checkout. Both accept
+`--book <slug>` for one site-enabled page; the shared JSON always covers all
+site-enabled books so other pages retain their data.
 
 Site publication requires `build: true` and `site: true`; manifest validation
 rejects `site: true` with `build: false`. Enabling `site` builds the book even
@@ -69,10 +75,11 @@ The shared document layout and header/footer includes live under
 Shared component and accessibility rules live in `site/assets/common.css`;
 `index.css` and `book.css` own page-specific presentation and responsive behavior.
 
-The index reads generated book pages through `site.pages`, sorts them by
-manifest order, and displays titles and status labels. Cards, detail pages, and
-accessible link names all use `title`. The book layout reads the same front
-matter, including Lean coverage generated from the proof index.
+The index reads `site.data.books.books`, sorts by manifest order, and displays
+titles and status labels. Detail layouts look up the same data by `book_slug`.
+Cards, detail pages, accessible link names, and HTML titles share that data. The
+standalone deployment checker consumes the same JSON and requires exactly the
+expected cards, detail pages, PDFs, and reading links.
 
 Lean coverage is the number of LaTeX results linked to a Lean declaration through
 the proof index divided by the book's LaTeX theorem, lemma, proposition, and
@@ -121,7 +128,10 @@ ashaiy site serve
 ```
 
 `build` regenerates site pages, renders Jekyll into `build/site-preview/`, and
-copies site-enabled books from `build/<slug>/book.pdf`. Build changed textbooks
+copies site-enabled books from `build/<slug>/book.pdf`. Rendering, PDF staging,
+and output validation finish in a temporary directory before the previous
+preview is replaced. Ordinary build, validation, and installation failures
+preserve the last complete preview. Build changed textbooks
 first; missing or empty PDFs cause an error with the required build commands.
 `serve` builds first, then serves the result at `http://localhost:4000` until
 Ctrl+C. Override the port with `ashaiy site serve --port <port>`. Rerun after changes; there is

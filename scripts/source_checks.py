@@ -121,7 +121,7 @@ def check_sources(*, defer: str | None = None) -> int:
             return 1
 
         with tempfile.TemporaryDirectory() as temporary:
-            if site_pages.generate(pages_dir=Path(temporary), verify_output=True):
+            if site_pages.generate(site_dir=Path(temporary), verify_output=True):
                 return 1
 
         stale = synchronize(check=True)

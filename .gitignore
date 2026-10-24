@@ -5,6 +5,7 @@
 /build/
 /lean/.lake/
 /site/books/
+/site/_data/books.json
 *.pdf
 *.aux
 *.bbl

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -25,7 +26,7 @@ from scripts.lean_coverage import (
 from scripts.validation_patterns import validation_pattern
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-PAGES_DIR = REPO_ROOT / "site" / "books"
+SITE_DIR = REPO_ROOT / "site"
 SITE_FIELDS = ("slug", "title", "status", "order", "site", "release", "label_prefix")
 
 
@@ -66,6 +67,7 @@ def site_books(manifest: dict) -> list[dict]:
         book["status_label"] = STATUS_LABELS[source["status"]]
         book["snapshot_revision"] = revision
         book["source_revision"] = source_sha
+        book["url"] = f"/books/{source['slug']}.html"
 
         lean = book_lean_metrics(source["slug"], registered=registered)
         book["lean_verified"] = lean["verified"]
@@ -79,12 +81,12 @@ def site_books(manifest: dict) -> list[dict]:
 
 
 def render_site_page(book: dict) -> str:
-    """Render manifest-derived metadata as a book page's front matter."""
+    """Keep routing and presentation separate from the generated book data."""
     front_matter = {
         "layout": "book",
         "stylesheet": "book",
         "edit_path": "site/_layouts/book.html",
-        **book,
+        "book_slug": book["slug"],
     }
     return (
         "---\n"
@@ -93,16 +95,21 @@ def render_site_page(book: dict) -> str:
     )
 
 
-def render_site_pages(manifest: dict) -> dict[str, str]:
+def render_site(manifest: dict) -> dict[str, str]:
+    books = site_books(manifest)
     return {
-        f"{book['slug']}.md": render_site_page(book) for book in site_books(manifest)
+        "_data/books.json": json.dumps(
+            {"schema_version": 1, "books": books}, ensure_ascii=False, indent=2
+        )
+        + "\n",
+        **{f"books/{book['slug']}.html": render_site_page(book) for book in books},
     }
 
 
 def generate(
     *,
     check: bool = False,
-    pages_dir: Path = PAGES_DIR,
+    site_dir: Path = SITE_DIR,
     book: str | None = None,
     skip_disabled: bool = False,
     verify_output: bool = False,
@@ -119,49 +126,55 @@ def generate(
             raise ValueError(
                 f"book is not enabled for site in config/books.yml: {book}"
             )
-        manifest = {**manifest, "books": [registered[book]]}
-
-    selected_pages = render_site_pages(manifest)
-    expected_names = set(selected_pages)
+    outputs = render_site(manifest)
+    if book:
+        outputs = {
+            name: content
+            for name, content in outputs.items()
+            if name in {"_data/books.json", f"books/{book}.html"}
+        }
     if check:
-        return validate_pages(selected_pages, pages_dir, book=book)
+        return validate_site(outputs, site_dir, book=book)
 
-    pages_dir.mkdir(parents=True, exist_ok=True)
-    write_updates(
-        {pages_dir / name: content for name, content in selected_pages.items()}
-    )
-    if not book:
-        for path in pages_dir.glob("*.md"):
-            if path.name not in expected_names:
+    write_updates({site_dir / name: content for name, content in outputs.items()})
+    pages_dir = site_dir / "books"
+    if not book and pages_dir.is_dir():
+        for path in pages_dir.iterdir():
+            if path.relative_to(site_dir).as_posix() not in outputs:
+                if path.is_dir() and not path.is_symlink():
+                    raise ValueError(f"unexpected directory in generated pages: {path}")
                 path.unlink()
 
-    print(f"Generated {len(selected_pages)} site book page(s)")
+    count = len(outputs) - 1
+    print(f"Generated book data and {count} site book page(s)")
     if verify_output:
-        return validate_pages(selected_pages, pages_dir, book=book)
+        return validate_site(outputs, site_dir, book=book)
     return 0
 
 
-def validate_pages(
-    selected_pages: dict[str, str], pages_dir: Path, *, book: str | None = None
+def validate_site(
+    outputs: dict[str, str], site_dir: Path, *, book: str | None = None
 ) -> int:
-    expected_names = set(selected_pages)
+    pages_dir = site_dir / "books"
     actual_names = (
-        {path.name for path in pages_dir.glob("*.md")} if pages_dir.is_dir() else set()
+        {path.relative_to(site_dir).as_posix() for path in pages_dir.iterdir()}
+        if pages_dir.is_dir()
+        else set()
     )
     stale = [
         name
-        for name, expected in selected_pages.items()
-        if not (pages_dir / name).is_file()
-        or (pages_dir / name).read_text(encoding="utf-8") != expected
+        for name, expected in outputs.items()
+        if not (site_dir / name).is_file()
+        or (site_dir / name).read_text(encoding="utf-8") != expected
     ]
-    orphaned = sorted(actual_names - expected_names) if not book else []
+    orphaned = sorted(actual_names - outputs.keys()) if not book else []
     if stale or orphaned:
         for name in sorted(stale):
             print(f"error: generated site page is stale: {name}", file=sys.stderr)
         for name in orphaned:
             print(f"error: orphan generated site page: {name}", file=sys.stderr)
         return 1
-    print(f"Validated {len(selected_pages)} generated site book page(s)")
+    print(f"Validated book data and {len(outputs) - 1} generated site book page(s)")
     return 0
 
 
@@ -177,7 +190,7 @@ def main() -> int:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=PAGES_DIR,
+        default=SITE_DIR,
         help=argparse.SUPPRESS,
     )
     args = parser.parse_args()
@@ -185,7 +198,7 @@ def main() -> int:
     try:
         return generate(
             check=args.check,
-            pages_dir=args.output_dir,
+            site_dir=args.output_dir,
             book=args.book,
             skip_disabled=args.skip_disabled,
         )

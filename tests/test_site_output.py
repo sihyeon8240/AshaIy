@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -21,8 +23,12 @@ class SiteOutputTests(unittest.TestCase):
         for path in ("assets", "books", "pdf"):
             (self.site / path).mkdir(parents=True)
         (self.snapshot / "pdf").mkdir(parents=True)
+        self.book_data = self.root / "books.json"
+        self.book_data.write_text(
+            json.dumps({"schema_version": 1, "books": [{"slug": "sample"}]})
+        )
         (self.site / "index.html").write_text(
-            '<link href="/math/assets/site.css" rel="stylesheet">'
+            '<article data-book-slug="sample"></article><link href="/math/assets/site.css" rel="stylesheet">'
             '<a href="/math/books/sample.html#reading">Read</a>'
             '<a href="/math/pdf/sample.pdf?v=abc">PDF</a>'
             '<a href="https://example.com/">External</a>'
@@ -39,7 +45,7 @@ class SiteOutputTests(unittest.TestCase):
 
     def validate(self):
         with contextlib.redirect_stdout(io.StringIO()):
-            check(self.site, self.snapshot, base_path="/math")
+            check(self.site, self.snapshot, book_data=self.book_data, base_path="/math")
 
     def test_complete_site_resolves_html_css_images_and_versioned_pdfs(self):
         self.validate()
@@ -77,3 +83,45 @@ class SiteOutputTests(unittest.TestCase):
                 (self.site / "index.html").write_text(f'<a href="{link}">Bad</a>')
                 with self.assertRaisesRegex(ValueError, "outside|escapes"):
                     self.validate()
+
+    def test_unlinked_missing_pages_and_duplicate_cards_are_rejected(self):
+        for failure in ("cards", "books", "pdf", "duplicate", "detail PDF"):
+            with (
+                self.subTest(failure=failure),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                destination = Path(temporary) / "site"
+                shutil.copytree(self.site, destination)
+                index = destination / "index.html"
+                detail = destination / "books/sample.html"
+                if failure == "cards":
+                    index.write_text(
+                        index.read_text().replace(
+                            'data-book-slug="sample"', 'data-other="sample"'
+                        )
+                    )
+                elif failure == "books":
+                    detail.unlink()
+                    index.write_text(
+                        '<article data-book-slug="sample"></article><a href="/math/pdf/sample.pdf">PDF</a>'
+                    )
+                elif failure == "pdf":
+                    (destination / "pdf/sample.pdf").unlink()
+                    index.write_text(
+                        '<article data-book-slug="sample"></article><a href="/math/books/sample.html">Details</a>'
+                    )
+                    detail.write_text("<h1>Details</h1>")
+                elif failure == "duplicate":
+                    index.write_text(
+                        index.read_text()
+                        + '<article data-book-slug="sample"></article>'
+                    )
+                else:
+                    detail.write_text('<h1 id="reading">Details</h1>')
+                with self.assertRaisesRegex(ValueError, "differ|missing detail page"):
+                    check(
+                        destination,
+                        self.snapshot,
+                        book_data=self.book_data,
+                        base_path="/math",
+                    )

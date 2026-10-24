@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import functools
+import json
 import shutil
 import subprocess
 import tempfile
@@ -91,11 +92,11 @@ class SiteRenderingTests(unittest.TestCase):
         with mock.patch.object(
             site_generator, "snapshot_revision", return_value=REVISION
         ):
-            pages = site_generator.render_site_pages({"books": cls.books})
-        pages_dir = cls.source / "books"
-        pages_dir.mkdir()
+            pages = site_generator.render_site({"books": cls.books})
         for filename, source in pages.items():
-            (pages_dir / filename).write_text(source, encoding="utf-8")
+            target = cls.source / filename
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(source, encoding="utf-8")
         cls.config = cls.workspace / "preview.yml"
         cls.config.write_text(
             yaml.safe_dump(
@@ -154,7 +155,12 @@ class SiteRenderingTests(unittest.TestCase):
                 data = b"%PDF-1.7\nchecked snapshot"
                 (destination / "pdf" / f"{slug}.pdf").write_bytes(data)
                 (snapshot / "pdf" / f"{slug}.pdf").write_bytes(data)
-            check_site_output(destination, snapshot, base_path="/math")
+            check_site_output(
+                destination,
+                snapshot,
+                book_data=self.source / "_data/books.json",
+                base_path="/math",
+            )
 
     def test_titles_are_escaped_in_text_and_accessible_names(self) -> None:
         home = self.page("index.html")
@@ -216,13 +222,11 @@ class SiteRenderingTests(unittest.TestCase):
     def test_exported_pages_have_unversioned_pdf_links(self) -> None:
         source = self.workspace / "exported-site"
         shutil.copytree(self.source, source)
-        page_path = source / "books" / "alpha.md"
-        page_path.write_text(
-            page_path.read_text(encoding="utf-8").replace(
-                f"snapshot_revision: {REVISION}", "snapshot_revision: ''"
-            ),
-            encoding="utf-8",
-        )
+        data_path = source / "_data/books.json"
+        data = json.loads(data_path.read_text())
+        for book in data["books"]:
+            book["snapshot_revision"] = ""
+        data_path.write_text(json.dumps(data))
         destination = self.workspace / "exported-rendered"
         self.build(source, destination)
         detail = RenderedPage(
@@ -296,6 +300,7 @@ return {
             context.tracing.start(screenshots=True, snapshots=True, sources=True)
             try:
                 page = context.new_page()
+                page.emulate_media(reduced_motion="reduce")
                 for width in (320, 375, 641, 768, 832, 1024, 1440):
                     page.set_viewport_size({"width": width, "height": 1000})
                     for path in paths:
@@ -307,6 +312,24 @@ return {
                             report["scrollWidth"], width, (width, path)
                         )
                         self.assertEqual(report["overflow"], [], (width, path))
+                        if path == "index.html" and width == 1440:
+                            link = page.locator(".project-link").first
+                            for hovered in (False, True):
+                                if hovered:
+                                    link.hover()
+                                ratio = link.evaluate(r"""element => {
+  function luminance(color) {
+    const linear = color.match(/\d+/g).slice(0, 3).map(value => {
+      const component = Number(value) / 255;
+      return component <= 0.04045 ? component / 12.92 : ((component + 0.055) / 1.055) ** 2.4;
+    });
+    return linear.reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+  }
+  const text = luminance(getComputedStyle(element.querySelector("span:last-child")).color);
+  const background = luminance(getComputedStyle(element).backgroundColor);
+  return (Math.max(text, background) + 0.05) / (Math.min(text, background) + 0.05);
+}""")
+                                self.assertGreaterEqual(ratio, 4.5, (hovered, ratio))
             except Exception:
                 artifacts = REPO_ROOT / "build/test-results"
                 artifacts.mkdir(parents=True, exist_ok=True)
