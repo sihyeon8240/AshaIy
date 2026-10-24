@@ -6,6 +6,11 @@ import sys
 from pathlib import Path
 
 root = Path(__file__).resolve().parent.parent
+os.environ["PYTHON"] = sys.executable
+if sys.prefix != sys.base_prefix:
+    os.environ["PATH"] = (
+        str(Path(sys.executable).parent) + os.pathsep + os.environ.get("PATH", "")
+    )
 os.environ.setdefault("PYTHONPYCACHEPREFIX", str(root / ".cache/python"))
 os.environ.setdefault("MATHLIB_CACHE_DIR", str(root / ".cache/mathlib"))
 sys.pycache_prefix = os.environ["PYTHONPYCACHEPREFIX"]

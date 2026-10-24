@@ -2,4 +2,4 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-exec "${PYTHON:-python3}" "$repo_root/scripts/format_tex.py" --stdout "$@"
+exec bash "$repo_root/scripts/run_python.sh" "$repo_root/scripts/format_tex.py" --stdout "$@"

@@ -117,6 +117,7 @@ def copy_script(source: Path, destination: Path) -> None:
             "lean_source.py",
         ),
         "format_tex_file.sh": (
+            "run_python.sh",
             "format_tex.py",
             "normalize_eof.py",
             "latex_scan.py",

@@ -34,7 +34,8 @@ The setup script installs the pinned Python dependencies from
 `.github/requirements-ci.txt` in `.cache/local-venv/`, including the type, YAML,
 schema, and template checkers. It does not install system packages or change
 shell startup files. Re-running it refreshes these dependencies. Activate it in
-each new terminal.
+each new terminal. In VS Code, also run **Python: Select Interpreter** and choose
+`.cache/local-venv/bin/python` for Tasks and Test Explorer.
 Invoke `./scripts/ashaiy` from the checkout root, or use its absolute path from
 another directory. PDFs go to `build/<slug>/book.pdf` in either environment.
 

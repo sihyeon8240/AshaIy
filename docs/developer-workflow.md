@@ -137,14 +137,19 @@ for pin changes.
 
 Use **Run Build Task** for a selected book, **Run Test Task** for Python tests,
 and **Run Task** for strict builds, Lean, generation, formatting, and inspection.
-Tasks use the public CLI. LaTeX Workshop's default recipe previews PDFs; choose
+Tasks run the public CLI with the interpreter selected by **Python: Select Interpreter**,
+the same choice used by Test Explorer. For local development, select
+`.cache/local-venv/bin/python` after setup. The CLI passes that interpreter and its
+executable directory to child commands. LaTeX Workshop's default recipe previews PDFs; choose
 its strict recipe or the strict build Task for repository log checks.
 Diagnostics with file locations appear in Problems; other output stays in the
 terminal. Test Explorer discovers `unittest` cases under `tests/`.
 `ashaiy test` buffers test output, showing it only when a test fails; expected
 error diagnostics from passing tests stay hidden. Coverage mode uses the same behavior.
 
-Local schemas provide manifest completion; Python parsers own semantic validation.
+Workshop formatting and strict log checks use `scripts/run_python.sh`: explicit
+`PYTHON`, an activated virtual environment, the local setup environment, then
+`python3`. Local schemas provide manifest completion; Python parsers own semantic validation.
 `.vscode/extensions.json` owns extension recommendations. Configuration generation
 synchronizes container extensions, book choices, and configured editor fields;
 reopen the Dev Container after changing its configuration.
