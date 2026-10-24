@@ -95,6 +95,7 @@ def copy_validation_configuration(root: Path) -> None:
     repository = Path(__file__).resolve().parent.parent
     for relative in (
         "scripts/validation_patterns.py",
+        "scripts/json_config.py",
         "scripts/__init__.py",
         "scripts/path_policy.py",
         "config/validation-patterns.json",
@@ -116,6 +117,7 @@ def copy_script(source: Path, destination: Path) -> None:
             "lean_source.py",
         ),
         "format_tex_file.sh": (
+            "run_python.sh",
             "format_tex.py",
             "normalize_eof.py",
             "latex_scan.py",

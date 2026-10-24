@@ -8,13 +8,41 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from test_support import write_executable
+
+from scripts import source_checks
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
 class RepositorySourceCheckTests(unittest.TestCase):
+    def test_generated_site_pages_and_tool_outputs_cannot_be_tracked(self) -> None:
+        for name in (
+            "site/books/sample.html",
+            "site/_data/books.json",
+            ".hypothesis/examples/cache",
+            "tree.txt",
+            "__latexindent_temp_book.tex",
+        ):
+            with (
+                self.subTest(name=name),
+                patch.object(source_checks.py_compile, "compile"),
+                patch.object(
+                    source_checks.subprocess,
+                    "run",
+                    return_value=subprocess.CompletedProcess([], 0),
+                ),
+                patch.object(
+                    source_checks.subprocess,
+                    "check_output",
+                    return_value=name.encode() + b"\0",
+                ),
+                self.assertRaisesRegex(ValueError, "generated files are tracked"),
+            ):
+                source_checks.check_repository_files()
+
     def test_syntax_error_in_later_script_stops_source_checks(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

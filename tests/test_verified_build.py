@@ -169,7 +169,11 @@ class VerifiedBuildTests(unittest.TestCase):
             "merged_at": "2026-09-07",
             "merge_commit_sha": "d" * 40,
             "base": {"ref": "main"},
-            "head": {"sha": "c" * 40, "repo": {"full_name": "example/math"}},
+            "head": {
+                "sha": "c" * 40,
+                "ref": "topic",
+                "repo": {"full_name": "example/math"},
+            },
             **(pull_update or {}),
         }
         artifact = {
@@ -221,6 +225,55 @@ class VerifiedBuildTests(unittest.TestCase):
         self.assertEqual(pdf, self.files["book.pdf"])
         self.assertEqual(calls, 4)
         self.assertIn("--strict", commands[-1].args)
+
+    def test_exact_pin_dispatch_is_reused_only_with_matching_commit_and_branch(self):
+        run = {"event": "workflow_dispatch", "head_branch": "topic"}
+        archive = self.archive(manifest_update={"validation_sha": "c" * 40})
+        self.assertTrue(self.restore(run_update=run, archive=archive)[0])
+        self.assertFalse(self.restore(run_update=run)[0])
+        self.assertFalse(
+            self.restore(run_update={**run, "head_branch": "other"}, archive=archive)[0]
+        )
+        self.assertFalse(
+            self.restore(
+                run_update=run,
+                archive=self.archive(manifest_update={"validation_sha": "e" * 40}),
+            )[0]
+        )
+
+    def test_dispatch_record_requires_the_explicit_checkout_sha(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            for name, data in self.files.items():
+                (directory / name).write_bytes(data)
+            for validated in ("", "e" * 40, "c" * 40):
+                with (
+                    self.subTest(validated=validated),
+                    patch.dict(
+                        os.environ,
+                        {
+                            "GITHUB_EVENT_NAME": "workflow_dispatch",
+                            "GITHUB_SHA": "c" * 40,
+                            "VALIDATION_SHA": validated,
+                            "GITHUB_RUN_ID": "123",
+                            "GITHUB_RUN_ATTEMPT": "2",
+                        },
+                    ),
+                    patch.object(BUILD, "command", return_value=b""),
+                ):
+                    if validated != "c" * 40:
+                        with self.assertRaisesRegex(
+                            ValueError, "explicit, matching commit"
+                        ):
+                            BUILD.record(self.expected, directory)
+                    else:
+                        BUILD.record(self.expected, directory)
+                        self.assertEqual(
+                            json.loads((directory / "verified-build.json").read_text())[
+                                "validation_sha"
+                            ],
+                            validated,
+                        )
 
     def test_unmerged_unrelated_and_fork_prs_never_download(self):
         for change in (

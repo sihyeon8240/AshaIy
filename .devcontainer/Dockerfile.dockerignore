@@ -6,5 +6,6 @@ vscode-build/
 .hypothesis/
 lean/.lake/
 site/books/
+site/_data/books.json
 **/__pycache__/
 *.pyc

@@ -25,8 +25,9 @@
     },
     {
       "name": "check-log-strict",
-      "command": "python3",
+      "command": "bash",
       "args": [
+        "%WORKSPACE_FOLDER%/scripts/run_python.sh",
         "%WORKSPACE_FOLDER%/scripts/check_log.py",
         "--strict",
         "%OUTDIR%/%DOCFILE%.log"
@@ -142,5 +143,25 @@
       "/config/latexindent.yaml"
     ]
   },
-  "ruff.configuration": "${workspaceFolder}/config/pyproject.toml"
+  "ruff.configuration": "${workspaceFolder}/config/pyproject.toml",
+  "json.schemas": [
+    {
+      "fileMatch": [
+        "/config/authoring.json"
+      ],
+      "url": "./config/schemas/authoring.schema.json"
+    },
+    {
+      "fileMatch": [
+        "/config/image-build.json"
+      ],
+      "url": "./config/schemas/image-build.schema.json"
+    },
+    {
+      "fileMatch": [
+        "/config/validation-patterns.json"
+      ],
+      "url": "./config/schemas/validation-patterns.schema.json"
+    }
+  ]
 }

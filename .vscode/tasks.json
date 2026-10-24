@@ -4,8 +4,9 @@
     {
       "label": "ashaiy format tex",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "format",
         "tex"
       ],
@@ -16,8 +17,9 @@
     {
       "label": "ashaiy format tex --check",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "format",
         "tex",
         "--check"
@@ -29,8 +31,9 @@
     {
       "label": "ashaiy format py",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "format",
         "py"
       ],
@@ -41,8 +44,9 @@
     {
       "label": "ashaiy format py --check",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "format",
         "py",
         "--check"
@@ -54,8 +58,9 @@
     {
       "label": "ashaiy format sh",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "format",
         "sh"
       ],
@@ -66,8 +71,9 @@
     {
       "label": "ashaiy format sh --check",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "format",
         "sh",
         "--check"
@@ -79,8 +85,9 @@
     {
       "label": "ashaiy format all",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "format",
         "all"
       ],
@@ -91,8 +98,9 @@
     {
       "label": "ashaiy format all --check",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "format",
         "all",
         "--check"
@@ -104,8 +112,9 @@
     {
       "label": "ashaiy check all --strict",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "check",
         "all",
         "--strict"
@@ -117,8 +126,9 @@
     {
       "label": "ashaiy test",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "test"
       ],
       "options": {
@@ -133,8 +143,9 @@
     {
       "label": "ashaiy book build (selected book)",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "book",
         "build",
         "--book",
@@ -151,8 +162,9 @@
     {
       "label": "ashaiy book build --check --strict (selected book)",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "book",
         "build",
         "--book",
@@ -167,8 +179,9 @@
     {
       "label": "ashaiy book build --check --strict shell escape (selected book)",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "book",
         "build",
         "--book",
@@ -184,8 +197,9 @@
     {
       "label": "ashaiy lean check",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "lean",
         "check"
       ],
@@ -196,8 +210,9 @@
     {
       "label": "ashaiy check source",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "check",
         "source"
       ],
@@ -208,8 +223,9 @@
     {
       "label": "ashaiy check manifest",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "check",
         "manifest"
       ],
@@ -220,8 +236,9 @@
     {
       "label": "ashaiy check proof-links",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "check",
         "proof-links"
       ],
@@ -232,8 +249,9 @@
     {
       "label": "ashaiy check docs",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "check",
         "docs"
       ],
@@ -244,8 +262,9 @@
     {
       "label": "ashaiy doctor env",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "doctor",
         "env"
       ],
@@ -257,8 +276,9 @@
     {
       "label": "ashaiy config check",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "config",
         "check"
       ],
@@ -269,8 +289,9 @@
     {
       "label": "ashaiy generated check",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "generated",
         "check"
       ],
@@ -281,8 +302,9 @@
     {
       "label": "ashaiy generated generate (selected book)",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "generated",
         "generate",
         "--book",
@@ -295,8 +317,9 @@
     {
       "label": "ashaiy contents generate (selected book)",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "contents",
         "generate",
         "--book",
@@ -309,8 +332,9 @@
     {
       "label": "ashaiy doctor book (selected book)",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "doctor",
         "book",
         "--book",
@@ -323,8 +347,9 @@
     {
       "label": "ashaiy format tex (current file)",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "format",
         "tex",
         "--file",
@@ -337,8 +362,9 @@
     {
       "label": "ashaiy format tex --check (current file)",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "format",
         "tex",
         "--check",
@@ -352,8 +378,9 @@
     {
       "label": "ashaiy format py (current file)",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "format",
         "py",
         "--file",
@@ -366,8 +393,9 @@
     {
       "label": "ashaiy format py --check (current file)",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "format",
         "py",
         "--check",
@@ -381,8 +409,9 @@
     {
       "label": "ashaiy format sh (current file)",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "format",
         "sh",
         "--file",
@@ -395,8 +424,9 @@
     {
       "label": "ashaiy format sh --check (current file)",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "format",
         "sh",
         "--check",
@@ -410,8 +440,9 @@
     {
       "label": "ashaiy site build",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "site",
         "build"
       ],
@@ -423,8 +454,9 @@
     {
       "label": "ashaiy site serve",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "site",
         "serve"
       ],
@@ -451,8 +483,9 @@
     {
       "label": "ashaiy site test",
       "type": "process",
-      "command": "${workspaceFolder}/scripts/ashaiy",
+      "command": "${command:python.interpreterPath}",
       "args": [
+        "${workspaceFolder}/scripts/ashaiy",
         "site",
         "test"
       ],
@@ -483,7 +516,7 @@
         "${workspaceFolder}"
       ],
       "pattern": {
-        "regexp": "^(.+?): (error|warning): (.+)$",
+        "regexp": "^([^:]+): (error|warning): (.+)$",
         "kind": "file",
         "file": 1,
         "severity": 2,
@@ -548,10 +581,11 @@
         }
       ],
       "pattern": {
-        "regexp": "^(.+?\\.(?:tex|sty|cls)):(\\d+): (.+)$",
+        "regexp": "^(.+?\\.(?:tex|sty|cls)):(\\d+): (?:(error|warning): )?(.+)$",
         "file": 1,
         "line": 2,
-        "message": 3
+        "message": 4,
+        "severity": 3
       }
     },
     {

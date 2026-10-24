@@ -3,11 +3,15 @@
 
 from __future__ import annotations
 
-import json
 import os
 import subprocess
 import sys
 from pathlib import Path
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.json_config import read_json
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -20,8 +24,12 @@ def run(root: Path, *arguments: str) -> int:
 
 def check_schemas(root: Path, files: set[Path]) -> int:
     # Reuse the editor's schema associations so CLI coverage cannot drift.
-    settings = json.loads((root / ".vscode/settings.json").read_text(encoding="utf-8"))
-    for schema, patterns in settings["yaml.schemas"].items():
+    settings = read_json(root / ".vscode/settings.json")
+    associations = list(settings["yaml.schemas"].items())
+    associations.extend(
+        (item["url"], item["fileMatch"]) for item in settings.get("json.schemas", [])
+    )
+    for schema, patterns in associations:
         targets = sorted(
             {
                 path.relative_to(root)
@@ -68,6 +76,9 @@ def main() -> int:
             for name in output.split(b"\0")
             if name and (ROOT / os.fsdecode(name)).is_file()
         }
+        for path in sorted(files):
+            if path.suffix == ".json":
+                read_json(ROOT / path)
         status = run(
             ROOT,
             "basedpyright",

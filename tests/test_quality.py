@@ -17,6 +17,33 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class SchemaQualityTests(unittest.TestCase):
+    def test_json_editor_associations_also_validate_cli_configuration(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / ".vscode").mkdir()
+            (root / "config/schemas").mkdir(parents=True)
+            schema = Path("config/schemas/authoring.schema.json")
+            shutil.copy2(ROOT / schema, root / schema)
+            (root / ".vscode/settings.json").write_text(
+                json.dumps(
+                    {
+                        "yaml.schemas": {},
+                        "json.schemas": [
+                            {
+                                "url": str(schema),
+                                "fileMatch": ["/config/authoring.json"],
+                            }
+                        ],
+                    }
+                )
+            )
+            path = Path("config/authoring.json")
+            data = json.loads((ROOT / path).read_text())
+            (root / path).write_text(json.dumps({**data, "unexpected": True}))
+            self.assertNotEqual(check_schemas(root, {path, schema}), 0)
+            (root / path).write_text(json.dumps(data))
+            self.assertEqual(check_schemas(root, {path, schema}), 0)
+
     def setUp(self) -> None:
         original_run = subprocess.run
 

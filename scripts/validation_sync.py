@@ -6,6 +6,7 @@ import json
 import re
 from pathlib import Path
 
+from scripts.json_config import read_json
 from scripts.validation_patterns import load_patterns
 
 SHELL_CONSUMERS = (
@@ -18,7 +19,7 @@ SHELL_CONSUMERS = (
 )
 SCHEMA_CONSUMERS = tuple(
     f"config/schemas/{name}.schema.json"
-    for name in ("books", "chapters", "sections", "modules")
+    for name in ("books", "chapters", "sections", "modules", "image-build")
 )
 MARKER = "validation-pattern: "
 # These expressions use the same syntax in Python, JavaScript, and Bash ERE.
@@ -71,7 +72,7 @@ def rendered_validation_consumers(root: Path) -> dict[Path, str]:
     updates = {}
     for relative in SCHEMA_CONSUMERS:
         path = root / relative
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = read_json(path)
         schema_patterns(data, patterns)
         updates[path] = json.dumps(data, indent=2) + "\n"
     for relative in SHELL_CONSUMERS:

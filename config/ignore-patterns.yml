@@ -27,6 +27,7 @@ groups:
     - /build/
     - /lean/.lake/
     - /site/books/
+    - /site/_data/books.json
   docker-paths:
     - .git/
     - build/
@@ -35,6 +36,7 @@ groups:
     - .hypothesis/
     - lean/.lake/
     - site/books/
+    - site/_data/books.json
     - '**/__pycache__/'
   tree-paths:
     - vscode-build
@@ -64,6 +66,7 @@ groups:
     - '*.ind'
     - '*.ilg'
   temporary:
+    - __latexindent_temp_*.tex
     - '*.orig'
     - '*.rej'
     - '*.bak'

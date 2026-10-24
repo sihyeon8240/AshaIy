@@ -112,7 +112,7 @@ config/ignore-patterns.yml -> Git, Docker, tree, and VS Code exclusion consumers
 config/image-build.json    -> image input detection, tag hashing, build matrix, and index checks
 config/authoring.json      -> CLI/editor shell formatting and unittest discovery
 config/validation-patterns.json -> Python validation and synchronized shell/schema expressions
-config/books.yml           -> VS Code task book choices
+config/books.yml           -> VS Code task and GitHub issue-form book choices
 .vscode/extensions.json   -> devcontainer extension installation
 ```
 
@@ -214,10 +214,10 @@ implementation ownership.
 | Complete `books/<slug>/book.tex` and chapter/appendix `index.tex` | Contents generator, from manifests and shared templates | Commit; never edit by hand |
 | Lean root and book aggregation modules | Lean generator, from the book registry, contents, and topic manifests | Commit; never edit by hand |
 | Synchronized toolchain, image, and exclusion consumers | `ashaiy config generate`, from `config/` | Commit with the canonical configuration |
-| `site/books/*.md` | `ashaiy site generate`, from the registry and proof coverage | Ignored; regenerate before local site builds |
+| `site/_data/books.json` and `site/books/*.html` | `ashaiy site generate`, from the registry and proof coverage; JSON owns projected data and HTML files own routing | Ignored; regenerate before local site builds |
 | PDFs, LaTeX logs, proof-link probes, verified-build metadata | `build/` | Ignored; never commit |
 | LaTeX Workshop output | `vscode-build/` | Ignored; never commit |
-| Python, Ruff, LaTeX formatter, and Mathlib download caches | `.cache/{python,ruff,latexindent,mathlib}/` by default | Ignored; never commit |
+| Python, Ruff, LaTeX formatter, Mathlib, Coverage, and Hypothesis caches | `.cache/{python,ruff,latexindent,mathlib,coverage}/` and `.hypothesis/` by default | Ignored; never commit |
 | Lake dependencies, configuration cache, and build results | `lean/.lake/` | Ignored; never commit |
 | Persistent container home | Host `${XDG_CACHE_HOME:-$HOME/.cache}/ashaiy-container/<repository-id>` | Outside the checkout; preserved by cache cleanup |
 | Release staging and source-check site rendering | Automatically cleaned temporary directories | Never commit |
@@ -284,6 +284,9 @@ The directory layout, configuration schemas, metadata loading, chapter/index
 pattern, Lean dependency boundary, build scripts, automation, and CI are reviewed
 interfaces. Keep consumers, tests, and documentation aligned with their current
 contracts. Preserve independent book ownership and review interface changes explicitly.
+
+Repository JSON rejects duplicate keys and nonstandard numeric constants. Editor JSON
+schema associations and YAML schema associations also drive CLI validation.
 
 Repository YAML requires unique mapping keys and integer schema versions. Anchors
 and aliases are accepted; merge keys (`<<`) are rejected. Write fields explicitly

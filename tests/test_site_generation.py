@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import json
 import os
 import subprocess
 import tempfile
@@ -115,16 +116,16 @@ class SiteGenerationTests(unittest.TestCase):
                 redirect_stderr(io.StringIO()),
             ):
                 self.assertEqual(
-                    site_generator.generate(check=True, pages_dir=pages_dir), 1
+                    site_generator.generate(check=True, site_dir=pages_dir), 1
                 )
             self.assertFalse(pages_dir.exists())
 
     def test_check_rejects_stale_missing_and_orphaned_local_pages(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             pages_dir = Path(temporary) / "pages"
-            pages_dir.mkdir()
-            (pages_dir / "alpha.md").write_text("stale\n", encoding="utf-8")
-            (pages_dir / "orphan.md").write_text("orphan\n", encoding="utf-8")
+            (pages_dir / "books").mkdir(parents=True)
+            (pages_dir / "books/alpha.html").write_text("stale\n", encoding="utf-8")
+            (pages_dir / "books/orphan.html").write_text("orphan\n", encoding="utf-8")
             with (
                 mock.patch.object(
                     site_generator, "load_manifest", return_value=self.manifest()
@@ -132,15 +133,15 @@ class SiteGenerationTests(unittest.TestCase):
                 redirect_stderr(io.StringIO()),
             ):
                 self.assertEqual(
-                    site_generator.generate(check=True, pages_dir=pages_dir), 1
+                    site_generator.generate(check=True, site_dir=pages_dir), 1
                 )
 
     def test_single_book_updates_only_selected_page(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             pages_dir = root / "pages"
-            pages_dir.mkdir()
-            (pages_dir / "beta.md").write_text("unchanged\n", encoding="utf-8")
+            (pages_dir / "books").mkdir(parents=True)
+            (pages_dir / "books/beta.html").write_text("unchanged\n", encoding="utf-8")
             with (
                 mock.patch.object(
                     site_generator, "load_manifest", return_value=self.manifest()
@@ -149,18 +150,25 @@ class SiteGenerationTests(unittest.TestCase):
             ):
                 self.assertEqual(
                     site_generator.generate(
-                        pages_dir=pages_dir,
+                        site_dir=pages_dir,
                         book="alpha",
                     ),
                     0,
                 )
             self.assertEqual(
-                (pages_dir / "alpha.md").read_text(),
+                (pages_dir / "books/alpha.html").read_text(),
                 site_generator.render_site_page(
                     site_generator.site_books(self.manifest())[0]
                 ),
             )
-            self.assertEqual((pages_dir / "beta.md").read_text(), "unchanged\n")
+            self.assertEqual((pages_dir / "books/beta.html").read_text(), "unchanged\n")
+            data = json.loads((pages_dir / "_data/books.json").read_text())
+            self.assertEqual(
+                [item["slug"] for item in data["books"]], ["alpha", "beta"]
+            )
+            self.assertNotIn(
+                "lean_coverage", (pages_dir / "books/alpha.html").read_text()
+            )
 
     def test_single_hidden_book_fails(self) -> None:
         with mock.patch.object(
@@ -179,7 +187,7 @@ class SiteGenerationTests(unittest.TestCase):
                     self.assertEqual(
                         site_generator.generate(
                             book="hidden",
-                            pages_dir=pages,
+                            site_dir=pages,
                             check=check,
                             skip_disabled=True,
                         ),

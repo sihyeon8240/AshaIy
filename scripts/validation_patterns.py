@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
-import json
 import re
 from functools import cache
 from pathlib import Path
+
+from scripts.json_config import read_json
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
 def load_patterns(root: Path = ROOT) -> dict[str, str]:
     path = root / "config/validation-patterns.json"
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = read_json(path)
     if (
         not isinstance(data, dict)
         or set(data) != {"schema_version", "patterns"}

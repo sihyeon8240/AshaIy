@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
 
+from scripts.json_config import read_json
 from scripts.validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -100,7 +100,7 @@ def image_name(image: str) -> str:
 
 def load_image_build(root: Path = ROOT) -> dict:
     path = root / "config/image-build.json"
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = read_json(path)
     if (
         not isinstance(data, dict)
         or set(data) != {"schema_version", "policy_version", "inputs", "platforms"}
@@ -151,7 +151,7 @@ def load_image_build(root: Path = ROOT) -> dict:
 
 def load_authoring(root: Path = ROOT) -> dict:
     path = root / "config/authoring.json"
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = read_json(path)
     if (
         not isinstance(data, dict)
         or set(data)

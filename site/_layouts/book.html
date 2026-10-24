@@ -1,7 +1,7 @@
 ---
 layout: default
 ---
-{% assign book = page %}
+{% assign book = site.data.books.books | where: "slug", page.book_slug | first %}
 {% capture pdf_url %}{% include pdf-url.html book=book %}{% endcapture %}
 <div class="detail-hero">
   <header class="hero">

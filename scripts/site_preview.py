@@ -6,9 +6,11 @@ from __future__ import annotations
 import argparse
 import functools
 import importlib.util
+import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -16,6 +18,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scripts.book_manifest import load_manifest
+from scripts.check_site_output import check as check_output
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -48,6 +51,32 @@ def build() -> Path:
         [sys.executable, "scripts/generate_site_pages.py"], cwd=ROOT, check=True
     )
     destination = ROOT / "build/site-preview"
+    staging = Path(tempfile.mkdtemp(prefix=".site-preview-", dir=ROOT / "build"))
+    candidate = staging / "next"
+    previous = staging / "previous"
+    installed = False
+    try:
+        render(jekyll, candidate, pdfs)
+        check_output(candidate, candidate, book_data=ROOT / "site/_data/books.json")
+        if destination.exists():
+            os.replace(destination, previous)
+        try:
+            os.replace(candidate, destination)
+        except BaseException:
+            if previous.exists():
+                os.replace(previous, destination)
+            raise
+        installed = True
+    finally:
+        if installed or not previous.exists():
+            shutil.rmtree(staging)
+        else:
+            print(f"Previous preview retained at {previous}", file=sys.stderr)
+    print(f"Built local site: {destination}", flush=True)
+    return destination
+
+
+def render(jekyll: str, destination: Path, pdfs: dict[str, Path]) -> None:
     subprocess.run(
         [
             jekyll,
@@ -62,14 +91,9 @@ def build() -> Path:
         check=True,
     )
     pdf_directory = destination / "pdf"
-    pdf_directory.mkdir(exist_ok=True)
-    # Replace the PDF set even if Jekyll preserves files in the destination.
-    for entry in pdf_directory.glob("*.pdf"):
-        entry.unlink()
+    pdf_directory.mkdir(parents=True, exist_ok=True)
     for slug, source in pdfs.items():
         shutil.copyfile(source, pdf_directory / f"{slug}.pdf")
-    print(f"Built local site: {destination}", flush=True)
-    return destination
 
 
 def test() -> None:

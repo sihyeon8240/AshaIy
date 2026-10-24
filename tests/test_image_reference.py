@@ -12,6 +12,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from test_support import copy_validation_configuration
+
 from scripts import config_sync as SYNC
 from scripts import repository_config as CONFIG
 
@@ -19,7 +21,27 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class ConfigurationTests(unittest.TestCase):
+    def test_issue_form_choices_preserve_other_content_and_escape_titles(self):
+        from scripts.source_reads import parse_yaml
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.make_repository(root)
+            title = 'Analysis \\ "Foundations" & Algebra'
+            for path, text in SYNC.rendered_issue_forms(
+                root, [{"title": title}]
+            ).items():
+                original = path.read_text()
+                form = parse_yaml(text)
+                assert isinstance(form, dict)
+                self.assertEqual(form["body"][0]["attributes"]["options"], [title])
+                self.assertEqual(
+                    re.sub(r"options: .*", "options: GENERATED", text),
+                    re.sub(r"options: .*", "options: GENERATED", original),
+                )
+
     def make_repository(self, root: Path) -> None:
+        copy_validation_configuration(root)
         (root / ".vscode").mkdir(exist_ok=True)
         shutil.copy(ROOT / ".vscode/settings.json", root / ".vscode/settings.json")
         for relative in (
@@ -30,6 +52,7 @@ class ConfigurationTests(unittest.TestCase):
             ".devcontainer",
             ".github",
             ".github/workflows",
+            ".github/ISSUE_TEMPLATE",
             "lean",
             "common/templates",
             ".vscode",
@@ -44,6 +67,9 @@ class ConfigurationTests(unittest.TestCase):
             "config/schemas/chapters.schema.json",
             "config/schemas/sections.schema.json",
             "config/schemas/modules.schema.json",
+            "config/schemas/image-build.schema.json",
+            ".github/ISSUE_TEMPLATE/mathematical-error.yml",
+            ".github/ISSUE_TEMPLATE/typo.yml",
             ".github/actions/load-toolchain/action.yml",
             ".github/workflows/build.yml",
             ".github/workflows/pages.yml",
@@ -128,11 +154,11 @@ class ConfigurationTests(unittest.TestCase):
                 [
                     sys.executable,
                     "-c",
-                    "from validation_patterns import validation_pattern\n"
+                    "from scripts.validation_patterns import validation_pattern\n"
                     "\n"
                     "print(validation_pattern('image_digest'))\n",
                 ],
-                cwd=root / "scripts",
+                cwd=root,
                 capture_output=True,
                 text=True,
                 check=True,

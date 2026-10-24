@@ -4,7 +4,7 @@ stylesheet: index
 edit_path: site/index.html
 permalink: /
 ---
-{% assign books = site.pages | where: "layout", "book" | where: "site", true | sort: "order" %}
+{% assign books = site.data.books.books | sort: "order" %}
 <section class="hero" aria-labelledby="hero-title">
   <div class="hero__content">
     <p class="eyebrow">Lean · Mathematics · Open access</p>
@@ -49,7 +49,7 @@ permalink: /
 
   <div class="book-grid">
     {% for book in books %}
-      <article class="book-card">
+      <article class="book-card" data-book-slug="{{ book.slug | escape }}">
         <p class="status status--{{ book.status | escape }}">
           {{ book.status_label | escape }}
         </p>

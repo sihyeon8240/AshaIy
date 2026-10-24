@@ -7,6 +7,7 @@ import argparse
 import json
 import re
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 if __package__ in (None, ""):
@@ -15,6 +16,7 @@ if __package__ in (None, ""):
 from scripts.book_manifest import normalize_manifest
 from scripts.file_updates import changed_files, write_updates
 from scripts.ignore_patterns import rendered_ignore_consumers
+from scripts.json_config import parse_json, read_json
 from scripts.repository_config import (
     IMAGE_PATH,
     ROOT,
@@ -31,7 +33,12 @@ from scripts.validation_sync import rendered_validation_consumers
 SHA256 = re.compile(validation_pattern("sha256"))
 
 
-def replace_once(text: str, pattern: str, replacement: str, path: Path) -> str:
+def replace_once(
+    text: str,
+    pattern: str,
+    replacement: str | Callable[[re.Match[str]], str],
+    path: Path,
+) -> str:
     updated, count = re.subn(pattern, replacement, text, flags=re.MULTILINE)
     if count != 1:
         raise ValueError(
@@ -43,7 +50,7 @@ def replace_once(text: str, pattern: str, replacement: str, path: Path) -> str:
 def formalization_versions(root: Path, lean_version: str) -> str:
     """Render publication versions from the toolchain and resolved Mathlib lock."""
     path = root / "lean/lake-manifest.json"
-    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest = read_json(path)
     packages = [
         package for package in manifest["packages"] if package["name"] == "mathlib"
     ]
@@ -95,6 +102,32 @@ def rendered_toolchain_groups(root: Path, toolchain: dict[str, str]) -> dict[Pat
     }
 
 
+def rendered_issue_forms(root: Path, books: list[dict]) -> dict[Path, str]:
+    updates = {}
+    for name in ("mathematical-error", "typo"):
+        path = root / ".github/ISSUE_TEMPLATE" / f"{name}.yml"
+        text = path.read_text(encoding="utf-8")
+        form = read_yaml(path)
+        if not isinstance(form, dict) or not isinstance(form.get("body"), list):
+            raise ValueError(f"{path}: expected an issue form body")
+        choices = [
+            item
+            for item in form["body"]
+            if isinstance(item, dict) and item.get("id") == "book"
+        ]
+        if len(choices) != 1 or choices[0]["type"] != "dropdown":
+            raise ValueError(f"{path}: expected one textbook dropdown")
+        titles = json.dumps([book["title"] for book in books], ensure_ascii=False)
+        # Only the options value is generated; preserve the rest of the form.
+        updates[path] = replace_once(
+            text,
+            r"(^      options: )\[[^\n]*\]$",
+            lambda match: match[1] + titles,
+            path,
+        )
+    return updates
+
+
 def rendered_consumers(
     root: Path = ROOT, *, image: str | None = None
 ) -> dict[Path, str]:
@@ -104,17 +137,15 @@ def rendered_consumers(
         image = load_image(root / "config/container-image.txt")
     devcontainer = root / ".devcontainer/devcontainer.json"
     dev_text = devcontainer.read_text(encoding="utf-8")
-    json.loads(dev_text)
+    parse_json(dev_text)
     dev_text = replace_once(
         dev_text,
         r'("image"\s*:\s*)"[^"]+"',
         rf'\g<1>"{image}"',
         devcontainer,
     )
-    dev_data = json.loads(dev_text)
-    recommendations = json.loads(
-        (root / ".vscode/extensions.json").read_text(encoding="utf-8")
-    )["recommendations"]
+    dev_data = parse_json(dev_text)
+    recommendations = read_json(root / ".vscode/extensions.json")["recommendations"]
     if not isinstance(recommendations, list) or not all(
         isinstance(extension, str) for extension in recommendations
     ):
@@ -123,7 +154,7 @@ def rendered_consumers(
     dev_text = json.dumps(dev_data, indent=2) + "\n"
 
     tasks_path = root / ".vscode/tasks.json"
-    tasks = json.loads(tasks_path.read_text(encoding="utf-8"))
+    tasks = read_json(tasks_path)
     book_inputs = [item for item in tasks["inputs"] if item["id"] == "book"]
     if len(book_inputs) != 1:
         raise ValueError(f"{tasks_path}: expected exactly one book input")
@@ -163,7 +194,7 @@ def rendered_consumers(
     authoring = load_authoring(root)
     ignore_updates = rendered_ignore_consumers(root)
     settings_path = root / ".vscode/settings.json"
-    settings = json.loads(ignore_updates[settings_path])
+    settings = parse_json(ignore_updates[settings_path])
     settings["shfmt.executableArgs"] = authoring["shell_args"]
     settings["[shellscript]"]["editor.tabSize"] = int(authoring["shell_args"][3])
     settings["python.testing.unittestArgs"] = [
@@ -178,6 +209,7 @@ def rendered_consumers(
         **ignore_updates,
         **rendered_validation_consumers(root),
         **rendered_toolchain_groups(root, toolchain),
+        **rendered_issue_forms(root, books),
         root / "common/templates/formalization-versions.tex": formalization_versions(
             root, toolchain["LEAN_VERSION"]
         ),

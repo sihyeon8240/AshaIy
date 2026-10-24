@@ -31,6 +31,8 @@ class CleanCacheTests(unittest.TestCase):
             "ruff": root / ".cache/ruff/cache",
             "py": root / ".cache/python/module.pyc",
             "mathlib": root / ".cache/mathlib/cache",
+            "coverage": root / ".cache/coverage/.coverage",
+            "hypothesis": root / ".hypothesis/examples/cache",
         }
         for path in caches.values():
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -38,7 +40,7 @@ class CleanCacheTests(unittest.TestCase):
         return caches
 
     def test_each_scope_removes_only_selected_cache(self) -> None:
-        for scope in ("lake", "mathlib", "tex", "ruff", "py"):
+        for scope in ("lake", "mathlib", "tex", "ruff", "py", "coverage", "hypothesis"):
             with self.subTest(scope=scope), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 caches = self.populate_caches(root)

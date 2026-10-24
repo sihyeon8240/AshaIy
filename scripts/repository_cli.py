@@ -63,7 +63,7 @@ Environment and maintenance:
       Pin a tested image during the reviewed image-promotion procedure.
   clean {build|source}
       Remove PDF/editor build output or disposable source artifacts.
-  clean cache --scope {lake|mathlib|tex|ruff|py|all}
+  clean cache --scope {lake|mathlib|tex|ruff|py|coverage|hypothesis|all}
       Remove only the selected tool caches.
   report
       Print an informational repository health report.
@@ -392,7 +392,16 @@ def build_parser() -> argparse.ArgumentParser:
     clean["cache"].add_argument(
         "--scope",
         required=True,
-        choices=("lake", "mathlib", "tex", "ruff", "py", "all"),
+        choices=(
+            "lake",
+            "mathlib",
+            "tex",
+            "ruff",
+            "py",
+            "coverage",
+            "hypothesis",
+            "all",
+        ),
         help="cache to remove; all selects every supported tool cache",
     )
     tests = command("test", "run the repository test suite")
