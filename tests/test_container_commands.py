@@ -139,6 +139,13 @@ class ContainerCommandTests(unittest.TestCase):
         self.environment["DOCKER_EXIT"] = "23"
         self.assertNotEqual(self.cli("image", "run").returncode, 0)
 
+    def test_image_arguments_cannot_become_docker_options(self) -> None:
+        for image in ("--privileged", "bad image", "bad\nimage"):
+            with self.subTest(image=image):
+                result = self.cli("image", "run", "--image=" + image)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(self.arguments_path.exists())
+
     def test_container_entrypoint_sets_a_writable_lean_home(self) -> None:
         shutil.copy2(
             ROOT / "scripts/container_entrypoint.sh",

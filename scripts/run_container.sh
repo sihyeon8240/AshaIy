@@ -11,6 +11,10 @@ image="${IMAGE:-}"
 if [[ -z "$image" ]]; then
   IFS= read -r image <"$repo_root/config/container-image.txt"
 fi
+if [[ "$image" == -* || "$image" =~ [[:space:]] ]]; then
+  echo "error: invalid container image reference: $image" >&2
+  exit 2
+fi
 if [[ -z "$image" ]]; then
   echo "error: the container image reference is empty" >&2
   exit 2
