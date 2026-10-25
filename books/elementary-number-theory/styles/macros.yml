@@ -1,0 +1,8 @@
+schema_version: 1
+macros:
+  Lcm:
+    kind: operator
+    text: lcm
+  Ord:
+    kind: operator
+    text: ord

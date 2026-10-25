@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "james-yu.latex-workshop",
+    "github.vscode-github-actions",
+    "leanprover.lean4",
+    "ms-python.vscode-pylance",
+    "ms-python.python",
+    "charliermarsh.ruff",
+    "editorconfig.editorconfig",
+    "redhat.vscode-yaml",
+    "mkhl.shfmt"
+  ]
+}

@@ -1,0 +1,91 @@
+name: Retry original textbook release
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Original Build textbooks main run containing the retained package
+        required: true
+        type: string
+      book:
+        description: Book slug from the original release
+        required: true
+        type: string
+      version:
+        description: Original reviewed version (no v prefix)
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  restore:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    outputs:
+      source_sha: ${{ steps.restore.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - id: config
+        run: ./scripts/repository/config/export_config.sh
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: ${{ steps.config.outputs.python }}
+          cache: pip
+          cache-dependency-path: .github/requirements-ci.txt
+      - run: >-
+          python3 -m pip install --disable-pip-version-check
+          --requirement .github/requirements-ci.txt
+      - name: Verify source gates and restore the original package
+        id: restore
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.source_run_id }}
+          BOOK: ${{ inputs.book }}
+          VERSION: ${{ inputs.version }}
+        run: python3 scripts/release/release_retry.py --run-id "$SOURCE_RUN" --book "$BOOK" --version "$VERSION"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: original-release-package
+          path: build/release-retry/
+          if-no-files-found: error
+          retention-days: 1
+  publish:
+    needs: restore
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: textbook-release-${{ inputs.book }}
+      cancel-in-progress: false
+      queue: max
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.restore.outputs.source_sha }}
+          fetch-depth: 0
+      - id: config
+        run: ./scripts/repository/config/export_config.sh
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: ${{ steps.config.outputs.python }}
+          cache: pip
+          cache-dependency-path: .github/requirements-ci.txt
+      - run: >-
+          python3 -m pip install --disable-pip-version-check
+          --requirement .github/requirements-ci.txt
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: original-release-package
+          path: build/release-retry
+      - name: Publish the validated original bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SOURCE_SHA: ${{ needs.restore.outputs.source_sha }}
+          RELEASE_RETRY_VALIDATED: ${{ needs.restore.outputs.source_sha }}
+          BOOK: ${{ inputs.book }}
+        run: ./scripts/release/publish_release.sh "$BOOK" build/release-retry

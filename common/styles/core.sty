@@ -1,0 +1,67 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{core}[2026/10/25 Core typography and document utilities]
+
+%% Font and Typography
+
+\RequirePackage{fontspec}
+\setmainfont{TeX Gyre Termes}
+
+\RequirePackage{microtype}
+
+%% Graphics
+
+\RequirePackage[
+  paperwidth=176mm,
+  paperheight=250mm,
+  inner=22mm,
+  outer=18mm,
+  top=22mm,
+  bottom=24mm,
+  headheight=14pt,
+  headsep=8mm,
+  footskip=12mm
+]{geometry}
+
+\RequirePackage{graphicx}
+\RequirePackage{xcolor}
+
+%% Lists
+
+\RequirePackage{enumitem}
+
+%% Paragraphs
+
+\setlength{\parindent}{0pt}
+
+%% Mathematics Layout
+
+\AtBeginDocument{%
+  \everymath{\displaystyle}%
+  \everydisplay\expandafter{\the\everydisplay
+    \displaywidth=\textwidth
+    \displayindent=0pt
+  }%
+}
+
+% Empty sections may break between headings; keep each heading with its body.
+\makeatletter
+\AddToHook{cmd/section/before}{%
+  \if@nobreak
+    \ifnum\c@section>\z@
+      \@nobreakfalse
+    \fi
+  \fi
+}
+\makeatother
+
+%% Hyperlinks and Cross References
+
+\RequirePackage[
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=green,
+  urlcolor=cyan
+]{hyperref}
+
+% Load cleveref after hyperref
+\RequirePackage[nameinlink]{cleveref}

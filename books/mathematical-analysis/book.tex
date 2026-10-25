@@ -1,0 +1,46 @@
+% Generated from config/books.yml, chapters.yml, and common/templates/book.tex; do not edit.
+\documentclass[11pt, a4paper, oneside]{book}
+
+\usepackage{textbook}
+\IfFileExists{styles/generated-macros.sty}{\usepackage{styles/generated-macros}}{}
+\addbibresource{references.bib}
+% BEGIN GENERATED METADATA
+\newcommand{\name}{Muho Choi}
+\newcommand{\displaytitle}{Mathematical Analysis}
+\newcommand{\version}{0.1.0}
+\newcommand{\slug}{mathematical-analysis}
+\title{\displaytitle}
+\author{\name}
+\hypersetup{pdftitle={\displaytitle},pdfauthor={\name}}
+% END GENERATED METADATA
+
+\begin{document}
+
+\frontmatter
+\input{cover}
+\tableofcontents
+\input{preface}
+
+\mainmatter
+% BEGIN GENERATED CHAPTERS
+\include{chapters/basic-topology/index}
+\include{chapters/sequences-and-series/index}
+\include{chapters/continuity/index}
+\include{chapters/differentiation/index}
+\include{chapters/the-riemann-stieltjes-integral/index}
+\include{chapters/sequences-and-series-of-functions/index}
+\include{chapters/some-special-functions/index}
+\include{chapters/functions-of-several-variables/index}
+\include{chapters/integration-of-differential-forms/index}
+\include{chapters/the-lebesgue-theory/index}
+% END GENERATED CHAPTERS
+
+% BEGIN GENERATED APPENDICES
+% END GENERATED APPENDICES
+
+\backmatter
+
+\nocite{*}
+\printbibliography
+
+\end{document}

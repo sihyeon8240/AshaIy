@@ -1,0 +1,21 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{textbook}[2026/10/25 Shared textbook style]
+
+%% Shared publishing entry point.
+\RequirePackage{amsmath}
+\RequirePackage{amssymb}
+\RequirePackage{amsthm}
+\RequirePackage{mathtools}
+\RequirePackage[only,llbracket,rrbracket]{stmaryrd}
+% St Mary's Road provides only regular-weight fonts.
+\SetSymbolFont{stmry}{bold}{U}{stmry}{m}{n}
+\RequirePackage{mathrsfs}
+\RequirePackage{bm}
+\RequirePackage{romannum}
+\RequirePackage{generated-macros}
+% Each book.tex loads its generated book-local macros afterward.
+\RequirePackage{core}
+\RequirePackage{logo}
+\RequirePackage{theorems}
+\RequirePackage{code}
+\RequirePackage{bibliography}

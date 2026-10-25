@@ -1,0 +1,16 @@
+schema_version: 1
+
+modules:
+  - ScalarProducts
+  - BilinearMatrices
+  - HermitianProducts
+  - NormConstruction
+  - PositiveDefinite
+  - CoordinateProducts
+  - IntegralProducts
+  - FourierCoefficients
+  - GramSchmidt
+  - OrthogonalComplements
+  - OrthogonalBases
+  - QuadraticForms
+  - Sylvester

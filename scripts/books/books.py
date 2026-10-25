@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+"""Command-line interface for the config/books.yml textbook manifest."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from scripts.books.book_manifest import (
+    add_book,
+    load_manifest,
+    manifest_warnings,
+    require_book,
+    validate_new_book_input,
+)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Validate and query the config/books.yml textbook manifest."
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    list_parser = subparsers.add_parser("list")
+    list_parser.add_argument(
+        "--for", dest="purpose", choices=("build", "check", "release", "site")
+    )
+    list_parser.add_argument("--format", choices=("text", "json"), default="text")
+    list_parser.add_argument("--warnings", action="store_true")
+
+    export_parser = subparsers.add_parser(
+        "export", help="export normalized manifest records"
+    )
+    export_parser.add_argument(
+        "--for", dest="purpose", choices=("build", "check", "release", "site")
+    )
+    export_parser.add_argument("--format", choices=("json",), default="json")
+    export_parser.add_argument(
+        "--manifest",
+        type=Path,
+        help="read an alternate config/books.yml (primarily for repository tooling)",
+    )
+
+    subparsers.add_parser("validate")
+    add_parser = subparsers.add_parser(
+        "add",
+        help="register an existing book directory in config/books.yml",
+        description=(
+            "Register a book whose required files already exist; this command "
+            "does not create a book directory."
+        ),
+    )
+    add_parser.add_argument("slug")
+    add_parser.add_argument("title")
+    validate_new_parser = subparsers.add_parser(
+        "validate-new", help="validate a proposed new book slug and title"
+    )
+    validate_new_parser.add_argument("slug")
+    validate_new_parser.add_argument("title")
+    subparsers.add_parser("version").add_argument("slug")
+    subparsers.add_parser("label-prefix").add_argument("slug")
+    subparsers.add_parser(
+        "require", help="require a slug to be registered and print it"
+    ).add_argument("slug")
+    return parser
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+    try:
+        if args.command == "add":
+            add_book(args.slug, args.title)
+            print(f"Added '{args.slug}' to config/books.yml")
+            return 0
+        if args.command == "validate-new":
+            validate_new_book_input(args.slug, args.title)
+            print("New book input is valid")
+            return 0
+        if args.command == "version":
+            print(require_book(args.slug)["version"])
+            return 0
+        if args.command == "label-prefix":
+            print(require_book(args.slug)["label_prefix"])
+            return 0
+        if args.command == "require":
+            print(require_book(args.slug)["slug"])
+            return 0
+
+        if args.command == "export" and args.manifest is not None:
+            repository_root = args.manifest.parent.parent
+            manifest = load_manifest(args.manifest, repository_root)
+        else:
+            manifest = load_manifest()
+
+        if args.command == "validate" or (args.command == "list" and args.warnings):
+            for warning in manifest_warnings(manifest):
+                print(f"warning: {warning}", file=sys.stderr)
+
+        if args.command == "validate":
+            print("config/books.yml is valid")
+            return 0
+
+        books = manifest["books"]
+        if args.purpose:
+            books = [book for book in books if book[args.purpose]]
+        if args.command == "export":
+            print(
+                json.dumps(
+                    {
+                        "schema_version": manifest["schema_version"],
+                        "books": books,
+                    }
+                )
+            )
+            return 0
+
+        slugs = [book["slug"] for book in books]
+        if args.format == "json":
+            print(json.dumps({"book": slugs}, separators=(",", ":")))
+        else:
+            for slug in slugs:
+                print(slug)
+        return 0
+    except ValueError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

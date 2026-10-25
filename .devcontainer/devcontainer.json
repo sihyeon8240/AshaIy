@@ -1,0 +1,50 @@
+{
+  "name": "AshaIy",
+  "image": "ghcr.io/sihyeon8240/ashaiy@sha256:7f37a3ae8676a63b94748f69fc96ace668f230cbfd9ecaa9ca63ebf5d2851dba",
+  "containerEnv": {
+    "PYTHONPYCACHEPREFIX": "${containerWorkspaceFolder}/.cache/python",
+    "MATHLIB_CACHE_DIR": "${containerWorkspaceFolder}/.cache/mathlib",
+    "TEXINPUTS": ".:${containerWorkspaceFolder}/common/styles//:${containerWorkspaceFolder}/common/templates//:",
+    "ASHAIY_ROOT": "${containerWorkspaceFolder}"
+  },
+  "postCreateCommand": "./scripts/ashaiy doctor env",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "james-yu.latex-workshop",
+        "github.vscode-github-actions",
+        "leanprover.lean4",
+        "ms-python.vscode-pylance",
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "editorconfig.editorconfig",
+        "redhat.vscode-yaml",
+        "mkhl.shfmt"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python3",
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "/bin/bash"
+          },
+          "zsh": {
+            "path": "/bin/zsh"
+          }
+        },
+        "ruff.path": [
+          "/usr/local/bin/ruff"
+        ]
+      }
+    }
+  },
+  "forwardPorts": [
+    4000
+  ],
+  "portsAttributes": {
+    "4000": {
+      "label": "Site preview",
+      "onAutoForward": "notify"
+    }
+  }
+}

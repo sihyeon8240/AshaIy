@@ -1,0 +1,6 @@
+.git
+.cache
+.hypothesis
+build
+vscode-build
+lean/.lake

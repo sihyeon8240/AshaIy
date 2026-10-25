@@ -1,0 +1,314 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Books manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "books"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "author": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\r\\n]*\\S[^\\r\\n]*$",
+          "$comment": "validation-pattern: single_line_text"
+        },
+        "build": {
+          "type": "boolean"
+        },
+        "check": {
+          "type": "boolean"
+        },
+        "release": {
+          "type": "boolean"
+        },
+        "site": {
+          "type": "boolean"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$",
+          "$comment": "validation-pattern: book_version"
+        },
+        "status": {
+          "enum": [
+            "draft",
+            "review",
+            "published",
+            "archived"
+          ]
+        }
+      }
+    },
+    "books": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "slug",
+          "title",
+          "order"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "$comment": "validation-pattern: book_slug"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\r\\n]*\\S[^\\r\\n]*$",
+            "$comment": "validation-pattern: single_line_text"
+          },
+          "author": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\r\\n]*\\S[^\\r\\n]*$",
+            "$comment": "validation-pattern: single_line_text"
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$",
+            "$comment": "validation-pattern: book_version"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "review",
+              "published",
+              "archived"
+            ]
+          },
+          "order": {
+            "type": "integer"
+          },
+          "label_prefix": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*$",
+            "$comment": "validation-pattern: label_prefix"
+          },
+          "lean_module": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Za-z0-9]*$",
+            "$comment": "validation-pattern: lean_name"
+          },
+          "build": {
+            "type": "boolean"
+          },
+          "check": {
+            "type": "boolean"
+          },
+          "release": {
+            "type": "boolean"
+          },
+          "site": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "anyOf": [
+        {
+          "required": [
+            "defaults"
+          ],
+          "properties": {
+            "defaults": {
+              "required": [
+                "author"
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "books": {
+              "items": {
+                "required": [
+                  "author"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "anyOf": [
+        {
+          "required": [
+            "defaults"
+          ],
+          "properties": {
+            "defaults": {
+              "required": [
+                "build"
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "books": {
+              "items": {
+                "required": [
+                  "build"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "anyOf": [
+        {
+          "required": [
+            "defaults"
+          ],
+          "properties": {
+            "defaults": {
+              "required": [
+                "check"
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "books": {
+              "items": {
+                "required": [
+                  "check"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "anyOf": [
+        {
+          "required": [
+            "defaults"
+          ],
+          "properties": {
+            "defaults": {
+              "required": [
+                "release"
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "books": {
+              "items": {
+                "required": [
+                  "release"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "anyOf": [
+        {
+          "required": [
+            "defaults"
+          ],
+          "properties": {
+            "defaults": {
+              "required": [
+                "site"
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "books": {
+              "items": {
+                "required": [
+                  "site"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "anyOf": [
+        {
+          "required": [
+            "defaults"
+          ],
+          "properties": {
+            "defaults": {
+              "required": [
+                "version"
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "books": {
+              "items": {
+                "required": [
+                  "version"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "anyOf": [
+        {
+          "required": [
+            "defaults"
+          ],
+          "properties": {
+            "defaults": {
+              "required": [
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "books": {
+              "items": {
+                "required": [
+                  "status"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

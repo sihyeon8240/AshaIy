@@ -1,0 +1,663 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "ashaiy macros generate",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "macros",
+        "generate"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy macros check",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "macros",
+        "check"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy macros generate (selected book)",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "macros",
+        "generate",
+        "--book",
+        "${input:book}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy format tex",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "format",
+        "tex"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy format tex --check",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "format",
+        "tex",
+        "--check"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy format py",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "format",
+        "py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy format py --check",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "format",
+        "py",
+        "--check"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy format sh",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "format",
+        "sh"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy format sh --check",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "format",
+        "sh",
+        "--check"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy format all",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "format",
+        "all"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy format all --check",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "format",
+        "all",
+        "--check"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy check all --strict",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "check",
+        "all",
+        "--strict"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy test",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "test"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "ashaiy book build (selected book)",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "book",
+        "build",
+        "--book",
+        "${input:book}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "ashaiy book build --check --strict (selected book)",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "book",
+        "build",
+        "--book",
+        "${input:book}",
+        "--check",
+        "--strict"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy book build --check --strict shell escape (selected book)",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "book",
+        "build",
+        "--book",
+        "${input:book}",
+        "--check",
+        "--strict",
+        "--shell-escape"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy lean check",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "lean",
+        "check"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy check source",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "check",
+        "source"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy check manifest",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "check",
+        "manifest"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy check proof-links",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "check",
+        "proof-links"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy check docs",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "check",
+        "docs"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy doctor env",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "doctor",
+        "env"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "ashaiy config check",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "config",
+        "check"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy generated check",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "generated",
+        "check"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy generated generate (selected book)",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "generated",
+        "generate",
+        "--book",
+        "${input:book}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy contents generate (selected book)",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "contents",
+        "generate",
+        "--book",
+        "${input:book}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy doctor book (selected book)",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "doctor",
+        "book",
+        "--book",
+        "${input:book}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy format tex (current file)",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "format",
+        "tex",
+        "--file",
+        "${file}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy format tex --check (current file)",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "format",
+        "tex",
+        "--check",
+        "--file",
+        "${file}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy format py (current file)",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "format",
+        "py",
+        "--file",
+        "${file}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy format py --check (current file)",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "format",
+        "py",
+        "--check",
+        "--file",
+        "${file}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy format sh (current file)",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "format",
+        "sh",
+        "--file",
+        "${file}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy format sh --check (current file)",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "format",
+        "sh",
+        "--check",
+        "--file",
+        "${file}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ashaiy site build",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "site",
+        "build"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "ashaiy site serve",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "site",
+        "serve"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": {
+        "owner": "site-preview",
+        "pattern": {
+          "regexp": "^(.+): (error|warning): (.+)$",
+          "kind": "file",
+          "file": 1,
+          "severity": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^Configuration file:",
+          "endsPattern": "^Preview: http://localhost:"
+        }
+      },
+      "isBackground": true
+    },
+    {
+      "label": "ashaiy site test",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "site",
+        "test"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "book",
+      "type": "pickString",
+      "description": "Textbook from config/books.yml (run ashaiy config generate after changing the manifest)",
+      "options": [
+        "mathematical-analysis",
+        "elementary-number-theory",
+        "linear-algebra"
+      ]
+    }
+  ],
+  "problemMatcher": [
+    {
+      "owner": "repository",
+      "source": "repository",
+      "fileLocation": [
+        "autoDetect",
+        "${workspaceFolder}"
+      ],
+      "pattern": {
+        "regexp": "^([^:]+): (error|warning): (.+)$",
+        "kind": "file",
+        "file": 1,
+        "severity": 2,
+        "message": 3
+      }
+    },
+    {
+      "owner": "format",
+      "source": "format",
+      "fileLocation": [
+        "autoDetect",
+        "${workspaceFolder}"
+      ],
+      "pattern": {
+        "regexp": "^(?:\\[tex\\] needs formatting: |needs whitespace normalization: |Would reformat: )(.+)$",
+        "kind": "file",
+        "file": 1,
+        "message": 0
+      }
+    },
+    {
+      "owner": "ruff",
+      "source": "ruff",
+      "fileLocation": [
+        "autoDetect",
+        "${workspaceFolder}"
+      ],
+      "pattern": {
+        "regexp": "^(.+?):(\\d+):(\\d+): (.+)$",
+        "file": 1,
+        "line": 2,
+        "column": 3,
+        "message": 4
+      }
+    },
+    {
+      "owner": "lean",
+      "source": "lean",
+      "fileLocation": [
+        "autoDetect",
+        "${workspaceFolder}/lean"
+      ],
+      "pattern": {
+        "regexp": "^(.+?\\.lean):(\\d+):(\\d+): (error|warning|info): (.+)$",
+        "file": 1,
+        "line": 2,
+        "column": 3,
+        "severity": 4,
+        "message": 5
+      }
+    },
+    {
+      "owner": "latex",
+      "source": "latex",
+      "fileLocation": [
+        "search",
+        {
+          "include": [
+            "${workspaceFolder}/books",
+            "${workspaceFolder}/common"
+          ]
+        }
+      ],
+      "pattern": {
+        "regexp": "^(.+?\\.(?:tex|sty|cls)):(\\d+): (?:(error|warning): )?(.+)$",
+        "file": 1,
+        "line": 2,
+        "message": 4,
+        "severity": 3
+      }
+    },
+    {
+      "owner": "shell-format",
+      "source": "shfmt",
+      "fileLocation": [
+        "autoDetect",
+        "${workspaceFolder}"
+      ],
+      "pattern": {
+        "regexp": "^diff (.+)\\.orig (.+)$",
+        "kind": "file",
+        "file": 2,
+        "message": 0
+      }
+    },
+    {
+      "owner": "lean-build",
+      "source": "lean",
+      "fileLocation": [
+        "autoDetect",
+        "${workspaceFolder}/lean"
+      ],
+      "pattern": {
+        "regexp": "^(error|warning|info): (.+?\\.lean):(\\d+):(\\d+): (.+)$",
+        "severity": 1,
+        "file": 2,
+        "line": 3,
+        "column": 4,
+        "message": 5
+      }
+    }
+  ]
+}

@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Repository latexindent configuration",
+  "description": "Uses upstream validation with corrected noIndentBlock support.",
+  "type": "object",
+  "properties": {
+    "fileExtensionPreference": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/fileExtensionPreference"
+    },
+    "backupExtension": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/backupExtension"
+    },
+    "onlyOneBackUp": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/onlyOneBackUp"
+    },
+    "maxNumberOfBackUps": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/maxNumberOfBackUps"
+    },
+    "cycleThroughBackUps": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/cycleThroughBackUps"
+    },
+    "logFilePreferences": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/logFilePreferences"
+    },
+    "verbatimEnvironments": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/verbatimEnvironments"
+    },
+    "verbatimCommands": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/verbatimCommands"
+    },
+    "noIndentBlock": {
+      "description": "Blocks preserved by latexindent; supports switches and regular-expression delimiters.",
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "begin": {
+                "type": "string"
+              },
+              "body": {
+                "type": "string"
+              },
+              "end": {
+                "type": "string"
+              },
+              "lookForThis": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  1
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "fileContentsEnvironments": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/fileContentsEnvironments"
+    },
+    "indentPreamble": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/indentPreamble"
+    },
+    "lookForPreamble": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/lookForPreamble"
+    },
+    "preambleCommandsBeforeEnvironments": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/preambleCommandsBeforeEnvironments"
+    },
+    "defaultIndent": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/defaultIndent"
+    },
+    "removeTrailingWhitespace": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/removeTrailingWhitespace"
+    },
+    "lookForAlignDelims": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/lookForAlignDelims"
+    },
+    "indentAfterItems": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/indentAfterItems"
+    },
+    "itemNames": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/itemNames"
+    },
+    "specialBeginEnd": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/specialBeginEnd"
+    },
+    "indentAfterHeadings": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/indentAfterHeadings"
+    },
+    "maximumIndentation": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/maximumIndentation"
+    },
+    "noAdditionalIndent": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/noAdditionalIndent"
+    },
+    "indentRules": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/indentRules"
+    },
+    "noAdditionalIndentGlobal": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/noAdditionalIndentGlobal"
+    },
+    "indentRulesGlobal": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/indentRulesGlobal"
+    },
+    "commandCodeBlocks": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/commandCodeBlocks"
+    },
+    "dos2unixlinebreaks": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/dos2unixlinebreaks"
+    },
+    "modifyLineBreaks": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/modifyLineBreaks"
+    },
+    "replacements": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/replacements"
+    },
+    "fineTuning": {
+      "$ref": "./latexindent-yaml-schema.json#/properties/fineTuning"
+    }
+  },
+  "$comment": "Upstream schema vendored from https://raw.githubusercontent.com/cmhughes/latexindent.pl/c8caec3cbf6bc017c7bdee2b08652ff58367a8f4/documentation/latexindent-yaml-schema.json; license: latexindent-LICENSE.txt."
+}

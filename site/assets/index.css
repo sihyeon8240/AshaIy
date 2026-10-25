@@ -1,0 +1,234 @@
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(24rem, 1.1fr);
+  gap: clamp(2rem, 6vw, 6rem);
+  align-items: center;
+  min-height: min(49rem, 80vh);
+  padding: clamp(4rem, 9vw, 9rem) 0;
+  border-bottom: 1px solid var(--ink);
+}
+
+.hero__content {
+  min-width: 0;
+}
+
+.hero h1 {
+  margin-top: 1rem;
+  font-size: clamp(3.5rem, 7.6vw, 7.8rem);
+}
+
+.hero__lead {
+  max-width: 34rem;
+  margin: 2rem 0 0;
+  color: var(--muted);
+  font-size: clamp(1rem, 1.4vw, 1.2rem);
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1.8rem;
+}
+
+.link-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  padding: 1rem;
+  border: 1px solid var(--ink);
+}
+
+.project-link {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 8.5rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  font-weight: 750;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: background 160ms ease;
+}
+
+.project-link:hover {
+  background: var(--brand-soft);
+}
+
+.project-link span:last-child {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 550;
+}
+
+.section {
+  margin-top: clamp(3rem, 7vw, 5rem);
+  padding: clamp(5rem, 10vw, 10rem) 0;
+}
+
+.section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 3rem;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px solid var(--ink);
+}
+
+.section-heading h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.3rem, 4vw, 4.5rem);
+  letter-spacing: -0.055em;
+  line-height: 1.15;
+}
+
+.section-heading p {
+  width: min(100%, 22rem);
+  margin: 0;
+  color: var(--muted);
+  text-align: right;
+}
+
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(0.75rem, 1.5vw, 1.25rem);
+}
+
+.book-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 29rem;
+  padding: 1.75rem;
+  border: 1px solid var(--ink);
+  transition: background 180ms ease;
+}
+
+.book-card:hover {
+  background: #f5f5f0;
+}
+
+.status {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0.4rem 0.68rem;
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.book-card h3 {
+  margin: 3.5rem 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 3.1vw, 3.4rem);
+  font-weight: 750;
+  letter-spacing: -0.06em;
+  line-height: 0.98;
+}
+
+.book-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+.book-card__action {
+  display: inline-flex;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  flex: 1 1 10rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 3rem;
+  padding: 0.72rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: background 160ms ease;
+}
+
+.book-card__action--primary {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.book-card__action--primary:hover {
+  background: #000000;
+}
+
+.book-card__action--secondary {
+  border: 1px solid var(--ink);
+  background: var(--brand-soft);
+}
+
+.book-card__action--secondary:hover {
+  background: var(--surface-soft);
+}
+
+.book-card__action-arrow {
+  font-size: 1.05rem;
+}
+
+@media (max-width: 64rem) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: auto;
+  }
+}
+
+@media (max-width: 52rem) {
+  .book-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .book-card {
+    min-height: 24rem;
+  }
+}
+
+@media (max-width: 40rem) {
+  .hero {
+    gap: 1.25rem;
+    padding: 4.5rem 0;
+  }
+
+  .hero h1 {
+    margin-top: 0;
+    font-size: clamp(3.1rem, 16vw, 5rem);
+  }
+
+  .hero__lead {
+    margin-top: 0.85rem;
+  }
+
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .section-heading p {
+    width: 100%;
+    text-align: left;
+  }
+
+  .link-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .project-link {
+    min-height: 6rem;
+  }
+
+  .book-card__action {
+    flex-basis: 100%;
+  }
+}

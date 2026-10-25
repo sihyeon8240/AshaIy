@@ -1,0 +1,16 @@
+schema_version: 1
+
+modules:
+  - Partitions
+  - DarbouxSums
+  - DarbouxCriterion
+  - ContinuousIntegrability
+  - IntegrabilityOperations
+  - IntegralValues
+  - FiniteDiscontinuities
+  - JumpDiscontinuities
+  - Subintervals
+  - MeshConvergence
+  - StieltjesChangeVariables
+  - IntegralPrimitive
+  - FundamentalTheorem

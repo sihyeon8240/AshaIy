@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "shell_args": [
+    "-ln",
+    "bash",
+    "-i",
+    "2",
+    "-ci",
+    "-sr"
+  ],
+  "test_directory": "tests",
+  "test_pattern": "test_*.py"
+}

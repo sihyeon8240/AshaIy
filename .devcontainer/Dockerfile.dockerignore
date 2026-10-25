@@ -1,0 +1,11 @@
+# Generated from config/ignore-patterns.yml; do not edit.
+.git/
+build/
+vscode-build/
+.cache/
+.hypothesis/
+lean/.lake/
+site/books/
+site/_data/books.json
+**/__pycache__/
+*.pyc

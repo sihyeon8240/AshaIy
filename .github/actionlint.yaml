@@ -1,0 +1,5 @@
+# The pinned actionlint predates these GitHub-hosted runner labels.
+self-hosted-runner:
+  labels:
+    - ubuntu-26.04
+    - ubuntu-26.04-arm

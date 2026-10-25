@@ -1,0 +1,32 @@
+schema_version: 1
+
+defaults:
+  author: Muho Choi
+  version: 0.1.0
+  status: draft
+  build: true
+  check: true
+  release: false
+  site: false
+
+books:
+  - slug: mathematical-analysis
+    title: Mathematical Analysis
+    label_prefix: ma
+    lean_module: MathematicalAnalysis
+    order: 10
+    site: true
+
+  - slug: elementary-number-theory
+    title: Elementary Number Theory
+    label_prefix: ent
+    lean_module: ElementaryNumberTheory
+    order: 20
+    site: true
+
+  - slug: linear-algebra
+    title: Linear Algebra
+    label_prefix: la
+    lean_module: LinearAlgebra
+    order: 30
+    site: true

@@ -1,0 +1,14 @@
+schema_version: 1
+modules:
+- PrimeExponentSplitting
+- Orders
+- PrimitiveRoots
+- PrimeRoots
+- PrimePowerLifting
+- CompositeRoots
+- RootLifting
+- Classification
+- Indices
+- PowerCongruences
+- Applications
+- Examples

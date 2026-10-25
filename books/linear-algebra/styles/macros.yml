@@ -1,0 +1,26 @@
+schema_version: 1
+macros:
+  Span:
+    kind: command
+    context: math
+    arguments:
+      - {kind: mandatory, mode: math}
+    body: '\operatorname{span}\Paren*{#1}'
+  Rank:
+    kind: operator
+    text: rank
+  Map:
+    kind: operator
+    text: Map
+  Mat:
+    kind: operator
+    text: Mat
+  Ker:
+    kind: operator
+    text: Ker
+  Img:
+    kind: operator
+    text: Im
+  Bil:
+    kind: operator
+    text: Bil

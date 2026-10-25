@@ -1,0 +1,132 @@
+schema_version: 1
+macros:
+  N:
+    kind: command
+    arguments: []
+    body: '\mathbb{N}'
+    script_atom: true
+  Z:
+    kind: command
+    arguments: []
+    body: '\mathbb{Z}'
+    script_atom: true
+  Q:
+    kind: command
+    arguments: []
+    body: '\mathbb{Q}'
+    script_atom: true
+  R:
+    kind: command
+    arguments: []
+    body: '\mathbb{R}'
+    script_atom: true
+  C:
+    kind: command
+    arguments: []
+    body: '\mathbb{C}'
+    script_atom: true
+  Veps:
+    kind: command
+    arguments: []
+    body: '\varepsilon'
+    script_atom: true
+  Vphi:
+    kind: command
+    arguments: []
+    body: '\varphi'
+    script_atom: true
+  Vthe:
+    kind: command
+    arguments: []
+    body: '\vartheta'
+    script_atom: true
+  Vrho:
+    kind: command
+    arguments: []
+    body: '\varrho'
+    script_atom: true
+  Vsig:
+    kind: command
+    arguments: []
+    body: '\varsigma'
+    script_atom: true
+  Vkap:
+    kind: command
+    arguments: []
+    body: '\varkappa'
+    script_atom: true
+  Vpi:
+    kind: command
+    arguments: []
+    body: '\varpi'
+    script_atom: true
+  Vnot:
+    kind: command
+    arguments: []
+    body: '\varnothing'
+    script_atom: true
+  Id:
+    kind: operator
+    text: id
+  Abs:
+    kind: paired_delimiter
+    left: '\lvert'
+    right: '\rvert'
+  Norm:
+    kind: paired_delimiter
+    left: '\lVert'
+    right: '\rVert'
+  Brace:
+    kind: paired_delimiter
+    left: '\lbrace'
+    right: '\rbrace'
+  Paren:
+    kind: paired_delimiter
+    left: '('
+    right: ')'
+  Brack:
+    kind: paired_delimiter
+    left: '['
+    right: ']'
+  Dbrack:
+    kind: paired_delimiter
+    left: '\llbracket'
+    right: '\rrbracket'
+  Floor:
+    kind: paired_delimiter
+    left: '\lfloor'
+    right: '\rfloor'
+  Ceil:
+    kind: paired_delimiter
+    left: '\lceil'
+    right: '\rceil'
+  Angle:
+    kind: paired_delimiter
+    left: '\langle'
+    right: '\rangle'
+  Set:
+    kind: paired_delimiter_x
+    arguments:
+      - {kind: mandatory, mode: math}
+      - {kind: mandatory, mode: math}
+    left: '\lbrace'
+    right: '\rbrace'
+    body: '#1 \;\delimsize\vert\; #2'
+  Inner:
+    kind: paired_delimiter_x
+    arguments:
+      - {kind: mandatory, mode: math}
+      - {kind: mandatory, mode: math}
+    left: '\langle'
+    right: '\rangle'
+    body: '#1,#2'
+  Eval:
+    kind: paired_delimiter_x
+    arguments:
+      - {kind: mandatory, mode: math}
+      - {kind: mandatory, mode: math}
+      - {kind: mandatory, mode: math}
+    left: '.'
+    right: '\rvert'
+    body: '#1'
+    after: '_{#2}^{#3}'

@@ -1,0 +1,30 @@
+name: Validate and publish toolchain image
+on:
+  workflow_dispatch:
+    inputs:
+      validate_existing:
+        description: Repeat native validation for both platforms even when the image exists
+        type: boolean
+        default: true
+      refresh_cache:
+        description: Refresh intermediate build caches even when the image is already published
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: build-image-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  prepare-image:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    uses: ./.github/workflows/prepare-image.yml
+    with:
+      ref: ${{ github.sha }}
+      validate_existing: ${{ inputs.validate_existing }}
+      refresh_cache: ${{ inputs.refresh_cache }}

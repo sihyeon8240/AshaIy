@@ -1,0 +1,108 @@
+# Patterns retain each consumer's path and glob syntax.
+schema_version: 1
+groups:
+  cleanup-prune-paths:
+    - .git
+    - .cache
+    - .hypothesis
+    - build
+    - vscode-build
+    - lean/.lake
+  vscode-search-paths:
+    - build/**
+    - vscode-build/**
+    - .cache/**
+    - .hypothesis/**
+    - lean/.lake/**
+  vscode-watcher-paths:
+    - '**/build/**'
+    - '**/vscode-build/**'
+    - '**/.cache/**'
+    - '**/.hypothesis/**'
+    - '**/lean/.lake/**'
+  git-paths:
+    - /.cache/
+    - /.hypothesis/
+    - /vscode-build/
+    - /build/
+    - /lean/.lake/
+    - /site/books/
+    - /site/_data/books.json
+  docker-paths:
+    - .git/
+    - build/
+    - vscode-build/
+    - .cache/
+    - .hypothesis/
+    - lean/.lake/
+    - site/books/
+    - site/_data/books.json
+    - '**/__pycache__/'
+  tree-paths:
+    - vscode-build
+    - build
+    - .git
+    - .vscode
+    - .lake
+    - .cache
+    - .hypothesis
+  latex:
+    - '*.pdf'
+    - '*.aux'
+    - '*.bbl'
+    - '*.bcf'
+    - '*.blg'
+    - '*.fdb_latexmk'
+    - '*.fls'
+    - '*.log'
+    - '*.out'
+    - '*.run.xml'
+    - '*.synctex.gz'
+    - '*.toc'
+    - '*.xdv'
+    - '*.lof'
+    - '*.lot'
+    - '*.idx'
+    - '*.ind'
+    - '*.ilg'
+  temporary:
+    - __latexindent_temp_*.tex
+    - '*.orig'
+    - '*.rej'
+    - '*.bak'
+    - '*.backup'
+    - '*.save'
+    - '*.swp'
+    - '*.swo'
+    - '*~'
+    - .books.yml.*.tmp
+  macos:
+    - .DS_Store
+    - ._*
+    - __MACOSX/
+  python:
+    - '*.pyc'
+profiles:
+  cleanup-files:
+    - latex
+    - temporary
+  cleanup-prune:
+    - cleanup-prune-paths
+  vscode-search:
+    - vscode-search-paths
+  vscode-watcher:
+    - vscode-watcher-paths
+  git:
+    - git-paths
+    - latex
+    - python
+    - temporary
+    - macos
+  docker:
+    - docker-paths
+    - python
+  tree:
+    - tree-paths
+    - latex
+    - temporary
+    - macos

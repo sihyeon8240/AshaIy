@@ -1,0 +1,30 @@
+% Generated from config/books.yml, chapters.yml, and common/templates/book.tex; do not edit.
+\documentclass[11pt, a4paper, oneside]{book}
+
+\usepackage{textbook}
+\IfFileExists{styles/generated-macros.sty}{\usepackage{styles/generated-macros}}{}
+\addbibresource{references.bib}
+% BEGIN GENERATED METADATA
+% END GENERATED METADATA
+
+\begin{document}
+
+\frontmatter
+\input{cover}
+\tableofcontents
+\input{preface}
+
+\mainmatter
+% BEGIN GENERATED CHAPTERS
+\include{chapters/introduction/index}
+% END GENERATED CHAPTERS
+
+% BEGIN GENERATED APPENDICES
+% END GENERATED APPENDICES
+
+\backmatter
+
+\nocite{*}
+\printbibliography
+
+\end{document}

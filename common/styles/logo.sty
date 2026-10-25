@@ -1,0 +1,13 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{logo}[2026/10/25 AshaIy wordmark]
+
+\RequirePackage{fontspec}
+\RequirePackage{graphicx}
+
+\DeclareRobustCommand{\AshaIy}{%
+  \begingroup
+  \fontspec{Latin Modern Roman}\bfseries\upshape
+  \mbox{A\kern-0.12em\raisebox{0.28ex}{\scalebox{0.82}{s}}\kern-0.08em
+    h\kern-0.06em a\kern-0.12em\raisebox{-0.18ex}{I}\kern-0.10em y}%
+  \endgroup
+}

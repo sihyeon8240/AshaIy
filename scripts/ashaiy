@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+"""Run the CLI from this checkout, including from textbook subdirectories."""
+
+import os
+import sys
+from pathlib import Path
+
+root = Path(__file__).resolve().parent.parent
+os.environ["PYTHON"] = sys.executable
+os.environ.setdefault("PYTHONPYCACHEPREFIX", str(root / ".cache/python"))
+os.environ.setdefault("MATHLIB_CACHE_DIR", str(root / ".cache/mathlib"))
+sys.pycache_prefix = os.environ["PYTHONPYCACHEPREFIX"]
+sys.path.insert(0, str(root))
+
+from scripts.cli.repository_cli import main  # noqa: E402
+
+raise SystemExit(main())

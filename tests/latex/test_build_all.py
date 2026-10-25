@@ -1,0 +1,365 @@
+"""Integration tests for bounded all-book build scheduling."""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+import tempfile
+import textwrap
+import time
+import unittest
+from pathlib import Path
+
+from tests.support.fixtures import (
+    copy_file,
+    copy_validation_configuration,
+    stop_process_group,
+    write_executable,
+)
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+class BuildAllTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        copy_validation_configuration(self.root)
+        scripts = self.root / "scripts"
+        scripts.mkdir(exist_ok=True)
+        copy_file(ROOT / "scripts/latex/build_all.py", scripts / "latex/build_all.py")
+        copy_file(ROOT / "scripts/latex/check_log.py", scripts / "latex/check_log.py")
+        (scripts / "books/books.py").write_text(
+            textwrap.dedent("""\
+            import os
+            import pathlib
+            import sys
+            command = sys.argv[1]
+            if command == "validate":
+                pathlib.Path(os.environ["VALIDATE_FILE"]).write_text("validated")
+                print("config/books.yml is valid")
+            elif command == "list":
+                pathlib.Path(os.environ["VALIDATE_FILE"]).write_text("validated")
+                if os.environ.get("INVALID_MANIFEST") == "1":
+                    print("error: invalid manifest", file=sys.stderr)
+                    raise SystemExit(1)
+                purpose = sys.argv[sys.argv.index("--for") + 1]
+                pathlib.Path(os.environ["PURPOSE_FILE"]).write_text(purpose)
+                print(os.environ.get("TARGETS", ""))
+            else:
+                raise SystemExit(2)
+        """),
+            encoding="utf-8",
+        )
+        bin_dir = self.root / "bin"
+        write_executable(
+            bin_dir / "biber",
+            textwrap.dedent("""\
+            #!/usr/bin/env python3
+            import os
+            import pathlib
+            import sys
+
+            status = int(os.environ.get("BIBER_EXIT_CODE", "0"))
+            if status:
+                print("Biber cache initialization failed", file=sys.stderr)
+                raise SystemExit(status)
+
+            pathlib.Path(os.environ["BIBER_READY_FILE"]).touch()
+            with pathlib.Path(os.environ["EVENT_FILE"]).open("a") as file:
+                file.write("biber ready\\n")
+            print("biber version: fixture")
+        """),
+        )
+        write_executable(
+            scripts / "latex/build_book.sh",
+            textwrap.dedent("""\
+            #!/usr/bin/env python3
+            import fcntl
+            import os
+            import pathlib
+            import sys
+            import time
+
+            if os.environ.get("REQUIRE_BIBER_CACHE") == "1":
+                if not pathlib.Path(os.environ["BIBER_READY_FILE"]).is_file():
+                    print("Biber cache is not ready", file=sys.stderr)
+                    raise SystemExit(9)
+
+            slug = sys.argv[1]
+            log = pathlib.Path("build") / slug / "book.log"
+            log.parent.mkdir(parents=True, exist_ok=True)
+            log.write_text(
+                os.environ.get("BOOK_LOG_TEXT", "")
+                + "Output written on book.pdf (1 page, 123 bytes).\\n"
+            )
+            with pathlib.Path(os.environ["PID_FILE"]).open("a") as file:
+                file.write(str(os.getpid()) + "\\n")
+            state = pathlib.Path(os.environ["STATE_FILE"])
+            state.touch(exist_ok=True)
+            with state.open("r+") as file:
+                fcntl.flock(file, fcntl.LOCK_EX)
+                values = file.read().split()
+                current, maximum = map(int, values or ("0", "0"))
+                current += 1
+                maximum = max(maximum, current)
+                file.seek(0)
+                file.truncate()
+                file.write(f"{current} {maximum}")
+                file.flush()
+            with pathlib.Path(os.environ["RUN_FILE"]).open("a") as file:
+                file.write(slug + "\\n")
+            with pathlib.Path(os.environ["EVENT_FILE"]).open("a") as file:
+                file.write("start " + slug + "\\n")
+            print("console output for " + slug, flush=True)
+            barrier_books = os.environ.get("BARRIER_BOOKS", "").split(",")
+            minimum = int(os.environ.get("MIN_CONCURRENCY", "0"))
+            if minimum and slug in barrier_books:
+                barrier_release = pathlib.Path(os.environ["BARRIER_RELEASE_FILE"])
+                deadline = time.monotonic() + 5
+                while time.monotonic() < deadline:
+                    with state.open("r") as file:
+                        fcntl.flock(file, fcntl.LOCK_SH)
+                        current = int(file.read().split()[0])
+                    if current >= minimum:
+                        barrier_release.touch()
+                    if barrier_release.exists():
+                        break
+                    time.sleep(0.005)
+                else:
+                    print("timed out waiting for concurrency barrier", file=sys.stderr)
+                    raise SystemExit(8)
+            if slug in os.environ.get("BLOCK_BOOKS", "").split(","):
+                release = pathlib.Path(os.environ["RELEASE_FILE"])
+                deadline = time.monotonic() + 10
+                while not release.exists() and time.monotonic() < deadline:
+                    time.sleep(0.005)
+                if not release.exists():
+                    print("timed out waiting for release", file=sys.stderr)
+                    raise SystemExit(8)
+            with state.open("r+") as file:
+                fcntl.flock(file, fcntl.LOCK_EX)
+                current, maximum = map(int, file.read().split())
+                file.seek(0)
+                file.truncate()
+                file.write(f"{current - 1} {maximum}")
+                file.flush()
+            with pathlib.Path(os.environ["EVENT_FILE"]).open("a") as file:
+                file.write("end " + slug + "\\n")
+            if slug in os.environ.get("FAIL_BOOKS", "").split(","):
+                print("failure output for " + slug, file=sys.stderr)
+                raise SystemExit(7)
+        """),
+        )
+        self.tmpdir = self.root / "tmp"
+        self.tmpdir.mkdir()
+        self.env = {
+            **os.environ,
+            "PATH": f"{bin_dir}:{os.environ['PATH']}",
+            "TARGETS": "alpha\nbeta\ngamma",
+            "STATE_FILE": str(self.root / "state"),
+            "RUN_FILE": str(self.root / "run"),
+            "PURPOSE_FILE": str(self.root / "purpose"),
+            "VALIDATE_FILE": str(self.root / "validated"),
+            "EVENT_FILE": str(self.root / "events"),
+            "PID_FILE": str(self.root / "pids"),
+            "BIBER_READY_FILE": str(self.root / "biber-ready"),
+            "TMPDIR": str(self.tmpdir),
+        }
+
+    def run_build(
+        self, purpose: str = "build", **env: str
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [sys.executable, str(self.root / "scripts/latex/build_all.py"), purpose],
+            cwd=self.root,
+            env={**self.env, **env},
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=30,
+        )
+
+    def test_no_targets_succeeds(self) -> None:
+        result = self.run_build(TARGETS="", BOOK_BUILD_JOBS="2", BIBER_EXIT_CODE="6")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("No books are enabled for build", result.stdout)
+
+    def test_single_book_does_not_prepare_biber_cache(self) -> None:
+        result = self.run_build(
+            TARGETS="alpha", BOOK_BUILD_JOBS="2", BIBER_EXIT_CODE="6"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("succeeded: 1", result.stdout)
+
+    def test_biber_initialization_failure_stops_before_builds(self) -> None:
+        result = self.run_build(BOOK_BUILD_JOBS="2", BIBER_EXIT_CODE="6")
+        self.assertEqual(result.returncode, 6)
+        self.assertIn("Biber cache initialization failed", result.stderr)
+        self.assertFalse((self.root / "run").exists())
+        self.assertFalse((self.root / "events").exists())
+
+    def test_manifest_validation_does_not_trust_inherited_confirmation(
+        self,
+    ) -> None:
+        validated = self.root / "validated"
+        result = self.run_build(TARGETS="", BOOK_BUILD_JOBS="1")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(validated.is_file())
+
+        validated.unlink()
+        result = self.run_build(
+            TARGETS="",
+            BOOK_BUILD_JOBS="1",
+            BOOKS_MANIFEST_VALIDATED="1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(validated.is_file())
+
+    def test_invalid_manifest_stops_before_builds_even_with_inherited_confirmation(
+        self,
+    ):
+        result = self.run_build(
+            BOOK_BUILD_JOBS="1", INVALID_MANIFEST="1", BOOKS_MANIFEST_VALIDATED="1"
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("invalid manifest", result.stderr)
+        self.assertNotIn("config/books.yml is valid", result.stdout)
+        self.assertFalse((self.root / "run").exists())
+        self.assertFalse((self.root / "biber-ready").exists())
+
+    def test_success_is_bounded_and_outputs_are_grouped(self) -> None:
+        result = self.run_build(
+            BOOK_BUILD_JOBS="2",
+            BARRIER_BOOKS="alpha,beta",
+            BARRIER_RELEASE_FILE=str(self.root / "initial-workers-ready"),
+            MIN_CONCURRENCY="2",
+            REQUIRE_BIBER_CACHE="1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+        self.assertEqual(
+            (self.root / "events").read_text().splitlines()[0], "biber ready"
+        )
+        self.assertEqual((self.root / "state").read_text().split()[1], "2")
+        self.assertIn("succeeded: 3", result.stdout)
+        self.assertIn("failed: 0", result.stdout)
+        for slug in ("alpha", "beta", "gamma"):
+            self.assertIn("==> Output: " + slug, result.stdout)
+            self.assertIn("console output for " + slug, result.stdout)
+
+    def test_failures_are_aggregated_without_stopping_other_books(self) -> None:
+        result = self.run_build(BOOK_BUILD_JOBS="2", FAIL_BOOKS="alpha,gamma")
+        self.assertEqual(result.returncode, 1)
+        self.assertCountEqual(
+            (self.root / "run").read_text().splitlines(),
+            ["alpha", "beta", "gamma"],
+        )
+        self.assertIn("failed: 2", result.stdout)
+        self.assertIn("  - alpha", result.stdout)
+        self.assertIn("  - gamma", result.stdout)
+        self.assertIn("failure output for alpha", result.stdout)
+        self.assertIn("failure output for gamma", result.stdout)
+
+    def test_finished_worker_starts_next_book_without_waiting_for_batch(self) -> None:
+        release = self.root / "release-beta"
+        process = subprocess.Popen(
+            [sys.executable, str(self.root / "scripts/latex/build_all.py"), "build"],
+            cwd=self.root,
+            env={
+                **self.env,
+                "BOOK_BUILD_JOBS": "2",
+                "BLOCK_BOOKS": "beta",
+                "RELEASE_FILE": str(release),
+            },
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            start_new_session=True,
+        )
+        self.addCleanup(stop_process_group, process)
+        deadline = time.monotonic() + 5
+        try:
+            while time.monotonic() < deadline:
+                events = (
+                    (self.root / "events").read_text().splitlines()
+                    if (self.root / "events").exists()
+                    else []
+                )
+                if "start gamma" in events:
+                    break
+                if process.poll() is not None:
+                    stdout, stderr = process.communicate()
+                    self.fail(
+                        "build exited before gamma started:\n"
+                        f"stdout:\n{stdout}\nstderr:\n{stderr}"
+                    )
+                time.sleep(0.01)
+            else:
+                self.fail("gamma did not start while beta was blocked")
+
+            self.assertNotIn("end beta", events)
+        finally:
+            release.touch()
+            stdout, stderr = process.communicate(timeout=5)
+        self.assertEqual(process.returncode, 0, stderr or stdout)
+
+    def test_check_selects_check_targets_and_removes_temporary_logs(self) -> None:
+        result = self.run_build("check", BOOK_BUILD_JOBS="1")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.root / "purpose").read_text(), "check")
+        self.assertEqual(list(self.tmpdir.iterdir()), [])
+        self.assertFalse((self.root / "biber-ready").exists())
+
+    def test_check_applies_strict_log_validation_to_each_book(self) -> None:
+        result = self.run_build(
+            "check",
+            TARGETS="alpha\nbeta",
+            BOOK_BUILD_JOBS="2",
+            BOOK_LOG_TEXT="Overfull \\hbox (1.0pt too wide) at line 1\n",
+            CHECK_LOG_STRICT="1",
+        )
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("failed: 2", result.stdout)
+        self.assertEqual(result.stdout.count("error: overfull box"), 2)
+
+    def test_termination_stops_children_and_removes_temporary_logs(self) -> None:
+        release = self.root / "release-termination-workers"
+        process = subprocess.Popen(
+            [sys.executable, str(self.root / "scripts/latex/build_all.py"), "build"],
+            cwd=self.root,
+            env={
+                **self.env,
+                "BOOK_BUILD_JOBS": "2",
+                "BLOCK_BOOKS": "alpha,beta",
+                "RELEASE_FILE": str(release),
+            },
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            start_new_session=True,
+        )
+        self.addCleanup(stop_process_group, process)
+        pid_file = self.root / "pids"
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            if pid_file.exists() and len(pid_file.read_text().splitlines()) >= 2:
+                break
+            time.sleep(0.01)
+        else:
+            self.fail("workers did not start")
+
+        child_pids = [int(value) for value in pid_file.read_text().splitlines()]
+        process.terminate()
+        process.communicate(timeout=5)
+        self.assertEqual(process.returncode, 130)
+        self.assertEqual(list(self.tmpdir.iterdir()), [])
+        for pid in child_pids:
+            with self.assertRaises(ProcessLookupError):
+                os.kill(pid, 0)
+
+
+if __name__ == "__main__":
+    unittest.main()
