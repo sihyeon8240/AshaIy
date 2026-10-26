@@ -9,7 +9,8 @@ and recovery.
 
 Follow the [container quick start](../README.md#quick-start). Development uses
 the pinned image through VS Code Dev Containers or the Docker terminal runner.
-The host needs Git and Docker. Builds use LuaLaTeX through `latexmk`.
+The host needs Git and Docker. The terminal runner also needs Python 3.10 or newer
+and the Dev Container CLI. Builds use LuaLaTeX through `latexmk`.
 `config/toolchain.env` pins tool versions and
 `config/container-image.txt` pins the reviewed development image.
 
@@ -78,7 +79,8 @@ release eligibility. See [automation ownership](ARCHITECTURE.md#repository-autom
 Use `ashaiy --help` and subcommand `--help` for options. The container launcher
 runs `scripts/ashaiy` from the mounted checkout, so CLI edits need no image rebuild.
 Run the CLI inside the container. The Docker runner
-`./scripts/toolchain/run_container.sh` needs no host Python dependencies.
+`./scripts/toolchain/run_container.sh` uses only the host Python standard library
+and the Dev Container CLI; repository Python packages stay inside the container.
 
 Commands work from any checkout subdirectory. `--book` accepts a slug, its
 `label_prefix`, or a unique slug prefix; exact slugs take precedence. Unknown or
@@ -108,7 +110,11 @@ stop the build before any books start.
 
 ## Terminal containers
 
-Run these commands from the host with Docker available:
+Run these commands from the host with Docker, Python 3.10 or newer, and the Dev
+Container CLI available. Install the CLI with **Dev Containers: Install
+devcontainer CLI** in VS Code, or `npm install -g @devcontainers/cli` with a supported
+Node.js installation. CLI 0.88.0 is verified; its npm installation requires Node.js
+20 or newer. `DEVCONTAINER=/path/to/devcontainer` selects a CLI outside `PATH`.
 
 ```sh
 ./scripts/toolchain/run_container.sh
@@ -119,14 +125,49 @@ IMAGE=ashaiy-toolchain:local CMD='ashaiy test' \
   ./scripts/toolchain/run_container.sh
 ```
 
-The runner uses the reviewed pin by default, mounts the checkout at `/workspace`,
-and uses the host UID/GID. It opens zsh by default. Set `CMD` to execute a command
-with Bash, returning its status; quote the value to prevent host-shell expansion.
-Host credentials and the Docker socket are not mounted automatically. Docker
-must have local access to the checkout and cache paths.
+The runner uses `.devcontainer/devcontainer.json`, including its image, users,
+mounts, environment, and lifecycle commands. The image remains synchronized with
+`config/container-image.txt`. With the current image, both VS Code and terminal
+sessions use root, `/root`, the installed Oh My Zsh theme, and `/usr/local/elan`.
+The workspace normally mounts at `/workspaces/<checkout-name>`; consumers use
+`ASHAIY_ROOT` rather than assuming `/workspace`. On Linux this also adopts VS Code's
+root ownership of newly created files; a future non-root configuration must apply
+to both entry points.
 
-The [persistent container home](ARCHITECTURE.md#generated-files-and-local-outputs)
-preserves Elan settings and downloaded toolchains across runs and cleanup.
+Existing VS Code containers for this checkout and configuration are reused,
+including stopped containers. New containers run `ashaiy doctor env` before the
+shell opens. Exiting a shell leaves the container available to other sessions;
+use the printed `docker stop <id>` command when it is unused. Settings that affect
+container creation require **Dev Containers: Rebuild Container** after preserving
+home changes. Ambiguous containers and stale images fail without deleting data.
+
+Set `CMD` to execute a command with Bash and return its status; quote the value to
+prevent host-shell expansion. Preparation logs go to stderr, leaving command
+stdout available for pipes. `ashaiy image run --command '...'` provides the same
+interface through the public CLI.
+
+`IMAGE` or `ashaiy image run --image <ref>` creates an isolated persistent profile
+with the shared configuration and the selected image. The actual image identity
+distinguishes rebuilt local tags. Profiles never rewrite the reviewed image pin
+or replace the default VS Code container. Their effective configurations and
+preparation lock live in the [host cache](ARCHITECTURE.md#generated-files-and-local-outputs).
+Docker must have local access to the checkout.
+
+Container homes survive stops and restarts, but rebuilding a container discards
+unmounted home changes. The previous terminal home under
+`${XDG_CACHE_HOME:-$HOME/.cache}/ashaiy-container/<repository-id>` is retained and
+no longer mounted. Copy only needed custom files or additional toolchains after
+checking compatibility; copying the entire home would hide the image's shell
+configuration again. Cache cleanup preserves this legacy home and runner state.
+
+Host credentials and the Docker socket are not mounted automatically. Check
+`git status` and Git author settings in a standalone session. VS Code's credential
+helper and forwarded SSH socket can depend on a running editor session; the CLI
+does not reproduce those bridges. For independent HTTPS access, authenticate
+inside the container with `gh auth login`. SSH agent sharing requires an explicit
+mount appropriate to the host; macOS Docker Desktop and Linux use different
+socket paths. The host terminal also needs a suitable font to render theme glyphs.
+
 `build_image.sh` builds the host architecture as `ashaiy-toolchain:local` unless
 `IMAGE` selects another tag; it does not change the reviewed pin. Follow the
 [image publication procedure](maintainer-guide.md#multi-platform-toolchain-images)
@@ -146,7 +187,8 @@ reported executable and its adjacent `.trace` file, then retry.
 
 If Elan selected a downloaded toolchain for the previous architecture, reinstall
 only the pinned toolchain for the current platform. The terminal container's
-persistent home preserves Elan settings and downloaded toolchains.
+container home preserves Elan settings and downloaded toolchains across restarts;
+preserve custom installations before recreating the container.
 
 Keep `.cache/mathlib/`: its pinned download format contains Lean artifacts and
 generated C sources, which are distinct from locally compiled executables.

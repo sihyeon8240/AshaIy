@@ -25,7 +25,9 @@ cd AshaIy
 
 With Docker running, open this folder in VS Code with the Dev Containers
 extension and select **Dev Containers: Reopen in Container**. Alternatively,
-run `./scripts/toolchain/run_container.sh` from a host terminal with Docker installed.
+run `./scripts/toolchain/run_container.sh` from a host terminal with Docker,
+Python 3.10 or newer, and the Dev Container CLI installed. In VS Code, use
+**Dev Containers: Install devcontainer CLI** to install the CLI command.
 Inside the container, `ashaiy` runs the CLI from the mounted checkout.
 In the container terminal, run:
 
@@ -39,7 +41,8 @@ The PDF is written to `build/linear-algebra/book.pdf`. See the
 toolchain configuration and environment checks.
 
 Development uses the pinned container environment, shared with CI and releases.
-The host needs Git and Docker; VS Code with Dev Containers is optional.
+The host needs Git and Docker. The terminal runner additionally uses host Python
+and the Dev Container CLI; VS Code is optional when the CLI is installed separately.
 
 Use `ashaiy --help` for commands and the
 [developer workflow](docs/developer-workflow.md) for builds, formatting, generation,

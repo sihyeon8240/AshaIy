@@ -1,5 +1,7 @@
 {
   "name": "AshaIy",
+  "init": true,
+  "waitFor": "postCreateCommand",
   "image": "ghcr.io/sihyeon8240/ashaiy@sha256:63169cd572a8eb0d254d2c8e654aa8dfc78df4bed3c8763ded0fb7f01dc6fad9",
   "containerEnv": {
     "PYTHONPYCACHEPREFIX": "${containerWorkspaceFolder}/.cache/python",

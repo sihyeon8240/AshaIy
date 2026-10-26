@@ -60,7 +60,7 @@ Environment and maintenance:
   image build [--image TAG]
       Build a development image (default: ashaiy-toolchain:local).
   image run [--image REF] [--command "COMMAND"]
-      Open a container shell or execute a Bash command inside it.
+      Reuse the VS Code development container, or run a Bash command inside it.
   image pin --digest SHA256
       Pin a tested image during the reviewed image-promotion procedure.
   clean {build|source}
@@ -160,7 +160,7 @@ ACTION_HELP = {
     },
     "image": {
         "build": "Build the development Docker image from this checkout.",
-        "run": "Mount this checkout in a container and open zsh, or run a Bash command.",
+        "run": "Use devcontainer.json to open zsh or run Bash in the development container.",
         "pin": "Synchronize the reviewed container image digest; use after testing the image.",
     },
     "clean": {

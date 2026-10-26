@@ -1,4 +1,4 @@
-"""Exercise public container and book commands without a Docker daemon."""
+"""Exercise host container commands without requiring a Docker daemon."""
 
 from __future__ import annotations
 
@@ -11,11 +11,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tests.support.fixtures import (
-    copy_file,
-    copy_validation_configuration,
-    write_executable,
-)
+from tests.support.fixtures import copy_validation_configuration, write_executable
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -32,30 +28,55 @@ class ContainerCommandTests(unittest.TestCase):
             dirs_exist_ok=True,
             ignore=shutil.ignore_patterns("__pycache__"),
         )
-        for directory in ("scripts", "config", "bin", ".devcontainer"):
-            (self.root / directory).mkdir(exist_ok=True)
-        (self.root / "config/generated").mkdir(parents=True, exist_ok=True)
-        for name in ("toolchain/images/build_image.sh", "toolchain/run_container.sh"):
-            copy_file(ROOT / "scripts" / name, self.root / "scripts" / name)
+        for directory in ("config/generated", "bin", ".devcontainer"):
+            (self.root / directory).mkdir(parents=True, exist_ok=True)
         self.image = "ghcr.io/example/math@sha256:" + "a" * 64
         (self.root / "config/container-image.txt").write_text(self.image + "\n")
-        docker = self.root / "bin/docker"
-        write_executable(
-            docker,
+        self.config = json.loads((ROOT / ".devcontainer/devcontainer.json").read_text())
+        self.config["image"] = self.image
+        self.config_path = self.root / ".devcontainer/devcontainer.json"
+        self.config_path.write_text(json.dumps(self.config))
+        self.log = self.root / "calls.jsonl"
+        prefix = (
             f"#!{sys.executable}\n"
-            "import json, os, sys\n"
+            "import json, os, signal, sys\n"
             "from pathlib import Path\n"
-            "Path(os.environ['DOCKER_ARGUMENTS']).write_text(json.dumps(sys.argv[1:]))\n"
+            "arguments = sys.argv[1:]\n"
+            "with Path(os.environ['CALL_LOG']).open('a') as stream:\n"
+            "    stream.write(json.dumps([Path(sys.argv[0]).name, *arguments]) + '\\n')\n"
+        )
+        write_executable(
+            self.root / "bin/docker",
+            prefix + "if arguments[:2] == ['image', 'inspect']:\n"
+            "    print(os.environ.get('IMAGE_ID', 'sha256:' + 'b' * 64))\n"
+            "elif arguments[0] == 'ps':\n"
+            "    print(os.environ.get('DOCKER_MATCHES', '').replace(',', '\\n'))\n"
+            "elif arguments[:2] == ['container', 'inspect']:\n"
+            "    print(json.dumps([{'Id': arguments[2],\n"
+            "        'Image': os.environ.get('EXISTING_IMAGE_ID', 'sha256:' + 'b' * 64),\n"
+            "        'Config': {'Labels': {}},\n"
+            "        'NetworkSettings': {'Ports': {'4000/tcp': [\n"
+            "            {'HostIp': '127.0.0.1', 'HostPort': '4000'}]}}}]))\n"
             "sys.exit(int(os.environ.get('DOCKER_EXIT', '0')))\n",
         )
-        self.arguments_path = self.root / "arguments.json"
+        write_executable(
+            self.root / "bin/devcontainer",
+            prefix + "if arguments[0] == 'up':\n"
+            "    print(json.dumps({'outcome': 'success', 'containerId': 'container123'}))\n"
+            "    sys.exit(int(os.environ.get('PREPARE_EXIT', '0')))\n"
+            "if os.environ.get('EXEC_SIGNAL'):\n"
+            "    os.kill(os.getpid(), signal.SIGTERM)\n"
+            "print('command output')\n"
+            "sys.exit(int(os.environ.get('EXEC_EXIT', '0')))\n",
+        )
         self.environment = {
             **os.environ,
             "PATH": f"{self.root / 'bin'}:{os.environ['PATH']}",
-            "DOCKER_ARGUMENTS": str(self.arguments_path),
+            "CALL_LOG": str(self.log),
             "XDG_CACHE_HOME": str(self.root / "cache"),
             "IMAGE": "",
             "CMD": "",
+            "DEVCONTAINER": str(self.root / "bin/devcontainer"),
             "PYTHON": sys.executable,
         }
 
@@ -70,8 +91,14 @@ class ContainerCommandTests(unittest.TestCase):
             timeout=10,
         )
 
-    def arguments(self) -> list[str]:
-        return json.loads(self.arguments_path.read_text())
+    def calls(self, tool: str) -> list[list[str]]:
+        if not self.log.exists():
+            return []
+        return [
+            call[1:]
+            for line in self.log.read_text().splitlines()
+            if (call := json.loads(line))[0] == tool
+        ]
 
     def test_build_uses_repository_context_and_custom_tag(self) -> None:
         for options, tag in (
@@ -82,7 +109,7 @@ class ContainerCommandTests(unittest.TestCase):
                 result = self.cli("image", "build", *options)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(
-                    self.arguments(),
+                    self.calls("docker")[-1],
                     [
                         "build",
                         "--tag",
@@ -93,43 +120,58 @@ class ContainerCommandTests(unittest.TestCase):
                     ],
                 )
 
-    def test_run_mounts_checkout_and_preserves_user_and_cache(self) -> None:
+    def test_default_run_uses_shared_configuration_and_exact_prepared_container(
+        self,
+    ) -> None:
         result = self.cli("image", "run")
         self.assertEqual(result.returncode, 0, result.stderr)
-        arguments = self.arguments()
-        self.assertEqual(arguments[-2:], [self.image, "/bin/zsh"])
-        self.assertIn(f"{self.root}:/workspace", arguments)
-        self.assertEqual(
-            arguments[arguments.index("--user") + 1], f"{os.getuid()}:{os.getgid()}"
-        )
-        self.assertIn("--interactive", arguments)
-        self.assertNotIn("--tty", arguments)
-        self.assertIn("HOME=/home/developer", arguments)
-        self.assertIn("ELAN_HOME=/home/developer/.elan", arguments)
-        self.assertIn("PYTHONPYCACHEPREFIX=/workspace/.cache/python", arguments)
-        self.assertIn("MATHLIB_CACHE_DIR=/workspace/.cache/mathlib", arguments)
-        self.assertEqual(
-            arguments[arguments.index("--entrypoint") + 1],
-            "/workspace/scripts/toolchain/container_entrypoint.sh",
-        )
+        self.assertEqual(result.stdout, "command output\n")
+        prepare, execute = self.calls("devcontainer")
+        self.assertEqual(prepare[0], "up")
+        self.assertEqual(execute[0], "exec")
+        for arguments in (prepare, execute):
+            self.assertEqual(
+                arguments[arguments.index("--config") + 1], str(self.config_path)
+            )
+            self.assertIn(str(self.root), arguments)
+            self.assertNotIn("--override-config", arguments)
+            self.assertNotIn("--remove-existing-container", arguments)
+        self.assertEqual(execute[execute.index("--container-id") + 1], "container123")
+        self.assertEqual(execute[-1], "/bin/zsh")
         self.assertIn(
-            "TEXINPUTS=.:/workspace/common/styles//:/workspace/common/templates//:",
-            arguments,
+            f"label=devcontainer.config_file={self.config_path}",
+            self.calls("docker")[1],
         )
-        homes = list((self.root / "cache/ashaiy-container").iterdir())
-        self.assertEqual(len(homes), 1)
-        marker = homes[0] / "cached"
-        marker.write_text("keep")
-        self.assertEqual(self.cli("image", "run").returncode, 0)
-        self.assertEqual(marker.read_text(), "keep")
-        self.assertEqual(self.arguments(), arguments)
+        self.assertFalse((self.root / "cache/ashaiy-container").exists())
+
+    def test_image_override_preserves_settings_and_isolates_rebuilt_tags(self) -> None:
+        original = self.config_path.read_bytes()
+        result = self.cli("image", "run", "--image", "custom:dev")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        prepare = self.calls("devcontainer")[0]
+        override = Path(prepare[prepare.index("--override-config") + 1])
+        effective = json.loads(override.read_text())
+        self.assertEqual(effective["image"], "custom:dev")
+        for key in self.config.keys() - {"image", "runArgs"}:
+            self.assertEqual(effective[key], self.config[key])
+        self.assertNotIn("devcontainer.local_folder=", " ".join(prepare))
+        self.assertIn("ashaiy.workspace=", " ".join(prepare))
+        self.assertEqual(self.config_path.read_bytes(), original)
+        self.environment["IMAGE_ID"] = "sha256:" + "c" * 64
+        self.assertEqual(
+            self.cli("image", "run", "--image", "custom:dev").returncode, 0
+        )
+        second = self.calls("devcontainer")[2]
+        self.assertNotEqual(
+            second[second.index("--override-config") + 1], str(override)
+        )
 
     def test_command_is_passed_literally_without_host_execution(self) -> None:
         command = 'printf "%s" "$HOME"; touch "$(pwd)/unexpected"'
-        result = self.cli("image", "run", "--image", "custom:dev", "--command", command)
+        result = self.cli("image", "run", "--command", command)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(
-            self.arguments()[-4:], ["custom:dev", "/bin/bash", "-c", command]
+            self.calls("devcontainer")[-1][-3:], ["/bin/bash", "-c", command]
         )
         self.assertFalse((self.root / "unexpected").exists())
 
@@ -137,48 +179,43 @@ class ContainerCommandTests(unittest.TestCase):
         result = subprocess.run(
             [str(self.root / "scripts/toolchain/run_container.sh")],
             cwd=self.root / "bin",
-            env={**self.environment, "DOCKER_EXIT": "23"},
+            env={**self.environment, "EXEC_EXIT": "37"},
             capture_output=True,
+            text=True,
             check=False,
             timeout=10,
         )
-        self.assertEqual(result.returncode, 23)
-        self.assertIn(f"{self.root}:/workspace", self.arguments())
-        self.environment["DOCKER_EXIT"] = "23"
-        self.assertNotEqual(self.cli("image", "run").returncode, 0)
+        self.assertEqual(result.returncode, 37, result.stderr)
+        self.environment["EXEC_SIGNAL"] = "1"
+        self.assertEqual(self.cli("image", "run").returncode, 143)
 
-    def test_image_arguments_cannot_become_docker_options(self) -> None:
+    def test_failed_preparation_never_executes_a_command(self) -> None:
+        self.environment["PREPARE_EXIT"] = "23"
+        result = self.cli("image", "run", "--command", "touch unexpected")
+        self.assertEqual(result.returncode, 23, result.stderr)
+        self.assertEqual(len(self.calls("devcontainer")), 1)
+        self.assertEqual(result.stdout, "")
+
+    def test_ambiguous_or_stale_containers_are_preserved(self) -> None:
+        for matches in ("one,two", "old-container"):
+            with self.subTest(matches=matches):
+                self.environment["DOCKER_MATCHES"] = matches
+                self.environment["EXISTING_IMAGE_ID"] = "sha256:" + "d" * 64
+                result = self.cli("image", "run")
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(self.calls("devcontainer"), [])
+                self.assertFalse(
+                    any(call[0] in {"rm", "stop"} for call in self.calls("docker"))
+                )
+
+    def test_missing_cli_and_invalid_images_fail_before_docker_changes(self) -> None:
         for image in ("--privileged", "bad image", "bad\nimage"):
             with self.subTest(image=image):
                 result = self.cli("image", "run", "--image=" + image)
                 self.assertNotEqual(result.returncode, 0)
-                self.assertFalse(self.arguments_path.exists())
-
-    def test_container_entrypoint_sets_a_writable_lean_home(self) -> None:
-        copy_file(
-            ROOT / "scripts/toolchain/container_entrypoint.sh",
-            self.root / "scripts/toolchain/container_entrypoint.sh",
-        )
-        copy_file(self.root / "bin/docker", self.root / "bin/elan")
-        (self.root / "config/toolchain.env").write_text(
-            "LEAN_TOOLCHAIN=leanprover/lean4:v99.0.0\n"
-        )
-        elan_home = self.root / "writable-elan"
-        for _ in range(2):
-            result = subprocess.run(
-                [
-                    str(self.root / "scripts/toolchain/container_entrypoint.sh"),
-                    "/bin/sh",
-                    "-c",
-                    'test "$ASHAIY_ROOT" = "$1" || exit 1; exit 37',
-                    "sh",
-                    str(self.root),
-                ],
-                env={**self.environment, "ELAN_HOME": str(elan_home)},
-                capture_output=True,
-                check=False,
-                timeout=10,
-            )
-            self.assertEqual(result.returncode, 37, result.stderr)
-            self.assertEqual(self.arguments(), ["default", "leanprover/lean4:v99.0.0"])
-            self.assertTrue((elan_home / "toolchains").is_dir())
+                self.assertEqual(self.calls("docker"), [])
+        self.environment["DEVCONTAINER"] = str(self.root / "missing-devcontainer")
+        result = self.cli("image", "run")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("required host tool not found", result.stderr)
+        self.assertEqual(self.calls("docker"), [])

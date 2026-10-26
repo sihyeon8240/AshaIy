@@ -187,7 +187,9 @@ Ignored site pages derive from the registry and proof coverage.
 | LaTeX Workshop output | `vscode-build/` | Ignored; never commit |
 | Python, Ruff, LaTeX formatter, Mathlib, Coverage, and Hypothesis caches | `.cache/{python,ruff,latexindent,mathlib,coverage}/` and `.hypothesis/` by default | Ignored; never commit |
 | Lake dependencies, configuration cache, and build results | `lean/.lake/` | Ignored; never commit |
-| Persistent container home | Host `${XDG_CACHE_HOME:-$HOME/.cache}/ashaiy-container/<repository-id>` | Outside the checkout; preserved by cache cleanup |
+| Development container home | Container writable layer, currently `/root` | Preserved across stops; save unmounted changes before rebuilding |
+| Terminal runner profiles and preparation lock | Host `${XDG_CACHE_HOME:-$HOME/.cache}/ashaiy-devcontainers/<repository-id>` | Outside the checkout; preserved by cache cleanup |
+| Legacy terminal home | Host `${XDG_CACHE_HOME:-$HOME/.cache}/ashaiy-container/<repository-id>` | Retained for selective migration; no longer mounted automatically |
 | Release staging and source-check site rendering | Automatically cleaned temporary directories | Never commit |
 
 Intentionally absent local-only assets remain absent; preserve their fallback
