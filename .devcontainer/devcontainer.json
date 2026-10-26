@@ -1,11 +1,17 @@
 {
   "name": "AshaIy",
+  "init": true,
+  "waitFor": "postCreateCommand",
+  "appPort": [
+    "127.0.0.1:${localEnv:ASHAIY_PREVIEW_PORT:4000}:4000"
+  ],
   "image": "ghcr.io/sihyeon8240/ashaiy@sha256:63169cd572a8eb0d254d2c8e654aa8dfc78df4bed3c8763ded0fb7f01dc6fad9",
   "containerEnv": {
     "PYTHONPYCACHEPREFIX": "${containerWorkspaceFolder}/.cache/python",
     "MATHLIB_CACHE_DIR": "${containerWorkspaceFolder}/.cache/mathlib",
     "TEXINPUTS": ".:${containerWorkspaceFolder}/common/styles//:${containerWorkspaceFolder}/common/templates//:",
-    "ASHAIY_ROOT": "${containerWorkspaceFolder}"
+    "ASHAIY_ROOT": "${containerWorkspaceFolder}",
+    "ASHAIY_SITE_HOST": "0.0.0.0"
   },
   "postCreateCommand": "./scripts/ashaiy doctor env",
   "customizations": {

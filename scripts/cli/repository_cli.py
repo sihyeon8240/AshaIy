@@ -50,7 +50,7 @@ Website:
       Generate or validate metadata pages for site-enabled textbooks.
   site {build|serve|test}
       Render a local site, preview it, or run rendered browser tests.
-      serve accepts --port PORT (default: 4000); build textbook PDFs first.
+      serve accepts --port PORT and --host ADDRESS; build textbook PDFs first.
 
 Environment and maintenance:
   doctor env
@@ -60,7 +60,7 @@ Environment and maintenance:
   image build [--image TAG]
       Build a development image (default: ashaiy-toolchain:local).
   image run [--image REF] [--command "COMMAND"]
-      Open a container shell or execute a Bash command inside it.
+      Reuse the VS Code development container, or run a Bash command inside it.
   image pin --digest SHA256
       Pin a tested image during the reviewed image-promotion procedure.
   clean {build|source}
@@ -160,7 +160,7 @@ ACTION_HELP = {
     },
     "image": {
         "build": "Build the development Docker image from this checkout.",
-        "run": "Mount this checkout in a container and open zsh, or run a Bash command.",
+        "run": "Use devcontainer.json to open zsh or run Bash in the development container.",
         "pin": "Synchronize the reviewed container image digest; use after testing the image.",
     },
     "clean": {
@@ -407,6 +407,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=positive_integer,
         default=4000,
         help="local preview port (default: 4000)",
+    )
+    site["serve"].add_argument(
+        "--host",
+        metavar="ADDRESS",
+        help="bind address (default: ASHAIY_SITE_HOST, otherwise 127.0.0.1)",
     )
     image = command("image", "manage development images", ("build", "run", "pin"))
     for action in ("build", "run"):
