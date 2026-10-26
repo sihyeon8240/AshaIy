@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import contextlib
 import os
+import queue
 import tempfile
+import threading
 import unittest
+import urllib.request
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest import mock
 
@@ -15,6 +19,37 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class SitePreviewTests(unittest.TestCase):
+    def test_preview_serves_files_on_the_selected_interface(self) -> None:
+        for host in ("127.0.0.1", "0.0.0.0"):
+            with self.subTest(host=host), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / "index.html").write_text("preview response", encoding="utf-8")
+                ready = queue.Queue()
+
+                def create_server(address, handler):
+                    server = ThreadingHTTPServer(address, handler)
+                    ready.put(server)
+                    return server
+
+                with mock.patch.object(
+                    preview, "ThreadingHTTPServer", side_effect=create_server
+                ):
+                    worker = threading.Thread(
+                        target=preview.serve, args=(root, 0, host), daemon=True
+                    )
+                    worker.start()
+                    server = ready.get(timeout=5)
+                    try:
+                        self.assertEqual(server.server_address[0], host)
+                        with urllib.request.urlopen(
+                            f"http://127.0.0.1:{server.server_port}/", timeout=5
+                        ) as response:
+                            self.assertEqual(response.read(), b"preview response")
+                    finally:
+                        server.shutdown()
+                        worker.join(timeout=5)
+                    self.assertFalse(worker.is_alive())
+
     def test_build_failures_preserve_the_previous_complete_preview(self):
         for failure in ("render", "copy", "validate", "install"):
             with (

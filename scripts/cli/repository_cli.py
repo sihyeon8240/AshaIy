@@ -50,7 +50,7 @@ Website:
       Generate or validate metadata pages for site-enabled textbooks.
   site {build|serve|test}
       Render a local site, preview it, or run rendered browser tests.
-      serve accepts --port PORT (default: 4000); build textbook PDFs first.
+      serve accepts --port PORT and --host ADDRESS; build textbook PDFs first.
 
 Environment and maintenance:
   doctor env
@@ -407,6 +407,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=positive_integer,
         default=4000,
         help="local preview port (default: 4000)",
+    )
+    site["serve"].add_argument(
+        "--host",
+        metavar="ADDRESS",
+        help="bind address (default: ASHAIY_SITE_HOST, otherwise 127.0.0.1)",
     )
     image = command("image", "manage development images", ("build", "run", "pin"))
     for action in ("build", "run"):

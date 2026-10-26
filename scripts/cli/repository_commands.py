@@ -93,6 +93,8 @@ def site_command(arguments: argparse.Namespace) -> int:
             options.append("--check")
         return run("site/site_pages.py", *options)
     options = ["--port", str(arguments.port)] if action == "serve" else []
+    if action == "serve" and arguments.host is not None:
+        options.extend(["--host", arguments.host])
     return run("site/site_preview.py", action, *options)
 
 

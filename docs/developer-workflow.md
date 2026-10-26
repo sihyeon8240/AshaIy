@@ -173,6 +173,26 @@ socket paths. The host terminal also needs a suitable font to render theme glyph
 [image publication procedure](maintainer-guide.md#multi-platform-toolchain-images)
 for pin changes.
 
+The site preview's container port 4000 is published only on host loopback.
+`ashaiy site serve` listens on all container interfaces through the shared
+`ASHAIY_SITE_HOST=0.0.0.0` setting; ordinary host execution still defaults to
+`127.0.0.1`. `ashaiy site serve --host <address>` overrides the bind address.
+The runner prints the actual host preview URL. VS Code's `forwardPorts` remains
+available for containers created before port publication was configured.
+
+Choose a host port before creating a container with `ASHAIY_PREVIEW_PORT=4001`.
+Use `ASHAIY_PREVIEW_PORT=0` to let Docker allocate a free port, which is useful for
+an isolated image profile alongside the default container:
+
+```sh
+ASHAIY_PREVIEW_PORT=0 IMAGE=ashaiy-toolchain:local \
+  ./scripts/toolchain/run_container.sh
+```
+
+Published ports are creation-time settings. Changing the environment variable
+does not change an existing default container's bindings; preserve home changes
+and rebuild it when needed. A different port selects a separate image profile.
+
 ### Switching container architectures
 
 Run `ashaiy doctor env` after moving a checkout between AMD64 and ARM64. It reads

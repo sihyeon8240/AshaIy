@@ -118,10 +118,14 @@ def test() -> None:
     )
 
 
-def serve(destination: Path, port: int) -> None:
+def serve(destination: Path, port: int, host: str = "127.0.0.1") -> None:
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(destination))
-    with ThreadingHTTPServer(("127.0.0.1", port), handler) as server:
-        print(f"Preview: http://localhost:{port} (Ctrl+C to stop)", flush=True)
+    with ThreadingHTTPServer((host, port), handler) as server:
+        display_host = "localhost" if host in {"127.0.0.1", "0.0.0.0"} else host
+        print(
+            f"Preview: http://{display_host}:{server.server_port} (Ctrl+C to stop)",
+            flush=True,
+        )
         server.serve_forever()
 
 
@@ -129,6 +133,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("build", "serve", "test"))
     parser.add_argument("--port", type=int, default=4000)
+    parser.add_argument(
+        "--host", default=os.environ.get("ASHAIY_SITE_HOST") or "127.0.0.1"
+    )
     args = parser.parse_args()
     if not 1 <= args.port <= 65535:
         parser.error("port must be between 1 and 65535")
@@ -138,7 +145,7 @@ def main() -> int:
         else:
             destination = build()
             if args.action == "serve":
-                serve(destination, args.port)
+                serve(destination, args.port, args.host)
     except (ValueError, OSError, subprocess.CalledProcessError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
