@@ -43,7 +43,7 @@ def check_repository_files() -> None:
         "common/styles/bibliography.sty",
         "common/styles/core.sty",
         "common/styles/macros.yml",
-        "common/styles/generated-macros.sty",
+        "common/styles/generated-common-macros.sty",
         "common/styles/theorems.sty",
         "scripts/latex/build_book.sh",
         "scripts/repository/checks/check_actions.sh",

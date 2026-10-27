@@ -12,7 +12,12 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from scripts.latex.macro_generation import GENERATED_NAME, MacroRepository, generate
+from scripts.latex.macro_generation import (
+    BOOK_GENERATED_NAME,
+    COMMON_GENERATED_NAME,
+    MacroRepository,
+    generate,
+)
 from scripts.latex.macro_manifest import load_macros
 from scripts.latex.normalize_braces import normalize_braces
 from tests.support.fixtures import (
@@ -113,7 +118,7 @@ class MacroManifestTests(unittest.TestCase):
             return generate(root=self.root, **options)
 
     def test_generation_is_idempotent_scoped_and_check_is_read_only(self) -> None:
-        targets = sorted(self.root.rglob(GENERATED_NAME))
+        targets = sorted(self.root.rglob("generated*-macros.sty"))
         originals = {
             path: (path.read_bytes(), path.stat().st_mtime_ns) for path in targets
         }
@@ -197,7 +202,7 @@ class MacroManifestTests(unittest.TestCase):
             ],
             {"kind": "raw", "body": "anything"},
         ]
-        targets = sorted(self.root.rglob(GENERATED_NAME))
+        targets = sorted(self.root.rglob("generated*-macros.sty"))
         originals = {path: path.read_bytes() for path in targets}
         self.shared["R"]["body"] = r"\mathbf{R}"
         self.write_shared()
@@ -316,7 +321,7 @@ class MacroManifestTests(unittest.TestCase):
         self.assertEqual(source.read_bytes(), original)
         self.assertEqual(self.run_format("--file", str(source)).returncode, 0)
         self.assertIn(r"\Local{x}{y}", source.read_text())
-        generated = self.root / "common/styles" / GENERATED_NAME
+        generated = self.root / "common/styles" / COMMON_GENERATED_NAME
         before = generated.read_bytes()
         unchanged = self.run_format("--file", str(generated))
         self.assertEqual(unchanged.returncode, 0, unchanged.stderr)
@@ -352,7 +357,7 @@ class MacroManifestTests(unittest.TestCase):
         )
         self.write_book("alpha", 2)
         self.write_book("beta", 3)
-        beta = self.root / "books/beta/styles" / GENERATED_NAME
+        beta = self.root / "books/beta/styles" / BOOK_GENERATED_NAME
         original = beta.read_bytes()
         command = [sys.executable, str(self.root / "scripts/ashaiy"), "macros"]
         generated = subprocess.run(
@@ -393,10 +398,12 @@ class MacroManifestTests(unittest.TestCase):
         }
         self.write_shared()
         self.generate()
-        commands = MacroRepository(self.root).registry().commands
+        commands = MacroRepository(self.root).registry("alpha").commands
+        local_package = Path(BOOK_GENERATED_NAME).stem
         lines = [
             r"\documentclass{article}",
-            r"\usepackage{amsmath,amssymb,mathtools,generated-macros}",
+            r"\usepackage{amsmath,amssymb,mathtools,generated-common-macros}",
+            rf"\usepackage{{styles/{local_package}}}",
             r"\DeclarePairedDelimiter{\OldAbs}{\lvert}{\rvert}",
             r"\DeclarePairedDelimiterX{\OldInner}[2]{\langle}{\rangle}{#1,#2}",
             r"\newcommand{\OldWithDefault}[2][z]{#1+#2}",
@@ -430,6 +437,7 @@ class MacroManifestTests(unittest.TestCase):
             (r"X_\OldOffset a", r"X_\Offset a"),
             (r"\OldOp_n", r"\TestOp_n"),
             (r"x", r"\Commented x"),
+            (r"x", r"\Local x"),
         ]
         for index, (legacy, source) in enumerate(examples):
             formatted = normalize_braces("$" + source + "$", commands)
@@ -449,13 +457,14 @@ class MacroManifestTests(unittest.TestCase):
         source.write_text("\n".join(lines) + "\n")
         result = subprocess.run(
             ["lualatex", "-interaction=nonstopmode", "-halt-on-error", str(source)],
-            cwd=self.root,
+            cwd=self.root / "books/alpha",
             env={**os.environ, "TEXINPUTS": str(self.root / "common/styles") + "//:"},
             capture_output=True,
             text=True,
             timeout=30,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("You have requested package", result.stdout)
 
 
 if __name__ == "__main__":

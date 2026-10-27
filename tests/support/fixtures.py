@@ -165,5 +165,8 @@ def copy_script(source: Path, destination: Path) -> None:
     for name in companions.get(source.name, ()):
         copy_file(REPOSITORY / "scripts" / name, fixture_root / "scripts" / name)
     if source.name in companions:
-        for name in ("common/styles/macros.yml", "common/styles/generated-macros.sty"):
+        for name in (
+            "common/styles/macros.yml",
+            "common/styles/generated-common-macros.sty",
+        ):
             copy_file(REPOSITORY / name, fixture_root / name)
