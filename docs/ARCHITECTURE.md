@@ -286,6 +286,10 @@ Python domain modules use absolute `scripts.*` imports. Entry-point adapters add
 the checkout root to the import path when executed directly; internal readers,
 caches, and invocation snapshots retain one package identity. Tests import the
 same package rather than loading separate module copies.
+Strict YAML parsing uses PyYAML's C implementation when available, with the same
+mapping validation on its Python fallback. Macro generation reuses registered
+books and common declarations only while constructing one invocation's update
+plan; it discards read reuse before installing files.
 Automation and tests use matching functional packages:
 
 | Package | Responsibility |

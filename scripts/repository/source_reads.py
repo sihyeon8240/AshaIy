@@ -46,9 +46,19 @@ class StrictLoader(yaml.SafeLoader):
         return mapping
 
 
+if hasattr(yaml, "CSafeLoader"):
+
+    class NativeStrictLoader(yaml.CSafeLoader):
+        construct_mapping = StrictLoader.construct_mapping
+
+    _loader = NativeStrictLoader
+else:
+    _loader = StrictLoader
+
+
 def parse_yaml(text: str) -> object:
     """Parse current or historical configuration using the same strict contract."""
-    return yaml.load(text, Loader=StrictLoader)
+    return yaml.load(text, Loader=_loader)
 
 
 def field_mapping(value: object, context: str) -> dict:
