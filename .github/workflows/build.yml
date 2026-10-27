@@ -441,9 +441,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/${{ matrix.book }}
-          key: latex-v2-${{ runner.os }}-${{ runner.arch }}-${{ matrix.book }}-${{ steps.inputs.outputs.image }}-${{ steps.inputs.outputs.sources }}
+          key: latex-v3-${{ runner.os }}-${{ runner.arch }}-${{ matrix.book }}-${{ steps.inputs.outputs.image }}-${{ steps.inputs.outputs.sources }}
           restore-keys: |
-            latex-v2-${{ runner.os }}-${{ runner.arch }}-${{ matrix.book }}-${{ steps.inputs.outputs.image }}-
+            latex-v3-${{ runner.os }}-${{ runner.arch }}-${{ matrix.book }}-${{ steps.inputs.outputs.image }}-
       - name: Build and strictly check in the prepared image
         if: steps.reuse.outputs.reused != 'true'
         uses: ./.github/actions/run-toolchain

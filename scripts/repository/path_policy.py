@@ -1,5 +1,12 @@
 """File roles shared by CI, source selection, and conservative PDF planning."""
 
+SHARED_BUILD_INPUT_ROOTS = ("common", "config", "scripts")
+
+
+def book_input_prefix(slug: str) -> str:
+    return f"books/{slug}/"
+
+
 IMAGE_PIPELINE = {
     "scripts/repository/config/json_config.py",
     "config/validation-patterns.json",

@@ -144,6 +144,13 @@ Review shared changes against every affected consumer and preserve public interf
 
 Cache hits still run normal builds and strict checks. Lean caches include
 platform, toolchain, lock, configuration, and source inputs; PDF caches include
+the committed book assembly as the publication-metadata projection. The global
+registry controls selection and is validated separately; its ordering and other
+books' records do not invalidate every book's incremental state.
+`python3 scripts/ci/book_cache.py <slug> --format json` describes this input policy
+without optional Python packages.
+These fingerprints identify committed inputs, not dirty local working trees or
+successful validation. PDF cache keys also include
 the book, platform, image digest, and shared build inputs. Fallback stays within
 the same book and image. Only successful main pushes save Lean and PDF caches;
 PRs restore them. Python and Mathlib download directories are not separately
