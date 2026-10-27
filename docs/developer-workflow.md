@@ -51,6 +51,20 @@ CLI output lives in ignored `build/<slug>/`; LaTeX Workshop uses ignored
 `vscode-build/`. Both use the shared LuaLaTeX configuration and TeX search paths.
 Successful PDFs remain for incremental builds; compiler failure or interruption
 removes that build's PDF. Log checks run even for incremental builds.
+
+PDF builds fix `SOURCE_DATE_EPOCH` to midnight UTC on the pinned
+`TEXLIVE_ARCHIVE_DATE`, with `FORCE_SOURCE_DATE=1`, `TZ=UTC`, and
+`LC_ALL=C.UTF-8`. This also fixes TeX's current date; update the toolchain date
+deliberately rather than relying on the runner's clock. A local
+`SOURCE_DATE_EPOCH` override remains supported. Existing local TeX search-path
+overrides and explicit shell escape remain supported.
+
+Each successful build records `<document>.build-environment.json` beside its PDF.
+Changing the recorded clock, search paths, or shell-escape setting forces
+`latexmk -g`; unchanged environments retain ordinary incremental checks.
+Failed or interrupted builds cannot mark the new environment successful.
+The record describes explicit settings, not every possible external TeX input
+or executable; it does not make a local build hermetic.
 Compiler writes and failure cleanup for the same output directory hold its
 `.build.lock`; different textbooks can still build concurrently. Do not clean
 outputs while a build or source update is running.

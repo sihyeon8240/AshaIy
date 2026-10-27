@@ -171,7 +171,12 @@ PR run, or an exact-pin dispatch, for the merged PR's head in this repository.
 A dispatch must match the PR branch and record `expected_sha`; unpinned dispatches
 do not produce reusable validation artifacts. Reuse requires an identical
 full Git tree (including workflows and build settings), image index digest,
-platform, validation policy, run ID/attempt, and PDF/log checksums. The downloaded
+platform, validation policy, canonical build environment, run ID/attempt,
+and PDF/log checksums. The recorded environment must match the successful
+compiler invocation, including the fixed clock and search-path overrides.
+Local environment overrides remain usable for development but do not qualify
+for verified CI reuse. See [PDF build settings](developer-workflow.md#build-outputs).
+The downloaded
 archive must also match GitHub's artifact digest, and its log is strictly checked
 again. GitHub commit trees are compared before artifact lookup and download.
 A match skips the TeX container build and republishes the verified PDF as
@@ -181,7 +186,7 @@ Verified artifacts expire after 14 days; unavailable or ineligible artifacts
 fall back to a normal cached build. Full-tree matching is conservative: an
 unrelated change can require a rebuild, while merge/squash/rebase commit SHAs may
 differ if their final trees match. Manual **Build textbooks** dispatches skip
-PR reuse and build every enabled book. Bump cache versions or `strict-pdf-v1`
+PR reuse and build every enabled book. Bump cache versions or `strict-pdf-v2`
 when their corresponding semantics change.
 
 ## Toolchain image operations

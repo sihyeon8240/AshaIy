@@ -13,6 +13,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from scripts.ci import verified_build as BUILD
+from scripts.latex.build_environment import selected_environment
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -25,6 +26,7 @@ class VerifiedBuildTests(unittest.TestCase):
             "image": "ghcr.io/example/math@sha256:" + "a" * 64,
             "platform": "linux/amd64",
             "tree": "b" * 40,
+            "environment": BUILD.canonical_environment(ROOT),
         }
         self.workflow_run = {
             "id": 123,
@@ -37,6 +39,11 @@ class VerifiedBuildTests(unittest.TestCase):
             "path": ".github/workflows/build.yml",
         }
         self.files = {"book.pdf": b"%PDF-1.5\nverified", "book.log": b"clean log\n"}
+
+    def write_environment(self, directory: Path) -> None:
+        (directory / BUILD.FILENAME).write_text(
+            json.dumps(self.expected["environment"]), encoding="utf-8"
+        )
 
     def archive(self, *, identity=None, files=None, extra=None, manifest_update=None):
         files = self.files if files is None else files
@@ -247,6 +254,7 @@ class VerifiedBuildTests(unittest.TestCase):
     def test_dispatch_record_requires_the_explicit_checkout_sha(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
+            self.write_environment(directory)
             for name, data in self.files.items():
                 (directory / name).write_bytes(data)
             for validated in ("", "e" * 40, "c" * 40):
@@ -341,7 +349,9 @@ class VerifiedBuildTests(unittest.TestCase):
                 ),
             ):
                 BUILD.main()
-            self.assertEqual(output.read_text(), "reused=false\n")
+            self.assertEqual(
+                output.read_text(), "reused=false\nreuse_reason=artifact-unavailable\n"
+            )
 
     def test_candidate_reuse_checks_identity_attempt_and_log(self):
         with (
@@ -360,6 +370,7 @@ class VerifiedBuildTests(unittest.TestCase):
             root = Path(temporary)
             source = root / "source"
             source.mkdir()
+            self.write_environment(source)
             files = {
                 **self.files,
                 "book.log": b"Output written on book.pdf (1 page, 100 bytes).\n",
@@ -420,7 +431,9 @@ class VerifiedBuildTests(unittest.TestCase):
                 patch.object(BUILD, "command", return_value=b"b" * 40),
             ):
                 BUILD.main()
-            self.assertEqual(output.read_text(), "reused=false\n")
+            self.assertEqual(
+                output.read_text(), "reused=false\nreuse_reason=artifact-unavailable\n"
+            )
 
     def test_record_requires_strict_log_check(self):
         with (
@@ -431,6 +444,7 @@ class VerifiedBuildTests(unittest.TestCase):
                 side_effect=subprocess.CalledProcessError(1, "check-log"),
             ),
         ):
+            self.write_environment(Path(temporary))
             with self.assertRaises(subprocess.CalledProcessError):
                 BUILD.record(self.expected, Path(temporary))
             self.assertFalse((Path(temporary) / "verified-build.json").exists())
@@ -448,6 +462,7 @@ class VerifiedBuildTests(unittest.TestCase):
             patch.object(BUILD, "command", return_value=b""),
         ):
             directory = Path(temporary)
+            self.write_environment(directory)
             for name, data in self.files.items():
                 (directory / name).write_bytes(data)
             BUILD.record(self.expected, directory)
@@ -457,6 +472,30 @@ class VerifiedBuildTests(unittest.TestCase):
                 manifest["checksums"]["book.pdf"],
                 BUILD.checksum(self.files["book.pdf"]),
             )
+
+    def test_record_rejects_missing_or_noncanonical_environment(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            with self.assertRaises(FileNotFoundError):
+                BUILD.record(self.expected, directory)
+            for name, value in (("SOURCE_DATE_EPOCH", "1"), ("TEXINPUTS", "override:")):
+                (directory / BUILD.FILENAME).write_text(
+                    json.dumps({**self.expected["environment"], name: value})
+                )
+                with self.assertRaisesRegex(ValueError, "environment differs"):
+                    BUILD.record(self.expected, directory)
+            self.assertFalse((directory / "verified-build.json").exists())
+
+    def test_repository_search_prefix_preserves_canonical_build_environment(self):
+        prefix = f".:{ROOT}/common/styles//:{ROOT}/common/templates//:"
+        self.assertEqual(
+            selected_environment(ROOT, {"TEXINPUTS": prefix}),
+            self.expected["environment"],
+        )
+        self.assertEqual(
+            selected_environment(ROOT, {"TEXINPUTS": prefix + "local//:"})["TEXINPUTS"],
+            "local//:",
+        )
 
 
 if __name__ == "__main__":

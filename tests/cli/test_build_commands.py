@@ -195,6 +195,11 @@ class BuildVSCodeTests(unittest.TestCase):
                 ROOT / "scripts/latex/build_support.sh",
                 scripts / "latex/build_support.sh",
             )
+            copy_file(
+                ROOT / "scripts/latex/build_environment.py",
+                scripts / "latex/build_environment.py",
+            )
+            copy_file(ROOT / "config/toolchain.env", root / "config/toolchain.env")
             (root / "config").mkdir(parents=True, exist_ok=True)
             (root / "config/latexmkrc").write_text("", encoding="utf-8")
             book = root / "books/example"
@@ -243,6 +248,7 @@ class BuildVSCodeTests(unittest.TestCase):
                     str(root / "config/latexmkrc"),
                     "-lualatex",
                     f"-outdir={output}",
+                    "-g",
                     "-shell-escape",
                     "book.tex",
                 ],
@@ -482,6 +488,11 @@ class BuildBookTests(unittest.TestCase):
         copy_file(
             ROOT / "scripts/latex/build_support.sh", scripts / "latex/build_support.sh"
         )
+        copy_file(
+            ROOT / "scripts/latex/build_environment.py",
+            scripts / "latex/build_environment.py",
+        )
+        copy_file(ROOT / "config/toolchain.env", self.root / "config/toolchain.env")
         (scripts / "books/books.py").write_text(
             textwrap.dedent(
                 "            import sys\n"
@@ -646,6 +657,78 @@ class BuildBookTests(unittest.TestCase):
         self.assertEqual(result.returncode, 17, result.stderr)
         self.assertFalse((output / "book.pdf").exists())
         self.assertNotIn("==> Built", result.stdout)
+
+    def test_environment_changes_force_rebuild_until_success(self) -> None:
+        import json
+
+        output = self.root / "build/sample"
+        command = [str(self.root / "scripts/latex/build_book.sh"), "sample"]
+        for epoch, status, forced in (
+            ("1700000000", 0, True),
+            ("1700000000", 0, False),
+            ("1700000001", 17, True),
+            ("1700000001", 0, True),
+            ("1700000001", 0, False),
+        ):
+            with self.subTest(epoch=epoch, status=status, forced=forced):
+                result = subprocess.run(
+                    command,
+                    cwd=self.root,
+                    env={
+                        **os.environ,
+                        "PATH": self.path,
+                        "LATEXMK_CAPTURE": str(output),
+                        "SOURCE_DATE_EPOCH": epoch,
+                        "LATEXMK_EXIT_CODE": str(status),
+                    },
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                self.assertEqual(result.returncode, status, result.stderr)
+                self.assertEqual(
+                    "-g" in (output / "arguments").read_text().splitlines(), forced
+                )
+                environment = json.loads(
+                    (output / "book.build-environment.json").read_text()
+                )
+                self.assertEqual(
+                    environment["SOURCE_DATE_EPOCH"],
+                    "1700000000" if status else epoch,
+                )
+
+    def test_editor_environment_records_are_separate_for_each_document(self) -> None:
+        copy_file(
+            ROOT / "scripts/latex/build_vscode.sh",
+            self.root / "scripts/latex/build_vscode.sh",
+        )
+        output = self.root / "vscode-build/sample"
+        for document, epoch in (
+            ("first.tex", "1"),
+            ("second.tex", "2"),
+            ("first.tex", "2"),
+        ):
+            source = self.root / "books/sample" / document
+            source.touch()
+            result = subprocess.run(
+                [
+                    str(self.root / "scripts/latex/build_vscode.sh"),
+                    str(output),
+                    str(source),
+                ],
+                cwd=self.root,
+                env={
+                    **os.environ,
+                    "PATH": self.path,
+                    "LATEXMK_CAPTURE": str(output),
+                    "SOURCE_DATE_EPOCH": epoch,
+                },
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("-g", (output / "arguments").read_text().splitlines())
 
     def test_same_output_is_serialized_through_failed_pdf_cleanup(self) -> None:
         from tests.support.fixtures import stop_process_group
