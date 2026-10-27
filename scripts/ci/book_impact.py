@@ -22,6 +22,7 @@ from scripts.repository.path_policy import (
     SCAFFOLD_FILES,
     SITE_FILES,
     SNAPSHOT_FILES,
+    book_input_prefix,
 )
 from scripts.repository.source_reads import parse_yaml
 
@@ -163,10 +164,12 @@ def plan(
         reason = "comparison unavailable; safe full build"
     else:
         path_set = {PurePosixPath(path).as_posix() for path in paths}
-        dependency_map = {slug: dependencies(slug) for slug in slugs}
+        dependency_map = (
+            {slug: dependencies(slug) for slug in slugs} if path_set else {}
+        )
         for slug, inputs in dependency_map.items():
             matched = path_set & inputs | {
-                path for path in path_set if path.startswith(f"books/{slug}/")
+                path for path in path_set if path.startswith(book_input_prefix(slug))
             }
             if matched:
                 select([slug], "changed book inputs", list(matched))

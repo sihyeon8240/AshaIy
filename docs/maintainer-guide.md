@@ -144,6 +144,13 @@ Review shared changes against every affected consumer and preserve public interf
 
 Cache hits still run normal builds and strict checks. Lean caches include
 platform, toolchain, lock, configuration, and source inputs; PDF caches include
+the committed book assembly as the publication-metadata projection. The global
+registry controls selection and is validated separately; its ordering and other
+books' records do not invalidate every book's incremental state.
+`python3 scripts/ci/book_cache.py <slug> --format json` describes this input policy
+without optional Python packages.
+These fingerprints identify committed inputs, not dirty local working trees or
+successful validation. PDF cache keys also include
 the book, platform, image digest, and shared build inputs. Fallback stays within
 the same book and image. Only successful main pushes save Lean and PDF caches;
 PRs restore them. Python and Mathlib download directories are not separately
@@ -164,7 +171,12 @@ PR run, or an exact-pin dispatch, for the merged PR's head in this repository.
 A dispatch must match the PR branch and record `expected_sha`; unpinned dispatches
 do not produce reusable validation artifacts. Reuse requires an identical
 full Git tree (including workflows and build settings), image index digest,
-platform, validation policy, run ID/attempt, and PDF/log checksums. The downloaded
+platform, validation policy, canonical build environment, run ID/attempt,
+and PDF/log checksums. The recorded environment must match the successful
+compiler invocation, including the fixed clock and search-path overrides.
+Local environment overrides remain usable for development but do not qualify
+for verified CI reuse. See [PDF build settings](developer-workflow.md#build-outputs).
+The downloaded
 archive must also match GitHub's artifact digest, and its log is strictly checked
 again. GitHub commit trees are compared before artifact lookup and download.
 A match skips the TeX container build and republishes the verified PDF as
@@ -174,8 +186,39 @@ Verified artifacts expire after 14 days; unavailable or ineligible artifacts
 fall back to a normal cached build. Full-tree matching is conservative: an
 unrelated change can require a rebuild, while merge/squash/rebase commit SHAs may
 differ if their final trees match. Manual **Build textbooks** dispatches skip
-PR reuse and build every enabled book. Bump cache versions or `strict-pdf-v1`
+PR reuse and build every enabled book. Bump cache versions or `strict-pdf-v2`
 when their corresponding semantics change.
+
+## Build measurements
+
+Each book job publishes `<slug>-build-metrics` for 30 days and writes phase
+durations to the job summary. Its `result.json` records run/attempt, selected
+book count, job status, exact/prefix/missing incremental cache, verified-reuse
+outcome, and completed or incomplete phases. `build-inputs.json` records the
+committed input descriptor outside the restored LaTeX cache.
+
+Phases are nested: `job` includes the other phases, and `pre-build` includes
+cache restore and reuse lookup. Do not sum all rows. `image` includes image
+loading/authentication/pulling; `publication` includes PDF packaging and uploads.
+Job time starts after checkout and ends before uploading telemetry; runner
+provisioning, queueing, and upstream jobs require GitHub job/workflow timings.
+Reuse miss reasons distinguish source-tree mismatches, rejected artifacts,
+unavailable artifacts, and absence of an eligible artifact. The console retains
+the detailed rejection diagnostic.
+
+Download the metrics artifacts from one run and attempt, then compare all of its
+selected books:
+
+```sh
+python3 scripts/ci/build_metrics.py assess build/downloaded-metrics/*/result.json
+```
+
+Incomplete, failed, duplicate, mixed-run, partially supplied, and verified-reuse
+jobs cannot justify a grouping recommendation. The evaluator reports whether
+the [grouping experiment criteria](build-design.md#scaling-ci-from-measurements)
+are met; it never changes job topology automatically. Run controlled grouped and
+ungrouped workflows and compare actual runner time and end-to-end wall time
+before adopting a new matrix policy.
 
 ## Toolchain image operations
 

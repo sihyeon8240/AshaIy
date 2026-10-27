@@ -71,6 +71,7 @@ check_command gs
 check_command tree
 check_command git
 check_command bash
+check_command flock
 check_command shellcheck
 check_command shfmt
 check_command ruff

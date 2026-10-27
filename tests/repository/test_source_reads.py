@@ -12,6 +12,7 @@ import yaml
 from scripts.books.contents_manifest import load_sections
 from scripts.repository.config.json_config import parse_json
 from scripts.repository.source_reads import (
+    StrictLoader,
     parse_yaml,
     read_text,
     read_yaml,
@@ -20,6 +21,31 @@ from scripts.repository.source_reads import (
 
 
 class SourceReadTests(unittest.TestCase):
+    def test_native_and_python_parsers_preserve_strict_yaml_contract(self) -> None:
+        class PythonStrictLoader(yaml.SafeLoader):
+            construct_mapping = StrictLoader.construct_mapping
+
+        for text in (
+            "first: &value [1, 2]\nsecond: *value\n",
+            "enabled: yes\nschema_version: 1.0\n",
+            "label: 한글\nitems: [one, two]\n",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(
+                    parse_yaml(text), yaml.load(text, Loader=PythonStrictLoader)
+                )
+        for text in (
+            "key: true\nkey: false\n",
+            "base: &base {key: true}\nmerged: {<<: *base}\n",
+        ):
+            for loader in (StrictLoader, PythonStrictLoader):
+                with (
+                    self.subTest(text=text, loader=loader),
+                    self.assertRaises(yaml.MarkedYAMLError) as error,
+                ):
+                    yaml.load(text, Loader=loader)
+                self.assertIsNotNone(error.exception.problem_mark)
+
     def test_json_rejects_ambiguous_keys_and_nonstandard_constants(self) -> None:
         for text in (
             '{"schema_version": 2, "schema_version": 1}',

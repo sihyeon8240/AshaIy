@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import tempfile
@@ -10,7 +11,11 @@ from pathlib import Path
 
 import yaml
 
-from tests.support.fixtures import write_executable
+from tests.support.fixtures import (
+    copy_file,
+    copy_validation_configuration,
+    write_executable,
+)
 from tests.support.workflows import build_workflow, condition_allows
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -116,8 +121,15 @@ class ToolchainConsumerTests(unittest.TestCase):
             (ROOT / ".github/actions/run-toolchain/action.yml").read_text()
         )
         script = action["runs"]["steps"][-1]["run"]
-        for artifact in ("", "toolchain-image-amd64"):
-            with self.subTest(artifact=artifact), tempfile.TemporaryDirectory() as name:
+        for artifact, measured in (
+            ("", False),
+            ("toolchain-image-amd64", False),
+            ("", True),
+        ):
+            with (
+                self.subTest(artifact=artifact, measured=measured),
+                tempfile.TemporaryDirectory() as name,
+            ):
                 root = Path(name)
                 calls = root / "calls"
                 write_executable(
@@ -127,18 +139,40 @@ class ToolchainConsumerTests(unittest.TestCase):
                 digest = "a" * 64
                 image = "ghcr.io/example/toolchain"
                 image += ":candidate" if artifact else f"@sha256:{digest}"
+                environment = {
+                    **os.environ,
+                    "PATH": f"{root}:{os.environ['PATH']}",
+                    "DOCKER_CALLS": str(calls),
+                    "GITHUB_WORKSPACE": str(root),
+                    "TOOLCHAIN_IMAGE": image,
+                    "TOOLCHAIN_DIGEST": digest,
+                    "TOOLCHAIN_ARTIFACT": artifact,
+                    "TOOLCHAIN_COMMANDS": "ashaiy book build --check --strict",
+                    "BUILD_METRICS_BOOK": "sample" if measured else "",
+                }
+                if measured:
+                    copy_validation_configuration(root)
+                    copy_file(
+                        ROOT / "scripts/ci/build_metrics.py",
+                        root / "scripts/ci/build_metrics.py",
+                    )
+                    subprocess.run(
+                        [
+                            "bash",
+                            "-euo",
+                            "pipefail",
+                            "-c",
+                            action["runs"]["steps"][0]["run"],
+                        ],
+                        cwd=root,
+                        env=environment,
+                        check=True,
+                        capture_output=True,
+                    )
                 result = subprocess.run(
                     ["bash", "-euo", "pipefail", "-c", script],
-                    env={
-                        **os.environ,
-                        "PATH": f"{root}:{os.environ['PATH']}",
-                        "DOCKER_CALLS": str(calls),
-                        "GITHUB_WORKSPACE": str(root),
-                        "TOOLCHAIN_IMAGE": image,
-                        "TOOLCHAIN_DIGEST": digest,
-                        "TOOLCHAIN_ARTIFACT": artifact,
-                        "TOOLCHAIN_COMMANDS": "ashaiy book build --check --strict",
-                    },
+                    cwd=root,
+                    env=environment,
                     capture_output=True,
                     text=True,
                     check=False,
@@ -148,6 +182,12 @@ class ToolchainConsumerTests(unittest.TestCase):
                 self.assertEqual("pull " in commands, not bool(artifact))
                 self.assertIn("--pull=never", commands)
                 self.assertIn("ashaiy book build --check --strict", commands)
+                if measured:
+                    metrics = json.loads(
+                        (root / "build/ci-metrics/sample/image.json").read_text()
+                    )
+                    self.assertGreaterEqual(metrics["seconds"], 0)
+                    self.assertEqual(metrics["exit_code"], 0)
 
 
 if __name__ == "__main__":

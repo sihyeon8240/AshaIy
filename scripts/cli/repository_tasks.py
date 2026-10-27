@@ -10,6 +10,7 @@ from contextlib import nullcontext
 from pathlib import Path
 
 from scripts.cli.task_stages import Stage, StageResult, run_stages
+from scripts.repository.file_updates import source_updates
 from scripts.repository.source_reads import reuse_source_reads
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -104,7 +105,10 @@ def generate(*, book: str | None = None, check: bool = False) -> StageResult:
         ),
     )
     # Generation writes sources that later stages may read; only checks may cache.
-    with reuse_source_reads() if check else nullcontext():
+    with (
+        source_updates(ROOT, check=check),
+        reuse_source_reads() if check else nullcontext(),
+    ):
         return run_stages(stages)
 
 

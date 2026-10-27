@@ -12,6 +12,7 @@ from scripts.books import contents_generation as contents
 from scripts.cli import repository_tasks as tasks
 from scripts.cli import task_stages as stages
 from scripts.lean import lean_generation as lean
+from scripts.repository.file_updates import write_updates
 from scripts.repository.source_reads import read_yaml
 from scripts.site import site_pages as site
 
@@ -40,7 +41,7 @@ class RepositoryTaskTests(unittest.TestCase):
             def lean_stage(**options):
                 observed.append(cast(dict[str, str], read_yaml(source))["value"])
                 if not options["check"]:
-                    source.write_text("value: updated\n")
+                    write_updates({source: "value: updated\n"})
                 return 0
 
             def contents_stage(scope, **options):

@@ -11,12 +11,17 @@ if __package__ in (None, ""):
 
 from scripts.books.book_manifest import load_manifest
 from scripts.books.contents_manifest import expected_files, proof_index_paths
-from scripts.repository.file_updates import changed_files, write_updates
+from scripts.repository.file_updates import changed_files, source_updates, write_updates
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 def generate(scope: str, *, book: str | None = None, check: bool = False) -> int:
+    with source_updates(ROOT, check=check):
+        return _generate(scope, book=book, check=check)
+
+
+def _generate(scope: str, *, book: str | None, check: bool) -> int:
     manifest = load_manifest()
     selected = manifest["books"]
     if book:

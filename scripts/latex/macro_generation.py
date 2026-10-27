@@ -12,9 +12,9 @@ if __package__ in (None, ""):
 
 from scripts.books.book_manifest import load_manifest
 from scripts.latex.command_specs import BUILTIN_COMMANDS, CommandSpec
-from scripts.latex.macro_manifest import load_macros, render_macros
-from scripts.repository.file_updates import changed_files, write_updates
-from scripts.repository.source_reads import read_text
+from scripts.latex.macro_manifest import MacroDeclaration, load_macros, render_macros
+from scripts.repository.file_updates import changed_files, source_updates, write_updates
+from scripts.repository.source_reads import read_text, reuse_source_reads
 
 ROOT = Path(__file__).resolve().parents[2]
 COMMON_GENERATED_NAME = "generated-common-macros.sty"
@@ -39,12 +39,16 @@ class MacroRepository:
     def __init__(self, root: Path = ROOT) -> None:
         self.root = root.resolve()
         self.registries: dict[str | None, MacroRegistry] = {}
+        self._books: list[str] | None = None
+        self._manifests: dict[Path, tuple[dict[str, MacroDeclaration], str, bytes]] = {}
 
     def books(self) -> list[str]:
-        manifest = load_manifest(
-            self.root / "config/books.yml", repository_root=self.root
-        )
-        return [book["slug"] for book in manifest["books"]]
+        if self._books is None:
+            manifest = load_manifest(
+                self.root / "config/books.yml", repository_root=self.root
+            )
+            self._books = [book["slug"] for book in manifest["books"]]
+        return list(self._books)
 
     def registry(self, book: str | None = None, *, check: bool = True) -> MacroRegistry:
         if book not in self.registries:
@@ -71,7 +75,17 @@ class MacroRepository:
             updates = {}
             digest = hashlib.sha256()
             for path, output, package in manifests:
-                declarations = load_macros(path)
+                if path not in self._manifests:
+                    declarations = load_macros(path)
+                    rendered = render_macros(
+                        declarations, path.relative_to(self.root).as_posix(), package
+                    )
+                    self._manifests[path] = (
+                        declarations,
+                        rendered,
+                        read_text(path).encode(),
+                    )
+                declarations, rendered, source = self._manifests[path]
                 duplicate = commands.keys() & declarations.keys()
                 if duplicate:
                     raise ValueError(
@@ -80,11 +94,9 @@ class MacroRepository:
                 commands.update(
                     {name: macro.spec for name, macro in declarations.items()}
                 )
-                updates[output] = render_macros(
-                    declarations, path.relative_to(self.root).as_posix(), package
-                )
+                updates[output] = rendered
                 digest.update(path.relative_to(self.root).as_posix().encode())
-                digest.update(read_text(path).encode())
+                digest.update(source)
             self.registries[book] = MacroRegistry(commands, updates, digest.digest())
         registry = self.registries[book]
         if check:
@@ -102,17 +114,25 @@ class MacroRepository:
 
 
 def generate(*, book: str | None = None, check: bool = False, root: Path = ROOT) -> int:
-    repository = MacroRepository(root)
-    books = repository.books()
-    if book is not None and book not in books:
-        raise ValueError(f"unknown macro book: {book}")
-    registered = set(books)
-    for path in (root / "books").glob("*/styles/macros.yml"):
-        if path.parents[1].name not in registered:
-            raise ValueError(f"{path}: macro manifest belongs to an unregistered book")
-    updates = dict(repository.registry(check=False).updates)
-    for slug in [book] if book is not None else books:
-        updates.update(repository.registry(slug, check=False).updates)
+    with source_updates(root, check=check):
+        return _generate(book=book, check=check, root=root)
+
+
+def _generate(*, book: str | None, check: bool, root: Path) -> int:
+    with reuse_source_reads():
+        repository = MacroRepository(root)
+        books = repository.books()
+        if book is not None and book not in books:
+            raise ValueError(f"unknown macro book: {book}")
+        registered = set(books)
+        for path in (root / "books").glob("*/styles/macros.yml"):
+            if path.parents[1].name not in registered:
+                raise ValueError(
+                    f"{path}: macro manifest belongs to an unregistered book"
+                )
+        updates = dict(repository.registry(check=False).updates)
+        for slug in [book] if book is not None else books:
+            updates.update(repository.registry(slug, check=False).updates)
     stale = changed_files(updates) if check else write_updates(updates)
     if check and stale:
         for path in stale:

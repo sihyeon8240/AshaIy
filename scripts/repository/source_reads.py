@@ -9,6 +9,8 @@ from pathlib import Path
 
 import yaml
 
+from scripts.repository.file_updates import read_source
+
 
 class StrictLoader(yaml.SafeLoader):
     """Safe YAML with explicit, unique mapping keys; merge keys are unsupported."""
@@ -44,9 +46,19 @@ class StrictLoader(yaml.SafeLoader):
         return mapping
 
 
+if hasattr(yaml, "CSafeLoader"):
+
+    class NativeStrictLoader(yaml.CSafeLoader):
+        construct_mapping = StrictLoader.construct_mapping
+
+    _loader = NativeStrictLoader
+else:
+    _loader = StrictLoader
+
+
 def parse_yaml(text: str) -> object:
     """Parse current or historical configuration using the same strict contract."""
-    return yaml.load(text, Loader=StrictLoader)
+    return yaml.load(text, Loader=_loader)
 
 
 def field_mapping(value: object, context: str) -> dict:
@@ -81,11 +93,11 @@ def reuse_source_reads():
 def read_text(path: Path, *, errors: str = "strict") -> str:
     snapshot = _active.get()
     if snapshot is None:
-        return path.read_text(encoding="utf-8", errors=errors)
+        return read_source(path, errors=errors)
 
     key = (path, errors)
     if key not in snapshot.texts:
-        snapshot.texts[key] = path.read_text(encoding="utf-8", errors=errors)
+        snapshot.texts[key] = read_source(path, errors=errors)
     return snapshot.texts[key]
 
 

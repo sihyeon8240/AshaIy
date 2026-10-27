@@ -168,7 +168,11 @@ fi
                 root = Path(temporary)
                 scripts = root / "scripts"
                 scripts.mkdir()
-                for name in ("__init__.py", "repository/source_reads.py"):
+                for name in (
+                    "__init__.py",
+                    "repository/source_reads.py",
+                    "repository/file_updates.py",
+                ):
                     copy_file(ROOT / "scripts" / name, scripts / name)
                 workflows = root / ".github/workflows"
                 workflows.mkdir(parents=True)

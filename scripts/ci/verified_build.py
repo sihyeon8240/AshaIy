@@ -19,10 +19,11 @@ if __package__ in (None, ""):
 
 from scripts.ci import github_artifacts
 from scripts.ci.github_artifacts import checksum, eligible_run
+from scripts.latex.build_environment import FILENAME, canonical_environment
 from scripts.repository.config.validation_patterns import validation_pattern
 
 ROOT = Path(__file__).resolve().parents[2]
-POLICY = "strict-pdf-v1"
+POLICY = "strict-pdf-v2"
 FILES = ("book.pdf", "book.log")
 MAX_BYTES = 100 * 1024 * 1024
 
@@ -48,15 +49,19 @@ def identity(book: str, image: str, *, candidate: bool = False) -> dict:
             "a candidate image ID or immutable registry digest is required"
         )
     return {
-        "policy": "strict-candidate-pdf-v1" if candidate else POLICY,
+        "policy": "strict-candidate-pdf-v2" if candidate else POLICY,
         "book": book,
         "image_id" if candidate else "image": image,
         "platform": "linux/amd64",
         "tree": command("git", "rev-parse", "HEAD^{tree}").decode().strip(),
+        "environment": canonical_environment(ROOT),
     }
 
 
 def record(expected: dict, directory: Path) -> None:
+    environment = json.loads((directory / FILENAME).read_text(encoding="utf-8"))
+    if environment != expected["environment"]:
+        raise ValueError("build environment differs from the canonical environment")
     command(
         "python3", "scripts/latex/check_log.py", "--strict", str(directory / "book.log")
     )
@@ -147,7 +152,9 @@ def restore_candidate(expected: dict, directory: Path, archive: Path) -> bool:
     return True
 
 
-def restore(expected: dict, directory: Path) -> bool:
+def restore(
+    expected: dict, directory: Path, *, diagnostics: list[str] | None = None
+) -> bool:
     repository = os.environ["GITHUB_REPOSITORY"]
     commit = os.environ["GITHUB_SHA"]
     pulls = api(f"repos/{repository}/commits/{commit}/pulls?per_page=100")
@@ -164,6 +171,8 @@ def restore(expected: dict, directory: Path) -> bool:
             api(f"repos/{repository}/git/commits/{head}")["tree"]["sha"]
             != expected["tree"]
         ):
+            if diagnostics is not None:
+                diagnostics.append("source-tree-mismatch")
             continue
         runs = api(
             f"repos/{repository}/actions/workflows/build.yml/runs"
@@ -204,6 +213,8 @@ def restore(expected: dict, directory: Path) -> bool:
                     zipfile.BadZipFile,
                     subprocess.SubprocessError,
                 ) as error:
+                    if diagnostics is not None:
+                        diagnostics.append("artifact-rejected")
                     print(f"Artifact cannot be reused; rebuilding: {error}")
     return False
 
@@ -234,11 +245,12 @@ def main() -> None:
         record(expected, directory)
         return
     reused = False
+    diagnostics: list[str] = []
     try:
         reused = (
             restore_candidate(expected, directory, archive)
             if candidate
-            else restore(expected, directory)
+            else restore(expected, directory, diagnostics=diagnostics)
         )
     except (
         ValueError,
@@ -247,9 +259,16 @@ def main() -> None:
         zipfile.BadZipFile,
         subprocess.SubprocessError,
     ) as error:
+        diagnostics.append("artifact-unavailable")
         print(f"Verified artifact unavailable; rebuilding: {error}")
+    reason = (
+        "verified-artifact"
+        if reused
+        else next(reversed(diagnostics), "no-eligible-artifact")
+    )
     with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
         output.write(f"reused={str(reused).lower()}\n")
+        output.write(f"reuse_reason={reason}\n")
 
 
 if __name__ == "__main__":

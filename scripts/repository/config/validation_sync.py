@@ -8,6 +8,7 @@ from pathlib import Path
 
 from scripts.repository.config.json_config import read_json
 from scripts.repository.config.validation_patterns import load_patterns
+from scripts.repository.file_updates import read_source
 
 SHELL_CONSUMERS = (
     ".github/actions/load-toolchain/action.yml",
@@ -77,5 +78,5 @@ def rendered_validation_consumers(root: Path) -> dict[Path, str]:
         updates[path] = json.dumps(data, indent=2) + "\n"
     for relative in SHELL_CONSUMERS:
         path = root / relative
-        updates[path] = shell_patterns(path.read_text(encoding="utf-8"), patterns, path)
+        updates[path] = shell_patterns(read_source(path), patterns, path)
     return updates

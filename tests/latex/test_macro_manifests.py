@@ -11,6 +11,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts.latex.macro_generation import (
     BOOK_GENERATED_NAME,
@@ -116,6 +117,28 @@ class MacroManifestTests(unittest.TestCase):
     def generate(self, **options) -> int:
         with redirect_stdout(io.StringIO()):
             return generate(root=self.root, **options)
+
+    def test_common_input_is_consistent_per_plan_and_edits_reach_next_plan(
+        self,
+    ) -> None:
+        with patch(
+            "scripts.latex.macro_generation.load_macros", wraps=load_macros
+        ) as reader:
+            repository = MacroRepository(self.root)
+            first = repository.registry("alpha", check=False)
+            second = repository.registry("beta", check=False)
+        common = self.root / "common/styles/macros.yml"
+        self.assertEqual(
+            sum(call.args[0] == common for call in reader.call_args_list), 1
+        )
+        output = self.root / "common/styles" / COMMON_GENERATED_NAME
+        self.assertEqual(first.updates[output], second.updates[output])
+        self.shared["R"]["body"] = r"\mathbf{R}"
+        self.write_shared()
+        self.generate()
+        next_plan = MacroRepository(self.root).registry("alpha")
+        self.assertNotEqual(first.fingerprint, next_plan.fingerprint)
+        self.assertIn(r"\mathbf{R}", next_plan.updates[output])
 
     def test_generation_is_idempotent_scoped_and_check_is_read_only(self) -> None:
         targets = sorted(self.root.rglob("generated*-macros.sty"))

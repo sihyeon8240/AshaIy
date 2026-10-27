@@ -143,8 +143,19 @@ glob exclusions belong in `config/ignore-patterns.yml`.
 
 Preserve hand-maintained fields in mixed consumers; do not replace these files
 with complete generated templates. Synchronization validates the full update set
-before writing and rolls back ordinary write failures. Abrupt termination is
-not transactional; check mode never writes.
+before writing. Source mutations hold an invocation-scoped, reentrant lock under
+`build/locks/` from reading through installation. Readers record source bytes so
+edits observed after planning stop the update. This advisory lock coordinates
+repository commands; external editors do not participate in it.
+
+The shared writer installs complete same-directory temporary files with atomic
+replacement, retaining existing permissions and symlinks. Exceptions, including
+Python cancellation, restore installed files without overwriting later edits.
+An unsuccessful rollback retains originals and a path index under `build/recovery/`
+and reports their location. Registry and image-pin updates also synchronize writes
+to disk. Each replacement is atomic; a multi-file update is not a crash transaction.
+Check mode neither writes sources nor creates locks. Interrupted `.ashaiy-*.tmp`
+files are ignored and belong to source cleanup.
 
 The shared preface's `common/templates/formalization-versions.tex` is also
 synchronized: Lean comes from `config/toolchain.env`, and Mathlib's tag and exact
@@ -275,6 +286,10 @@ Python domain modules use absolute `scripts.*` imports. Entry-point adapters add
 the checkout root to the import path when executed directly; internal readers,
 caches, and invocation snapshots retain one package identity. Tests import the
 same package rather than loading separate module copies.
+Strict YAML parsing uses PyYAML's C implementation when available, with the same
+mapping validation on its Python fallback. Macro generation reuses registered
+books and common declarations only while constructing one invocation's update
+plan; it discards read reuse before installing files.
 Automation and tests use matching functional packages:
 
 | Package | Responsibility |

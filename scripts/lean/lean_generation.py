@@ -11,10 +11,15 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from scripts.lean.lean_manifest import ROOT, expected_files, stale_files
-from scripts.repository.file_updates import write_updates
+from scripts.repository.file_updates import source_updates, write_updates
 
 
 def generate(*, root: Path = ROOT, book: str | None = None, check: bool = False) -> int:
+    with source_updates(root, check=check):
+        return _generate(root=root, book=book, check=check)
+
+
+def _generate(*, root: Path, book: str | None, check: bool) -> int:
     expected = expected_files(root, book)
     stale = stale_files(expected)
 

@@ -212,8 +212,12 @@ class ReleasePlanTests(unittest.TestCase):
             root = Path(directory)
             source = (
                 "# keep this comment\n"
+                "schema_version: 1\n"
+                "defaults: {author: Author, status: draft, build: true, check: true, release: false, site: false}\n"
                 "books:\n"
                 "  - slug: alpha\n"
+                "    title: Alpha\n"
+                "    order: 10\n"
                 "    version: '1.0.0' # keep this too\n"
             )
             (root / "config").mkdir(parents=True, exist_ok=True)
@@ -245,7 +249,13 @@ class ReleasePlanTests(unittest.TestCase):
         for field in ["    release: false # retain comment\n", ""]:
             with self.subTest(field=field), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
-                source = "books:\n  - slug: alpha\n" + field + "    version: 1.0.0\n"
+                source = (
+                    "schema_version: 1\n"
+                    "defaults: {author: Author, status: draft, build: true, check: true, release: false, site: false}\n"
+                    "books:\n  - slug: alpha\n    title: Alpha\n    order: 10\n"
+                    + field
+                    + "    version: 1.0.0\n"
+                )
                 (root / "config").mkdir(parents=True, exist_ok=True)
                 (root / "config/books.yml").write_text(source)
                 with (

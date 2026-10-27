@@ -23,7 +23,7 @@ from scripts.lean.lean_coverage import (
     registered_results,
 )
 from scripts.repository.config.validation_patterns import validation_pattern
-from scripts.repository.file_updates import write_updates
+from scripts.repository.file_updates import source_updates, write_updates
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SITE_DIR = REPO_ROOT / "site"
@@ -113,6 +113,24 @@ def generate(
     book: str | None = None,
     skip_disabled: bool = False,
     verify_output: bool = False,
+) -> int:
+    with source_updates(REPO_ROOT, check=check):
+        return _generate(
+            check=check,
+            site_dir=site_dir,
+            book=book,
+            skip_disabled=skip_disabled,
+            verify_output=verify_output,
+        )
+
+
+def _generate(
+    *,
+    check: bool,
+    site_dir: Path,
+    book: str | None,
+    skip_disabled: bool,
+    verify_output: bool,
 ) -> int:
     manifest = load_manifest()
     if book:

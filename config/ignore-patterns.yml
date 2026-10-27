@@ -76,6 +76,7 @@ groups:
     - '*.swo'
     - '*~'
     - .books.yml.*.tmp
+    - .ashaiy-*.tmp
   macos:
     - .DS_Store
     - ._*

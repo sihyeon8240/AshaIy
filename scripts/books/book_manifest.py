@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import os
 import re
-import tempfile
 from pathlib import Path
 from typing import Any, NotRequired, TypedDict, cast
 
 import yaml
 
 from scripts.repository.config.validation_patterns import validation_pattern
+from scripts.repository.file_updates import source_updates, write_updates
 from scripts.repository.source_reads import field_mapping, read_yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -99,29 +98,16 @@ def read_raw_manifest() -> dict[str, Any]:
 
 
 def save_manifest(manifest: dict[str, Any]) -> None:
-    temporary_path: Path | None = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode="w",
-            encoding="utf-8",
-            dir=MANIFEST_PATH.parent,
-            prefix=f".{MANIFEST_PATH.name}.",
-            suffix=".tmp",
-            delete=False,
-        ) as file:
-            temporary_path = Path(file.name)
-            yaml.safe_dump(
-                manifest,
-                file,
-                allow_unicode=True,
-                sort_keys=False,
-                default_flow_style=False,
-            )
-        load_manifest(temporary_path)
-        os.replace(temporary_path, MANIFEST_PATH)
-    finally:
-        if temporary_path is not None:
-            temporary_path.unlink(missing_ok=True)
+    with source_updates(REPO_ROOT):
+        normalized = normalize_manifest(manifest)
+        _validate_book_files(normalized, REPO_ROOT)
+        text = yaml.safe_dump(
+            manifest,
+            allow_unicode=True,
+            sort_keys=False,
+            default_flow_style=False,
+        )
+        write_updates({MANIFEST_PATH: text}, durable=True)
 
 
 def validate_new_book_input(slug: str, title: str) -> None:
@@ -141,6 +127,13 @@ def suggested_label_prefix(slug: str) -> str:
 
 def add_book(
     slug: str, title: str, *, release: bool | None = None, site: bool | None = None
+) -> None:
+    with source_updates(REPO_ROOT):
+        _add_book(slug, title, release=release, site=site)
+
+
+def _add_book(
+    slug: str, title: str, *, release: bool | None, site: bool | None
 ) -> None:
     validate_new_book_input(slug, title)
     title = title.strip()
@@ -186,12 +179,16 @@ def load_manifest(
         repository_root = REPO_ROOT
 
     data = normalize_manifest(_read_yaml(path))
+    _validate_book_files(data, repository_root)
+    return data
+
+
+def _validate_book_files(data: dict[str, Any], repository_root: Path) -> None:
     for book in data["books"]:
         slug = book["slug"]
         book_dir = repository_root / "books" / slug
         if not (book_dir / "book.tex").is_file():
             raise ValueError(f"book '{slug}' is missing books/{slug}/book.tex")
-    return data
 
 
 def _validate_defaults(defaults: object) -> dict[str, Any]:

@@ -23,7 +23,8 @@ from scripts.books.book_manifest import (
 )
 from scripts.books.contents_manifest import expected_files
 from scripts.repository.config.validation_patterns import validation_pattern
-from scripts.repository.source_reads import parse_yaml
+from scripts.repository.file_updates import source_updates, write_updates
+from scripts.repository.source_reads import parse_yaml, read_text
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -162,6 +163,11 @@ def release_edits(text: str, node: yaml.MappingNode, version: str) -> list[tuple
 
 
 def prepare(book_slug: str, version: str) -> None:
+    with source_updates(ROOT):
+        _prepare(book_slug, version)
+
+
+def _prepare(book_slug: str, version: str) -> None:
     branch = subprocess.check_output(
         ["git", "branch", "--show-current"], cwd=ROOT, text=True
     ).strip()
@@ -182,7 +188,7 @@ def prepare(book_slug: str, version: str) -> None:
         )
 
     path = ROOT / "config/books.yml"
-    text = path.read_text()
+    text = read_text(path)
     document = yaml.compose(text)
     books_node = next(v for k, v in document.value if k.value == "books")
     node = next(
@@ -201,18 +207,8 @@ def prepare(book_slug: str, version: str) -> None:
     updates = expected_files(ROOT / "books" / book_slug, "all", book=book)
     updates[path] = updated
 
-    original = {p: p.read_bytes() if p.exists() else None for p in updates}
-    try:
-        for target, content in updates.items():
-            target.write_text(content, encoding="utf-8")
-        load_manifest()
-    except Exception:
-        for target, content in original.items():
-            if content is None:
-                target.unlink(missing_ok=True)
-            else:
-                target.write_bytes(content)
-        raise
+    normalize_manifest(parse_yaml(updated))
+    write_updates(updates, durable=True)
 
     print(f"Prepared {book_slug} {version}; review and commit the changes in your PR.")
     print(

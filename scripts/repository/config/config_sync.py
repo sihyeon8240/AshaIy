@@ -27,8 +27,8 @@ from scripts.repository.config.repository_config import (
 )
 from scripts.repository.config.validation_patterns import validation_pattern
 from scripts.repository.config.validation_sync import rendered_validation_consumers
-from scripts.repository.file_updates import changed_files, write_updates
-from scripts.repository.source_reads import read_yaml
+from scripts.repository.file_updates import changed_files, source_updates, write_updates
+from scripts.repository.source_reads import read_text, read_yaml
 
 SHA256 = re.compile(validation_pattern("sha256"))
 
@@ -106,7 +106,7 @@ def rendered_issue_forms(root: Path, books: list[dict]) -> dict[Path, str]:
     updates = {}
     for name in ("mathematical-error", "typo"):
         path = root / ".github/ISSUE_TEMPLATE" / f"{name}.yml"
-        text = path.read_text(encoding="utf-8")
+        text = read_text(path)
         form = read_yaml(path)
         if not isinstance(form, dict) or not isinstance(form.get("body"), list):
             raise ValueError(f"{path}: expected an issue form body")
@@ -136,7 +136,7 @@ def rendered_consumers(
     if image is None:
         image = load_image(root / "config/container-image.txt")
     devcontainer = root / ".devcontainer/devcontainer.json"
-    dev_text = devcontainer.read_text(encoding="utf-8")
+    dev_text = read_text(devcontainer)
     parse_json(dev_text)
     dev_text = replace_once(
         dev_text,
@@ -163,14 +163,14 @@ def rendered_consumers(
 
     lakefile = root / "lean/lakefile.toml"
     lake_text = replace_once(
-        lakefile.read_text(encoding="utf-8"),
+        read_text(lakefile),
         r'^(rev\s*=\s*)"v[^"]+"$',
         rf'\g<1>"v{toolchain["LEAN_VERSION"]}"',
         lakefile,
     )
     pyproject = root / "config/pyproject.toml"
     pyproject_text = replace_once(
-        pyproject.read_text(encoding="utf-8"),
+        read_text(pyproject),
         r'^(target-version\s*=\s*)"py[0-9]+"$',
         rf'\g<1>"py{toolchain["PYTHON_SERIES"].replace(".", "")}"',
         pyproject,
@@ -225,18 +225,24 @@ def rendered_consumers(
 
 
 def synchronize(*, root: Path = ROOT, check: bool = False) -> list[Path]:
-    updates = rendered_consumers(root)
-    return changed_files(updates) if check else write_updates(updates)
+    with source_updates(root, check=check):
+        updates = rendered_consumers(root)
+        return changed_files(updates) if check else write_updates(updates)
 
 
 def set_image_digest(digest: str, root: Path = ROOT) -> list[Path]:
+    with source_updates(root):
+        return _set_image_digest(digest, root)
+
+
+def _set_image_digest(digest: str, root: Path) -> list[Path]:
     if not SHA256.fullmatch(digest):
         raise ValueError("digest must be exactly 64 lowercase hexadecimal characters")
     image_path = root / IMAGE_PATH.relative_to(ROOT)
     current = load_image(image_path)
     image = f"{image_name(current)}@sha256:{digest}"
     updates = {image_path: image + "\n", **rendered_consumers(root, image=image)}
-    changed = write_updates(updates)
+    changed = write_updates(updates, durable=True)
     return [image_path, *(path for path in changed if path != image_path)]
 
 
