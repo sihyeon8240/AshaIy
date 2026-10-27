@@ -1,8 +1,25 @@
 schema_version: 1
 macros:
+  Gcd:
+    kind: command
+    arguments:
+      - {kind: mandatory, mode: math}
+    body: '\gcd\Paren*{#1}'
   Lcm:
-    kind: operator
-    text: lcm
+    kind: command
+    arguments:
+      - {kind: mandatory, mode: math}
+    body: '\operatorname{lcm}\Paren*{#1}'
+
   Ord:
-    kind: operator
-    text: ord
+    kind: command
+    arguments:
+      - {kind: mandatory, mode: math}
+      - {kind: mandatory, mode: math}
+    body: '\operatorname{ord}_{#1}\Paren*{#2}'
+  Ind:
+    kind: command
+    arguments:
+      - {kind: mandatory, mode: math}
+      - {kind: mandatory, mode: math}
+    body: '\operatorname{ind}_{#1}\Paren*{#2}'
