@@ -10,6 +10,7 @@ walkthroughs in commits and code.
 | Guide | Owns |
 |---|---|
 | [Repository architecture](ARCHITECTURE.md) | File ownership, naming, configuration sources, and generated-file boundaries. |
+| [Automation design decisions](build-design.md) | Pattern tradeoffs, measured alternatives, atomicity, build identity, and scaling criteria. |
 | [Contributing](CONTRIBUTING.md) | Change boundaries, required validation, rights, and commit conventions. |
 | [Textbook writing](writing-guide.md) | LaTeX authoring and the presentation of mathematical prose and Lean code. |
 | [LaTeX macros](macros.md) | Macro declarations, generated packages, and formatting signatures. |

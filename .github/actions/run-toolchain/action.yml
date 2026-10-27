@@ -18,9 +18,19 @@ inputs:
   run:
     required: true
     description: Commands to execute in the workspace
+  metrics-book:
+    required: false
+    default: ''
+    description: Optional book whose image preparation time should be recorded
 runs:
   using: composite
   steps:
+    - name: Start image preparation measurement
+      if: inputs.metrics-book != ''
+      shell: bash
+      env:
+        BUILD_METRICS_BOOK: ${{ inputs.metrics-book }}
+      run: python3 scripts/ci/build_metrics.py start --book "$BUILD_METRICS_BOOK" --stage image
     - uses: ./.github/actions/load-toolchain
       if: inputs.artifact != ''
       with:
@@ -40,10 +50,14 @@ runs:
         TOOLCHAIN_DIGEST: ${{ inputs.digest }}
         TOOLCHAIN_ARTIFACT: ${{ inputs.artifact }}
         TOOLCHAIN_COMMANDS: ${{ inputs.run }}
+        BUILD_METRICS_BOOK: ${{ inputs.metrics-book }}
       run: |
         if [[ -z "$TOOLCHAIN_ARTIFACT" ]]; then
           [[ "$TOOLCHAIN_IMAGE" == *@sha256:"$TOOLCHAIN_DIGEST" ]]
           docker pull --platform linux/amd64 "$TOOLCHAIN_IMAGE"
+        fi
+        if [[ -n "${BUILD_METRICS_BOOK:-}" ]]; then
+          python3 scripts/ci/build_metrics.py finish --book "$BUILD_METRICS_BOOK" --stage image
         fi
         docker run --rm --platform linux/amd64 --pull=never \
           -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \

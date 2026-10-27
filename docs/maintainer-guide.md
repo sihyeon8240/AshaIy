@@ -189,6 +189,37 @@ differ if their final trees match. Manual **Build textbooks** dispatches skip
 PR reuse and build every enabled book. Bump cache versions or `strict-pdf-v2`
 when their corresponding semantics change.
 
+## Build measurements
+
+Each book job publishes `<slug>-build-metrics` for 30 days and writes phase
+durations to the job summary. Its `result.json` records run/attempt, selected
+book count, job status, exact/prefix/missing incremental cache, verified-reuse
+outcome, and completed or incomplete phases. `build-inputs.json` records the
+committed input descriptor outside the restored LaTeX cache.
+
+Phases are nested: `job` includes the other phases, and `pre-build` includes
+cache restore and reuse lookup. Do not sum all rows. `image` includes image
+loading/authentication/pulling; `publication` includes PDF packaging and uploads.
+Job time starts after checkout and ends before uploading telemetry; runner
+provisioning, queueing, and upstream jobs require GitHub job/workflow timings.
+Reuse miss reasons distinguish source-tree mismatches, rejected artifacts,
+unavailable artifacts, and absence of an eligible artifact. The console retains
+the detailed rejection diagnostic.
+
+Download the metrics artifacts from one run and attempt, then compare all of its
+selected books:
+
+```sh
+python3 scripts/ci/build_metrics.py assess build/downloaded-metrics/*/result.json
+```
+
+Incomplete, failed, duplicate, mixed-run, partially supplied, and verified-reuse
+jobs cannot justify a grouping recommendation. The evaluator reports whether
+the [grouping experiment criteria](build-design.md#scaling-ci-from-measurements)
+are met; it never changes job topology automatically. Run controlled grouped and
+ungrouped workflows and compare actual runner time and end-to-end wall time
+before adopting a new matrix policy.
+
 ## Toolchain image operations
 
 ### Multi-platform toolchain images

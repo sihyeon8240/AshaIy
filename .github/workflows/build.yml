@@ -412,7 +412,11 @@ jobs:
           BOOK: ${{ matrix.book }}
         run: |
           mkdir -p "build/$BOOK"
-          echo "sources=$(python3 scripts/ci/book_cache.py "$BOOK")" >> "$GITHUB_OUTPUT"
+          python3 scripts/ci/build_metrics.py start --book "$BOOK" --stage job
+          python3 scripts/ci/build_metrics.py start --book "$BOOK" --stage pre-build
+          python3 scripts/ci/book_cache.py "$BOOK" --format json > "build/ci-metrics/$BOOK/build-inputs.json"
+          sources="$(python3 -c 'import json, sys; print(json.load(sys.stdin)["fingerprint"])' < "build/ci-metrics/$BOOK/build-inputs.json")"
+          echo "sources=$sources" >> "$GITHUB_OUTPUT"
           echo "image=$DIGEST" >> "$GITHUB_OUTPUT"
       - name: Download PDF validation results from the candidate image job
         if: needs.prepare-image.outputs.artifact != ''
@@ -431,10 +435,17 @@ jobs:
           BOOK: ${{ matrix.book }}
         run: |
           if [[ -n "$CANDIDATE_ID" ]]; then
-            python3 scripts/ci/verified_build.py restore-candidate --book "$BOOK" --image "sha256:$CANDIDATE_ID"
+            python3 scripts/ci/build_metrics.py run --book "$BOOK" --stage reuse -- \
+              python3 scripts/ci/verified_build.py restore-candidate --book "$BOOK" --image "sha256:$CANDIDATE_ID"
           else
-            python3 scripts/ci/verified_build.py restore --book "$BOOK" --image "$IMAGE"
+            python3 scripts/ci/build_metrics.py run --book "$BOOK" --stage reuse -- \
+              python3 scripts/ci/verified_build.py restore --book "$BOOK" --image "$IMAGE"
           fi
+      - name: Start incremental cache measurement
+        if: steps.reuse.outputs.reused != 'true'
+        env:
+          BOOK: ${{ matrix.book }}
+        run: python3 scripts/ci/build_metrics.py start --book "$BOOK" --stage cache
       - name: Restore LaTeX build outputs
         id: latex-build-cache
         if: steps.reuse.outputs.reused != 'true'
@@ -444,6 +455,15 @@ jobs:
           key: latex-v3-${{ runner.os }}-${{ runner.arch }}-${{ matrix.book }}-${{ steps.inputs.outputs.image }}-${{ steps.inputs.outputs.sources }}
           restore-keys: |
             latex-v3-${{ runner.os }}-${{ runner.arch }}-${{ matrix.book }}-${{ steps.inputs.outputs.image }}-
+      - name: Finish build preparation measurement
+        env:
+          BOOK: ${{ matrix.book }}
+          REUSED: ${{ steps.reuse.outputs.reused }}
+        run: |
+          if [[ "$REUSED" != true ]]; then
+            python3 scripts/ci/build_metrics.py finish --book "$BOOK" --stage cache
+          fi
+          python3 scripts/ci/build_metrics.py finish --book "$BOOK" --stage pre-build
       - name: Build and strictly check in the prepared image
         if: steps.reuse.outputs.reused != 'true'
         uses: ./.github/actions/run-toolchain
@@ -452,9 +472,12 @@ jobs:
           digest: ${{ needs.prepare-image.outputs.digest }}
           artifact: ${{ needs.prepare-image.outputs.artifact }}
           token: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.token || '' }}
+          metrics-book: ${{ matrix.book }}
           run: |
-            ./scripts/latex/build_book.sh "${{ matrix.book }}"
-            python3 scripts/latex/check_log.py --strict "build/${{ matrix.book }}/book.log"
+            python3 scripts/ci/build_metrics.py run --book "${{ matrix.book }}" --stage compile -- \
+              ./scripts/latex/build_book.sh "${{ matrix.book }}"
+            python3 scripts/ci/build_metrics.py run --book "${{ matrix.book }}" --stage log -- \
+              python3 scripts/latex/check_log.py --strict "build/${{ matrix.book }}/book.log"
       - name: Save LaTeX build outputs
         if: >-
           github.event_name == 'push' && github.ref == 'refs/heads/main' &&
@@ -467,7 +490,9 @@ jobs:
       - name: Prepare PDF artifact
         env:
           BOOK: ${{ matrix.book }}
-        run: cp "build/$BOOK/book.pdf" "build/$BOOK/$BOOK.pdf"
+        run: |
+          python3 scripts/ci/build_metrics.py start --book "$BOOK" --stage publication
+          cp "build/$BOOK/book.pdf" "build/$BOOK/$BOOK.pdf"
       - name: Package the release PDF and checksum
         if: github.event_name == 'push' && contains(fromJSON(needs.plan.outputs.release_matrix).book, matrix.book)
         uses: ./.github/actions/run-toolchain
@@ -520,6 +545,29 @@ jobs:
           path: build/${{ matrix.book }}/${{ matrix.book }}.pdf
           if-no-files-found: error
           retention-days: 14
+      - name: Summarize build measurements
+        if: always()
+        env:
+          BOOK: ${{ matrix.book }}
+          METRICS_BOOK_COUNT: ${{ needs.plan.outputs.count }}
+          METRICS_JOB_STATUS: ${{ job.status }}
+          METRICS_CACHE_HIT: ${{ steps.latex-build-cache.outputs.cache-hit }}
+          METRICS_REUSED: ${{ steps.reuse.outputs.reused }}
+          METRICS_REUSE_REASON: ${{ steps.reuse.outputs.reuse_reason }}
+        run: |
+          if [[ "$METRICS_JOB_STATUS" == success ]]; then
+            python3 scripts/ci/build_metrics.py finish --book "$BOOK" --stage publication
+            python3 scripts/ci/build_metrics.py finish --book "$BOOK" --stage job
+          fi
+          python3 scripts/ci/build_metrics.py report --book "$BOOK"
+      - name: Upload build measurements
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ${{ matrix.book }}-build-metrics
+          path: build/ci-metrics/${{ matrix.book }}/
+          if-no-files-found: ignore
+          retention-days: 30
   build-check:
     name: Verify textbook builds
     needs: [prepare-image, plan, book]
