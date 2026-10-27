@@ -1,26 +1,63 @@
 schema_version: 1
 macros:
+  B:
+    kind: command
+    arguments: []
+    body: '\mathcal{B}'
+    script_atom: true
+
   Span:
     kind: command
     context: math
     arguments:
       - {kind: mandatory, mode: math}
     body: '\operatorname{span}\Paren*{#1}'
+  Trans:
+    kind: command
+    arguments:
+      - {kind: mandatory, mode: math}
+    body: '{}^{t}#1'
+
+  Map:
+    kind: command
+    arguments:
+      - {kind: mandatory, mode: math}
+      - {kind: mandatory, mode: math}
+    body: '\operatorname{Map}\Paren*{#1, #2}'
+  Lin:
+    kind: command
+    arguments:
+      - {kind: mandatory, mode: math}
+      - {kind: mandatory, mode: math}
+    body: '\mathcal{L}\Paren*{#1, #2}'
+  Bil:
+    kind: command
+    arguments:
+      - {kind: mandatory, mode: math}
+      - {kind: mandatory, mode: math}
+    body: '\operatorname{Bil}\Paren*{#1, #2}'
+
+  Perp:
+    kind: command
+    arguments:
+      - {kind: mandatory, mode: math}
+      - {kind: mandatory, mode: math}
+    body: '\operatorname{perp}_{#1}\Paren*{#2}'
+
+  Mat:
+    kind: command
+    arguments:
+      - {kind: mandatory, mode: math}
+      - {kind: mandatory, mode: math}
+      - {kind: mandatory, mode: math}
+    body: '\operatorname{Mat}_{#1 \times #2}\Paren*{#3}'
+
   Rank:
     kind: operator
     text: rank
-  Map:
-    kind: operator
-    text: Map
-  Mat:
-    kind: operator
-    text: Mat
   Ker:
     kind: operator
     text: Ker
   Img:
     kind: operator
     text: Im
-  Bil:
-    kind: operator
-    text: Bil
