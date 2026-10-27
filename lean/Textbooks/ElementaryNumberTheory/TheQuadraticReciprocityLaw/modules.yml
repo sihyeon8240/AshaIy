@@ -1,0 +1,12 @@
+schema_version: 1
+modules:
+- EulerCriterion
+- LegendreSymbol
+- ResidueCounts
+- GaussLemma
+- QuadraticReciprocity
+- SupplementaryLaws
+- SafePrimes
+- PrimesInProgressions
+- PrimePowerCongruences
+- CompositeCongruences

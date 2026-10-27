@@ -85,8 +85,9 @@ YAML alone; rename slugs and their content paths together, then regenerate.
 ## Macro declarations
 
 `common/styles/macros.yml` and optional `books/<slug>/styles/macros.yml` own shared
-and book-local mathematical declarations. Their committed `generated-macros.sty`
-packages and formatter signatures derive from the same manifests.
+and book-local mathematical declarations. Their committed `generated-common-macros.sty`
+and `generated-book-macros.sty` packages, respectively, and formatter signatures
+derive from the same manifests.
 
 `common/styles/textbook.sty` loads mathematical packages and shared generated
 macros. Generated `book.tex` conditionally loads its book-local package.
@@ -180,7 +181,7 @@ Ignored site pages derive from the registry and proof coverage.
 | Project logo | `common/styles/logo.sty` and `common/templates/artwork.tex`; website export at `site/assets/ashaiy-logo.svg` | Commit sources and synchronized SVG; keep intermediate output under `build/logo/` |
 | Complete `books/<slug>/book.tex` and chapter/appendix `index.tex` | Contents generator, from manifests and shared templates | Commit; never edit by hand |
 | Lean root and book aggregation modules | Lean generator, from the book registry, contents, and topic manifests | Commit; never edit by hand |
-| `common/styles/generated-macros.sty` and book-local `styles/generated-macros.sty` | `ashaiy macros generate`, from shared and book-local `macros.yml` | Commit with manifests; never edit by hand |
+| `common/styles/generated-common-macros.sty` and book-local `styles/generated-book-macros.sty` | `ashaiy macros generate`, from shared and book-local `macros.yml` | Commit with manifests; never edit by hand |
 | Synchronized toolchain, image, and exclusion consumers | `ashaiy config generate`, from `config/` | Commit with the canonical configuration |
 | `site/_data/books.json` and `site/books/*.html` | `ashaiy site generate`, from the registry and proof coverage; JSON owns projected data and HTML files own routing | Ignored; regenerate before local site builds |
 | PDFs, LaTeX logs, proof-link probes, verified-build metadata | `build/` | Ignored; never commit |

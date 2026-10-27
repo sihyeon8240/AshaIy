@@ -5,13 +5,16 @@ the same definitions and argument signatures.
 
 | Scope | Manifest | Generated package |
 |---|---|---|
-| Shared | [`common/styles/macros.yml`](../common/styles/macros.yml) | `common/styles/generated-macros.sty` |
-| Book-local | `books/<slug>/styles/macros.yml` | `books/<slug>/styles/generated-macros.sty` |
+| Shared | [`common/styles/macros.yml`](../common/styles/macros.yml) | `common/styles/generated-common-macros.sty` |
+| Book-local | `books/<slug>/styles/macros.yml` | `books/<slug>/styles/generated-book-macros.sty` |
 
 Edit manifests and commit their generated packages together. Create a book-local
 manifest only when needed, and remove its package when removing the manifest.
 See [architecture](ARCHITECTURE.md#macro-declarations) for package loading and
 shared-style ownership.
+
+Shared and book-local packages use distinct filenames because LaTeX identifies
+loaded packages by basename, even when their directory paths differ.
 
 ## Naming and shared notation
 

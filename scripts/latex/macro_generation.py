@@ -17,7 +17,8 @@ from scripts.repository.file_updates import changed_files, write_updates
 from scripts.repository.source_reads import read_text
 
 ROOT = Path(__file__).resolve().parents[2]
-GENERATED_NAME = "generated-macros.sty"
+COMMON_GENERATED_NAME = "generated-common-macros.sty"
+BOOK_GENERATED_NAME = "generated-book-macros.sty"
 
 
 @dataclass(frozen=True)
@@ -52,16 +53,16 @@ class MacroRepository:
             manifests = [
                 (
                     self.root / "common/styles/macros.yml",
-                    self.root / "common/styles" / GENERATED_NAME,
-                    "generated-macros",
+                    self.root / "common/styles" / COMMON_GENERATED_NAME,
+                    "generated-common-macros",
                 )
             ]
             if book is not None:
                 book_root = self.root / "books" / book
                 path = book_root / "styles/macros.yml"
-                generated = book_root / "styles" / GENERATED_NAME
+                generated = book_root / "styles" / BOOK_GENERATED_NAME
                 if path.is_file():
-                    manifests.append((path, generated, "styles/generated-macros"))
+                    manifests.append((path, generated, "styles/generated-book-macros"))
                 elif generated.exists():
                     raise ValueError(
                         f"{generated}: generated macros have no macros.yml owner"

@@ -25,6 +25,7 @@ macros:
     arguments: []
     body: '\mathbb{C}'
     script_atom: true
+
   Veps:
     kind: command
     arguments: []
@@ -60,14 +61,17 @@ macros:
     arguments: []
     body: '\varpi'
     script_atom: true
+
   Vnot:
     kind: command
     arguments: []
     body: '\varnothing'
     script_atom: true
+
   Id:
     kind: operator
     text: id
+
   Abs:
     kind: paired_delimiter
     left: '\lvert'
@@ -104,6 +108,7 @@ macros:
     kind: paired_delimiter
     left: '\langle'
     right: '\rangle'
+
   Set:
     kind: paired_delimiter_x
     arguments:
@@ -120,6 +125,7 @@ macros:
     left: '\langle'
     right: '\rangle'
     body: '#1,#2'
+
   Eval:
     kind: paired_delimiter_x
     arguments:
