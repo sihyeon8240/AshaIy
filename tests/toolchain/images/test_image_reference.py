@@ -416,15 +416,17 @@ class ConfigurationTests(unittest.TestCase):
             image = root / "config/container-image.txt"
             consumer = root / ".devcontainer/devcontainer.json"
             originals = {path: path.read_bytes() for path in (image, consumer)}
-            write_text = Path.write_text
+            from scripts.repository import file_updates
 
-            def fail_consumer(path, *args, **kwargs):
-                if path == consumer:
+            replace = file_updates.os.replace
+
+            def fail_consumer(source, destination):
+                if destination == consumer:
                     raise OSError("simulated write failure")
-                return write_text(path, *args, **kwargs)
+                return replace(source, destination)
 
             with (
-                patch.object(Path, "write_text", fail_consumer),
+                patch.object(file_updates.os, "replace", fail_consumer),
                 self.assertRaisesRegex(OSError, "simulated write failure"),
             ):
                 SYNC.set_image_digest("b" * 64, root=root)

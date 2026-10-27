@@ -113,6 +113,7 @@ def copy_validation_configuration(root: Path) -> None:
     for relative in (
         "scripts/repository/config/validation_patterns.py",
         "scripts/repository/config/json_config.py",
+        "scripts/repository/file_updates.py",
         "scripts/repository/path_policy.py",
         "config/validation-patterns.json",
     ):

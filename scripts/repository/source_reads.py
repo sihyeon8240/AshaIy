@@ -9,6 +9,8 @@ from pathlib import Path
 
 import yaml
 
+from scripts.repository.file_updates import read_source
+
 
 class StrictLoader(yaml.SafeLoader):
     """Safe YAML with explicit, unique mapping keys; merge keys are unsupported."""
@@ -81,11 +83,11 @@ def reuse_source_reads():
 def read_text(path: Path, *, errors: str = "strict") -> str:
     snapshot = _active.get()
     if snapshot is None:
-        return path.read_text(encoding="utf-8", errors=errors)
+        return read_source(path, errors=errors)
 
     key = (path, errors)
     if key not in snapshot.texts:
-        snapshot.texts[key] = path.read_text(encoding="utf-8", errors=errors)
+        snapshot.texts[key] = read_source(path, errors=errors)
     return snapshot.texts[key]
 
 

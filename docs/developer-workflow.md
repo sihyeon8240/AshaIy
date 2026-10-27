@@ -51,6 +51,9 @@ CLI output lives in ignored `build/<slug>/`; LaTeX Workshop uses ignored
 `vscode-build/`. Both use the shared LuaLaTeX configuration and TeX search paths.
 Successful PDFs remain for incremental builds; compiler failure or interruption
 removes that build's PDF. Log checks run even for incremental builds.
+Compiler writes and failure cleanup for the same output directory hold its
+`.build.lock`; different textbooks can still build concurrently. Do not clean
+outputs while a build or source update is running.
 
 `--check` checks references, citations, and other supported diagnostics;
 `--strict` additionally rejects overfull boxes and requires `--check`.

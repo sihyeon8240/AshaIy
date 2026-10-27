@@ -18,11 +18,22 @@ from scripts.books.book_manifest import (
     validate_new_book_input,
 )
 from scripts.books.contents_generation import generate
+from scripts.repository.file_updates import (
+    observe_source,
+    replace_file,
+    retain_recovery,
+    source_updates,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 def create_book(slug: str, title: str) -> None:
+    with source_updates(ROOT):
+        _create_book(slug, title)
+
+
+def _create_book(slug: str, title: str) -> None:
     validate_new_book_input(slug, title)
     print("New book input is valid")
     target = ROOT / "books" / slug
@@ -34,6 +45,8 @@ def create_book(slug: str, title: str) -> None:
     print("config/books.yml is valid")
     manifest = ROOT / "config/books.yml"
     original = manifest.read_bytes()
+    observe_source(manifest, original)
+    registered = original
     target.mkdir()
     try:
         introduction = target / "chapters/introduction"
@@ -52,6 +65,7 @@ def create_book(slug: str, title: str) -> None:
             shutil.copyfile(templates / name, destination)
 
         add_book(slug, title, release=False, site=False)
+        registered = manifest.read_bytes()
         print(f"Added '{slug}' to config/books.yml")
         label_prefix = require_book(slug)["label_prefix"]
         section = introduction / "first-section.tex"
@@ -60,8 +74,14 @@ def create_book(slug: str, title: str) -> None:
         )
         if generate("all", book=slug):
             raise ValueError("contents generation failed")
-    except BaseException:
-        manifest.write_bytes(original)
+    except BaseException as error:
+        try:
+            replace_file(manifest, original, expected=registered, durable=True)
+        except BaseException:
+            recovery = retain_recovery({manifest: original})
+            raise OSError(
+                f"creation failed; scaffold retained at {target}; registry recovery at {recovery}"
+            ) from error
         print(f"error: creation failed; removing {target}", file=sys.stderr)
         shutil.rmtree(target)
         raise

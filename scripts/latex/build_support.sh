@@ -13,7 +13,7 @@ prepare_output_tree() {
 build_document() (
   local repository_root="$1" source_directory="$2" output_directory="$3" document="$4"
   shift 4
-  local status pdf shell_escape_options=()
+  local status pdf build_lock shell_escape_options=()
 
   case "${SHELL_ESCAPE:-0}" in
     0) ;;
@@ -26,6 +26,8 @@ build_document() (
 
   prepare_output_tree "$source_directory" "$output_directory"
   output_directory="$(cd "$output_directory" && pwd)"
+  exec {build_lock}> "$output_directory/.build.lock"
+  flock "$build_lock"
   pdf="$output_directory/${document%.tex}.pdf"
   export TEXINPUTS=".:$repository_root/common/styles//:$repository_root/common/templates//:${TEXINPUTS:-}"
   cd "$source_directory"

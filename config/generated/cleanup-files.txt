@@ -26,3 +26,4 @@ __latexindent_temp_*.tex
 *.swo
 *~
 .books.yml.*.tmp
+.ashaiy-*.tmp

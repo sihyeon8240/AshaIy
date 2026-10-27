@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from scripts.repository.file_updates import read_source
+
 
 def unique_mapping(pairs: list[tuple[str, object]]) -> dict:
     values = {}
@@ -27,6 +29,6 @@ def parse_json(text: str) -> Any:
 
 def read_json(path: Path):
     try:
-        return parse_json(path.read_text(encoding="utf-8"))
+        return parse_json(read_source(path))
     except ValueError as error:
         raise ValueError(f"{path}: {error}") from error

@@ -35,6 +35,7 @@ __latexindent_temp_*.tex
 *.swo
 *~
 .books.yml.*.tmp
+.ashaiy-*.tmp
 .DS_Store
 ._*
 __MACOSX/

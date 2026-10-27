@@ -7,6 +7,7 @@ from pathlib import Path
 
 from scripts.repository.config.json_config import read_json
 from scripts.repository.config.validation_patterns import validation_pattern
+from scripts.repository.file_updates import read_source
 
 ROOT = Path(__file__).resolve().parents[3]
 TOOLCHAIN_PATH = ROOT / "config/toolchain.env"
@@ -60,7 +61,7 @@ REQUIRED_TOOLCHAIN_KEYS = {
 
 def load_toolchain(path: Path = TOOLCHAIN_PATH) -> dict[str, str]:
     values: dict[str, str] = {}
-    for number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    for number, raw_line in enumerate(read_source(path).splitlines(), 1):
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
@@ -89,7 +90,7 @@ def load_toolchain(path: Path = TOOLCHAIN_PATH) -> dict[str, str]:
 
 
 def load_image(path: Path = IMAGE_PATH) -> str:
-    image = path.read_text(encoding="utf-8").strip()
+    image = read_source(path).strip()
     if not IMAGE.fullmatch(image):
         raise ValueError(f"{path}: expected an immutable GHCR image reference")
     return image

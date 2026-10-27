@@ -13,7 +13,7 @@ if __package__ in (None, ""):
 from scripts.books.book_manifest import load_manifest
 from scripts.latex.command_specs import BUILTIN_COMMANDS, CommandSpec
 from scripts.latex.macro_manifest import load_macros, render_macros
-from scripts.repository.file_updates import changed_files, write_updates
+from scripts.repository.file_updates import changed_files, source_updates, write_updates
 from scripts.repository.source_reads import read_text
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -102,6 +102,11 @@ class MacroRepository:
 
 
 def generate(*, book: str | None = None, check: bool = False, root: Path = ROOT) -> int:
+    with source_updates(root, check=check):
+        return _generate(book=book, check=check, root=root)
+
+
+def _generate(*, book: str | None, check: bool, root: Path) -> int:
     repository = MacroRepository(root)
     books = repository.books()
     if book is not None and book not in books:
