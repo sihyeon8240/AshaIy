@@ -38,3 +38,11 @@ import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.QuadraticForms
 import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.Sylvester
 import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.DualSpaces
 import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.MatrixRank
+
+import Textbooks.LinearAlgebra.Determinants.Determinant
+import Textbooks.LinearAlgebra.Determinants.Multiplicativity
+import Textbooks.LinearAlgebra.Determinants.LaplaceExpansion
+import Textbooks.LinearAlgebra.Determinants.Permutations
+import Textbooks.LinearAlgebra.Determinants.Characterization
+import Textbooks.LinearAlgebra.Determinants.Inverse
+import Textbooks.LinearAlgebra.Determinants.Subdeterminants

@@ -12,6 +12,13 @@ macros:
     arguments:
       - {kind: mandatory, mode: math}
     body: '\operatorname{span}\Paren*{#1}'
+
+  Det:
+    kind: command
+    arguments:
+      - {kind: mandatory, mode: math}
+    body: '\operatorname{Det}\Paren*{#1}'
+
   Trans:
     kind: command
     arguments:
