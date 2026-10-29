@@ -243,7 +243,7 @@ class FormatTexTests(unittest.TestCase):
             self.assertIn(
                 "  Keep this short line.\n  Keep this separate line.\n", formatted
             )
-            self.assertTrue(all(len(line) <= 88 for line in formatted.splitlines()))
+            self.assertTrue(all(len(line) <= 120 for line in formatted.splitlines()))
             rows = [line for line in formatted.splitlines() if line.endswith("\\\\")]
             self.assertEqual(len(rows), 2)
             self.assertEqual(rows[0].index("\\\\"), rows[1].index("\\\\"))
@@ -253,7 +253,7 @@ class FormatTexTests(unittest.TestCase):
             )
 
     @unittest.skipUnless(shutil.which("latexindent"), "latexindent is required")
-    def test_wraps_prose_to_88_columns_and_preserves_lean(self) -> None:
+    def test_wraps_prose_to_120_columns_and_preserves_lean(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             scripts = self.prepare_formatter(root)
@@ -302,7 +302,7 @@ class FormatTexTests(unittest.TestCase):
             self.assertGreater(len(paragraph.splitlines()), 3)
             self.assertNotIn("\n  A mathematical explanation", paragraph)
             for line in paragraph.splitlines():
-                self.assertLessEqual(len(line), 88)
+                self.assertLessEqual(len(line), 120)
                 self.assertTrue(line.startswith("  "))
             self.assertIn(lean, formatted)
             shutil.rmtree(root / "cache")
@@ -311,7 +311,7 @@ class FormatTexTests(unittest.TestCase):
             self.assertEqual(path.read_text(), formatted)
             settings = root / "config/latexindent.yaml"
             settings.write_text(
-                settings.read_text().replace("columns: 88", "columns: 60")
+                settings.read_text().replace("columns: 120", "columns: 60")
             )
             result = self.run_formatter(root, "--check")
             self.assertEqual(result.returncode, 1, result.stderr)
@@ -365,7 +365,7 @@ class FormatTexTests(unittest.TestCase):
                 " ".join(line.lstrip()[1:].strip() for line in comments),
                 comment.strip(),
             )
-            self.assertTrue(all(len(line) <= 88 for line in comments))
+            self.assertTrue(all(len(line) <= 120 for line in comments))
             shutil.rmtree(root / "cache")
             result = self.run_formatter(root, "--check")
             self.assertEqual(result.returncode, 0, result.stderr)
