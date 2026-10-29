@@ -23,23 +23,13 @@ class EditorCommandTests(unittest.TestCase):
             python = Path(temporary) / "python"
             python.write_text("#!/bin/sh\nprintf '%s\\n' \"$@\"\n")
             python.chmod(0o755)
-            command = task["command"].replace(
-                "${command:python.interpreterPath}", str(python)
-            )
-            arguments = [
-                value.replace("${workspaceFolder}", str(ROOT)) for value in task["args"]
-            ]
-            result = subprocess.run(
-                [command, *arguments], capture_output=True, text=True, check=True
-            )
-        self.assertEqual(
-            result.stdout.splitlines(), [str(ROOT / "scripts/ashaiy"), "test"]
-        )
+            command = task["command"].replace("${command:python.interpreterPath}", str(python))
+            arguments = [value.replace("${workspaceFolder}", str(ROOT)) for value in task["args"]]
+            result = subprocess.run([command, *arguments], capture_output=True, text=True, check=True)
+        self.assertEqual(result.stdout.splitlines(), [str(ROOT / "scripts/ashaiy"), "test"])
 
     def test_located_diagnostics_never_include_line_numbers_in_file_names(self):
-        matchers = json.loads((ROOT / ".vscode/tasks.json").read_text())[
-            "problemMatcher"
-        ]
+        matchers = json.loads((ROOT / ".vscode/tasks.json").read_text())["problemMatcher"]
         for line, expected in (
             (
                 "books/sample/section.tex:12: warning: legacy label",

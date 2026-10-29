@@ -33,9 +33,7 @@ def plan_snapshot(
 ) -> SnapshotPlan:
     for slug, size in sorted(updated.items()):
         if not size:
-            raise ValueError(
-                f"PDF artifact is missing or empty: updated-pdfs/{slug}.pdf"
-            )
+            raise ValueError(f"PDF artifact is missing or empty: updated-pdfs/{slug}.pdf")
         if slug not in registered:
             raise ValueError(f"unknown PDF artifact slug: {slug}")
 
@@ -50,10 +48,7 @@ def plan_snapshot(
 
     for slug in sorted(expected):
         if not updated.get(slug, existing.get(slug, 0)):
-            raise ValueError(
-                f"snapshot lacks site PDF {slug}; "
-                "dispatch Build textbooks once to bootstrap all PDFs"
-            )
+            raise ValueError(f"snapshot lacks site PDF {slug}; dispatch Build textbooks once to bootstrap all PDFs")
     return SnapshotPlan(
         tuple(sorted(set(updated) & expected)),
         tuple(sorted((set(existing) | set(updated)) - expected)),
@@ -70,9 +65,7 @@ def pdf_files(directory: Path, *, artifacts: bool = False) -> dict[str, Path]:
     return files
 
 
-def prepare(
-    snapshot: Path, updated: Path, *, required_updates: set[str] | None = None
-) -> SnapshotPlan:
+def prepare(snapshot: Path, updated: Path, *, required_updates: set[str] | None = None) -> SnapshotPlan:
     books = load_manifest()["books"]
     existing = pdf_files(snapshot / "pdf")
     updates = pdf_files(updated, artifacts=True)
@@ -112,9 +105,7 @@ def prepare(
                 try:
                     os.replace(previous, destination)
                 except OSError as error:
-                    raise OSError(
-                        f"snapshot restoration failed; previous PDFs retained at {previous}"
-                    ) from error
+                    raise OSError(f"snapshot restoration failed; previous PDFs retained at {previous}") from error
             raise
         installed = True
     finally:

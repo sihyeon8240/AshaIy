@@ -17,9 +17,7 @@ ARTIFACT_ACTION = re.compile(
 
 
 def git_text(*arguments: str, root: Path | None = None) -> str:
-    return subprocess.run(
-        ["git", *arguments], cwd=root, check=True, text=True, capture_output=True
-    ).stdout
+    return subprocess.run(["git", *arguments], cwd=root, check=True, text=True, capture_output=True).stdout
 
 
 def lean_reasons(
@@ -47,17 +45,11 @@ def lean_reasons(
                 before = git_text("show", f"{base}:{path}", root=root)
                 after = git_text("show", f"{head}:{path}", root=root)
             except subprocess.CalledProcessError:
-                reasons.append(
-                    {"reason": "workflow comparison unavailable", "paths": [path]}
-                )
+                reasons.append({"reason": "workflow comparison unavailable", "paths": [path]})
                 continue
-            if ARTIFACT_ACTION.sub(r"\1@PIN", before) == ARTIFACT_ACTION.sub(
-                r"\1@PIN", after
-            ):
+            if ARTIFACT_ACTION.sub(r"\1@PIN", before) == ARTIFACT_ACTION.sub(r"\1@PIN", after):
                 continue
-        reasons.append(
-            {"reason": "change not exempt from Lean checks", "paths": [path]}
-        )
+        reasons.append({"reason": "change not exempt from Lean checks", "paths": [path]})
     return reasons
 
 

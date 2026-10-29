@@ -27,9 +27,7 @@ class ConfigurationTests(unittest.TestCase):
             root = Path(temporary)
             self.make_repository(root)
             title = 'Analysis \\ "Foundations" & Algebra'
-            for path, text in SYNC.rendered_issue_forms(
-                root, [{"title": title}]
-            ).items():
+            for path, text in SYNC.rendered_issue_forms(root, [{"title": title}]).items():
                 original = path.read_text()
                 form = parse_yaml(text)
                 assert isinstance(form, dict)
@@ -86,13 +84,9 @@ class ConfigurationTests(unittest.TestCase):
             "config/books.yml",
         ):
             shutil.copy(ROOT / relative, root / relative)
-        shutil.copytree(
-            ROOT / ".devcontainer/generated", root / ".devcontainer/generated"
-        )
+        shutil.copytree(ROOT / ".devcontainer/generated", root / ".devcontainer/generated")
         shutil.copy(ROOT / "config/toolchain.env", root / "config/toolchain.env")
-        shutil.copy(
-            ROOT / "config/container-image.txt", root / "config/container-image.txt"
-        )
+        shutil.copy(ROOT / "config/container-image.txt", root / "config/container-image.txt")
         shutil.copy(
             ROOT / ".devcontainer/devcontainer.json",
             root / ".devcontainer/devcontainer.json",
@@ -129,9 +123,7 @@ class ConfigurationTests(unittest.TestCase):
             self.assertIn(root / "config/schemas/books.schema.json", changed)
             self.assertIn(root / ".github/workflows/build-toolchain.yml", changed)
             self.assertIn(root / "scripts/site/pages_current.sh", changed)
-            self.assertEqual(
-                (root / "scripts/site/pages_current.sh").read_text(), before
-            )
+            self.assertEqual((root / "scripts/site/pages_current.sh").read_text(), before)
 
             SYNC.synchronize(root=root)
             self.assertEqual(SYNC.synchronize(root=root, check=True), [])
@@ -140,9 +132,7 @@ class ConfigurationTests(unittest.TestCase):
             self.assertIsNotNone(re.search(slug["pattern"], "alpha"))
             self.assertIsNone(re.search(slug["pattern"], "alpha-beta"))
             script = (root / "scripts/site/pages_current.sh").read_text()
-            operand = script.split("# validation-pattern: git_commit\n", 1)[
-                1
-            ].splitlines()[0]
+            operand = script.split("# validation-pattern: git_commit\n", 1)[1].splitlines()[0]
             for value, expected in (("a" * 8, 0), ("a" * 40, 1), ("g" * 8, 1)):
                 result = subprocess.run(
                     ["bash", "-c", "SNAPSHOT_SHA=$1\n" + operand, "validation", value],
@@ -184,11 +174,7 @@ class ConfigurationTests(unittest.TestCase):
                 data = json.loads(path.read_text())
                 data["patterns"].update(updates)
                 path.write_text(json.dumps(data))
-                before = {
-                    file: file.read_bytes()
-                    for file in root.rglob("*")
-                    if file.is_file()
-                }
+                before = {file: file.read_bytes() for file in root.rglob("*") if file.is_file()}
                 with self.assertRaises(ValueError):
                     SYNC.synchronize(root=root)
                 self.assertEqual({file: file.read_bytes() for file in before}, before)
@@ -207,9 +193,7 @@ class ConfigurationTests(unittest.TestCase):
             path.write_text(json.dumps(config))
 
             runtime_workflows = {
-                root / f".github/workflows/{name}": (
-                    root / f".github/workflows/{name}"
-                ).read_bytes()
+                root / f".github/workflows/{name}": (root / f".github/workflows/{name}").read_bytes()
                 for name in ("prepare-image.yml", "build-toolchain.yml")
             }
             changed = SYNC.synchronize(root=root, check=True)
@@ -234,9 +218,7 @@ class ConfigurationTests(unittest.TestCase):
             ("LEAN_TOOLCHAIN", "lean"),
         ):
             with self.subTest(key=key):
-                changed = SYNC.rendered_toolchain_groups(
-                    ROOT, {**toolchain, key: "changed"}
-                )
+                changed = SYNC.rendered_toolchain_groups(ROOT, {**toolchain, key: "changed"})
                 self.assertEqual(
                     [path for path in original if original[path] != changed[path]],
                     [ROOT / ".devcontainer/generated" / f"{group}.env"],
@@ -252,9 +234,7 @@ class ConfigurationTests(unittest.TestCase):
                 ["config/image-build.json", "config/image-build.json"],
             ):
                 with self.subTest(inputs=inputs):
-                    (root / "config/image-build.json").write_text(
-                        json.dumps({**config, "inputs": inputs})
-                    )
+                    (root / "config/image-build.json").write_text(json.dumps({**config, "inputs": inputs}))
                     with self.assertRaises(ValueError):
                         CONFIG.load_image_build(root)
 
@@ -286,9 +266,7 @@ class ConfigurationTests(unittest.TestCase):
             self.make_repository(root)
             path = root / "config/ignore-patterns.yml"
             text = path.read_text(encoding="utf-8")
-            path.write_text(
-                text.replace("- '*.pyc'", "- '$(error injected)'"), encoding="utf-8"
-            )
+            path.write_text(text.replace("- '*.pyc'", "- '$(error injected)'"), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "invalid pattern"):
                 SYNC.synchronize(root=root)
 
@@ -310,9 +288,7 @@ class ConfigurationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             self.make_repository(root)
-            (root / "lean/lean-toolchain").write_text(
-                "leanprover/lean4:v0.0.0\n", encoding="utf-8"
-            )
+            (root / "lean/lean-toolchain").write_text("leanprover/lean4:v0.0.0\n", encoding="utf-8")
             self.assertEqual(
                 SYNC.synchronize(root=root, check=True),
                 [root / "lean/lean-toolchain"],
@@ -333,9 +309,7 @@ class ConfigurationTests(unittest.TestCase):
                 (root / "config/container-image.txt").read_text(encoding="utf-8"),
                 expected + "\n",
             )
-            devcontainer = json.loads(
-                (root / ".devcontainer/devcontainer.json").read_text(encoding="utf-8")
-            )
+            devcontainer = json.loads((root / ".devcontainer/devcontainer.json").read_text(encoding="utf-8"))
             self.assertEqual(devcontainer["image"], expected)
             self.assertEqual(
                 changed,
@@ -351,9 +325,7 @@ class ConfigurationTests(unittest.TestCase):
             self.make_repository(root)
             toolchain = root / "config/toolchain.env"
             toolchain.write_text(
-                toolchain.read_text().replace(
-                    CONFIG.load_toolchain()["LEAN_VERSION"], "99.0.0"
-                ),
+                toolchain.read_text().replace(CONFIG.load_toolchain()["LEAN_VERSION"], "99.0.0"),
                 encoding="utf-8",
             )
             lock = root / "lean/lake-manifest.json"

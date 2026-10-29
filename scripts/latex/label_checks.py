@@ -71,8 +71,7 @@ def check_labels(files: list[Path]) -> int:
             if label in seen:
                 old_path, old_line = seen[label]
                 print(
-                    f"{where}: error: duplicate label '{label}' "
-                    f"(first at {old_path}:{old_line})",
+                    f"{where}: error: duplicate label '{label}' (first at {old_path}:{old_line})",
                     file=sys.stderr,
                 )
                 failed = True
@@ -84,8 +83,7 @@ def check_labels(files: list[Path]) -> int:
                 book_prefix = expected.get(book)
                 if book_prefix and not label.startswith(book_prefix + ":"):
                     print(
-                        f"{where}: error: prefix collision for "
-                        f"'{label}', expected '{book_prefix}:'",
+                        f"{where}: error: prefix collision for '{label}', expected '{book_prefix}:'",
                         file=sys.stderr,
                     )
                     failed = True
@@ -97,13 +95,11 @@ def check_labels(files: list[Path]) -> int:
     for book, entries in sorted(legacy.items()):
         for where, label in entries:
             print(
-                f"{where}: warning: legacy label '{label}' does not follow "
-                "<book>:<kind>:<description>",
+                f"{where}: warning: legacy label '{label}' does not follow <book>:<kind>:<description>",
                 file=sys.stderr,
             )
         print(
-            f"warning: {book}: {len(entries)} legacy labels do not yet follow "
-            "<book>:<kind>:<description>",
+            f"warning: {book}: {len(entries)} legacy labels do not yet follow <book>:<kind>:<description>",
             file=sys.stderr,
         )
 

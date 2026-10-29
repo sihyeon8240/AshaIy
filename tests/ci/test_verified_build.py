@@ -41,9 +41,7 @@ class VerifiedBuildTests(unittest.TestCase):
         self.files = {"book.pdf": b"%PDF-1.5\nverified", "book.log": b"clean log\n"}
 
     def write_environment(self, directory: Path) -> None:
-        (directory / BUILD.FILENAME).write_text(
-            json.dumps(self.expected["environment"]), encoding="utf-8"
-        )
+        (directory / BUILD.FILENAME).write_text(json.dumps(self.expected["environment"]), encoding="utf-8")
 
     def archive(self, *, identity=None, files=None, extra=None, manifest_update=None):
         files = self.files if files is None else files
@@ -72,9 +70,7 @@ class VerifiedBuildTests(unittest.TestCase):
             with self.subTest(key=key):
                 changed = {**self.expected, key: "changed"}
                 with self.assertRaisesRegex(ValueError, "identity differs"):
-                    BUILD.verify_archive(
-                        self.archive(identity=changed), self.expected, self.workflow_run
-                    )
+                    BUILD.verify_archive(self.archive(identity=changed), self.expected, self.workflow_run)
 
     def test_run_and_attempt_must_match(self):
         for key in ("run_id", "run_attempt"):
@@ -135,9 +131,7 @@ class VerifiedBuildTests(unittest.TestCase):
             {**self.files, "book.pdf": b"not PDF"},
         ):
             with self.assertRaises(ValueError):
-                BUILD.verify_archive(
-                    self.archive(files=files), self.expected, self.workflow_run
-                )
+                BUILD.verify_archive(self.archive(files=files), self.expected, self.workflow_run)
 
     def test_artifact_size_limit(self):
         with patch.object(BUILD, "MAX_BYTES", 1), self.assertRaises(ValueError):
@@ -154,11 +148,7 @@ class VerifiedBuildTests(unittest.TestCase):
             ("head_repository", {"full_name": "fork/math"}),
         ):
             with self.subTest(field=field):
-                self.assertFalse(
-                    BUILD.eligible_run(
-                        {**self.workflow_run, field: value}, "example/math", "c" * 40
-                    )
-                )
+                self.assertFalse(BUILD.eligible_run({**self.workflow_run, field: value}, "example/math", "c" * 40))
 
     def restore(
         self,
@@ -222,11 +212,7 @@ class VerifiedBuildTests(unittest.TestCase):
         ):
             directory = Path(temporary)
             reused = BUILD.restore(self.expected, directory)
-            pdf = (
-                (directory / "book.pdf").read_bytes()
-                if (directory / "book.pdf").exists()
-                else None
-            )
+            pdf = (directory / "book.pdf").read_bytes() if (directory / "book.pdf").exists() else None
             return reused, pdf, api.call_count, cmd.call_args_list
 
     def test_restore_downloads_and_rechecks_matching_pdf(self):
@@ -241,9 +227,7 @@ class VerifiedBuildTests(unittest.TestCase):
         archive = self.archive(manifest_update={"validation_sha": "c" * 40})
         self.assertTrue(self.restore(run_update=run, archive=archive)[0])
         self.assertFalse(self.restore(run_update=run)[0])
-        self.assertFalse(
-            self.restore(run_update={**run, "head_branch": "other"}, archive=archive)[0]
-        )
+        self.assertFalse(self.restore(run_update={**run, "head_branch": "other"}, archive=archive)[0])
         self.assertFalse(
             self.restore(
                 run_update=run,
@@ -273,16 +257,12 @@ class VerifiedBuildTests(unittest.TestCase):
                     patch.object(BUILD, "command", return_value=b""),
                 ):
                     if validated != "c" * 40:
-                        with self.assertRaisesRegex(
-                            ValueError, "explicit, matching commit"
-                        ):
+                        with self.assertRaisesRegex(ValueError, "explicit, matching commit"):
                             BUILD.record(self.expected, directory)
                     else:
                         BUILD.record(self.expected, directory)
                         self.assertEqual(
-                            json.loads((directory / "verified-build.json").read_text())[
-                                "validation_sha"
-                            ],
+                            json.loads((directory / "verified-build.json").read_text())["validation_sha"],
                             validated,
                         )
 
@@ -344,14 +324,10 @@ class VerifiedBuildTests(unittest.TestCase):
                     ],
                 ),
                 patch.object(BUILD, "identity", return_value=self.expected),
-                patch.object(
-                    BUILD, "restore", side_effect=subprocess.CalledProcessError(1, "gh")
-                ),
+                patch.object(BUILD, "restore", side_effect=subprocess.CalledProcessError(1, "gh")),
             ):
                 BUILD.main()
-            self.assertEqual(
-                output.read_text(), "reused=false\nreuse_reason=artifact-unavailable\n"
-            )
+            self.assertEqual(output.read_text(), "reused=false\nreuse_reason=artifact-unavailable\n")
 
     def test_candidate_reuse_checks_identity_attempt_and_log(self):
         with (
@@ -360,11 +336,7 @@ class VerifiedBuildTests(unittest.TestCase):
             patch.object(
                 BUILD,
                 "command",
-                side_effect=lambda *args: (
-                    b"b" * 40
-                    if args[0] == "git"
-                    else subprocess.check_output(args, cwd=ROOT)
-                ),
+                side_effect=lambda *args: b"b" * 40 if args[0] == "git" else subprocess.check_output(args, cwd=ROOT),
             ),
         ):
             root = Path(temporary)
@@ -377,9 +349,7 @@ class VerifiedBuildTests(unittest.TestCase):
             }
             for name, data in files.items():
                 (source / name).write_bytes(data)
-            expected = BUILD.identity(
-                "linear-algebra", "sha256:" + "a" * 64, candidate=True
-            )
+            expected = BUILD.identity("linear-algebra", "sha256:" + "a" * 64, candidate=True)
             archive = root / "candidate.zip"
             BUILD.record_candidate(expected, source, archive)
             target = root / "target"
@@ -391,9 +361,7 @@ class VerifiedBuildTests(unittest.TestCase):
                     self.subTest(key=key),
                     self.assertRaisesRegex(ValueError, "identity differs"),
                 ):
-                    BUILD.restore_candidate(
-                        {**expected, key: "changed"}, target, archive
-                    )
+                    BUILD.restore_candidate({**expected, key: "changed"}, target, archive)
             with (
                 patch.dict(os.environ, {"GITHUB_RUN_ATTEMPT": "3"}),
                 self.assertRaisesRegex(ValueError, "different run"),
@@ -431,9 +399,7 @@ class VerifiedBuildTests(unittest.TestCase):
                 patch.object(BUILD, "command", return_value=b"b" * 40),
             ):
                 BUILD.main()
-            self.assertEqual(
-                output.read_text(), "reused=false\nreuse_reason=artifact-unavailable\n"
-            )
+            self.assertEqual(output.read_text(), "reused=false\nreuse_reason=artifact-unavailable\n")
 
     def test_record_requires_strict_log_check(self):
         with (
@@ -479,9 +445,7 @@ class VerifiedBuildTests(unittest.TestCase):
             with self.assertRaises(FileNotFoundError):
                 BUILD.record(self.expected, directory)
             for name, value in (("SOURCE_DATE_EPOCH", "1"), ("TEXINPUTS", "override:")):
-                (directory / BUILD.FILENAME).write_text(
-                    json.dumps({**self.expected["environment"], name: value})
-                )
+                (directory / BUILD.FILENAME).write_text(json.dumps({**self.expected["environment"], name: value}))
                 with self.assertRaisesRegex(ValueError, "environment differs"):
                     BUILD.record(self.expected, directory)
             self.assertFalse((directory / "verified-build.json").exists())

@@ -53,9 +53,7 @@ def read_source(path: Path, *, errors: str = "strict") -> str:
 def source_updates(root: Path, *, check: bool = False) -> Iterator[None]:
     root = root.resolve()
     scope = _active.get()
-    if check or (
-        scope is not None and scope.root == root and scope.process == os.getpid()
-    ):
+    if check or (scope is not None and scope.root == root and scope.process == os.getpid()):
         yield
         return
 
@@ -131,9 +129,7 @@ def retain_recovery(originals: Mapping[Path, bytes | None]) -> Path:
             backup = f"{index}.original"
             (directory / backup).write_bytes(original)
         records.append({"path": str(path.resolve()), "backup": backup})
-    (directory / "files.json").write_text(
-        json.dumps(records, indent=2) + "\n", encoding="utf-8"
-    )
+    (directory / "files.json").write_text(json.dumps(records, indent=2) + "\n", encoding="utf-8")
     return directory
 
 
@@ -142,10 +138,7 @@ def changed_files(updates: Mapping[Path, str]) -> list[Path]:
     for path, expected in updates.items():
         original = contents(path)
         observe_source(path, original)
-        if original is None or (
-            original.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
-            != expected
-        ):
+        if original is None or (original.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n") != expected):
             changed.append(path)
     return changed
 
@@ -186,9 +179,7 @@ def write_updates(updates: Mapping[Path, str], *, durable: bool = False) -> list
                 failed.append(path)
         if failed:
             recovery = retain_recovery({path: originals[path] for path in failed})
-            raise OSError(
-                f"source update recovery failed for {failed}; originals retained at {recovery}"
-            ) from error
+            raise OSError(f"source update recovery failed for {failed}; originals retained at {recovery}") from error
         raise
 
     return changed

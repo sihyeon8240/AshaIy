@@ -37,9 +37,7 @@ class PackageBookTests(unittest.TestCase):
         self.pdf = build / "book.pdf"
         self.pdf.write_bytes(b"%PDF-1.5\npackaged content\n")
         self.log = build / "book.log"
-        self.log.write_text(
-            "Output written on book.pdf (1 page, 123 bytes).\n", encoding="utf-8"
-        )
+        self.log.write_text("Output written on book.pdf (1 page, 123 bytes).\n", encoding="utf-8")
         self.output = self.root / "release"
         self.target = self.output / "alpha-v1.2.3.pdf"
 
@@ -83,10 +81,7 @@ class PackageBookTests(unittest.TestCase):
         self.assertEqual(sums.read_text(), "existing checksums\n")
 
     def test_overfull_log_prevents_release_pdf(self) -> None:
-        self.log.write_text(
-            "Overfull \\hbox (1.0pt too wide) detected at line 1\n"
-            + self.log.read_text()
-        )
+        self.log.write_text("Overfull \\hbox (1.0pt too wide) detected at line 1\n" + self.log.read_text())
         result = self.package()
         self.assertEqual(result.returncode, 1)
         self.assertIn("error: overfull box", result.stderr)

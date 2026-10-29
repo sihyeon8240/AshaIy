@@ -94,11 +94,7 @@ class ContainerCommandTests(unittest.TestCase):
     def calls(self, tool: str) -> list[list[str]]:
         if not self.log.exists():
             return []
-        return [
-            call[1:]
-            for line in self.log.read_text().splitlines()
-            if (call := json.loads(line))[0] == tool
-        ]
+        return [call[1:] for line in self.log.read_text().splitlines() if (call := json.loads(line))[0] == tool]
 
     def test_build_uses_repository_context_and_custom_tag(self) -> None:
         for options, tag in (
@@ -130,9 +126,7 @@ class ContainerCommandTests(unittest.TestCase):
         self.assertEqual(prepare[0], "up")
         self.assertEqual(execute[0], "exec")
         for arguments in (prepare, execute):
-            self.assertEqual(
-                arguments[arguments.index("--config") + 1], str(self.config_path)
-            )
+            self.assertEqual(arguments[arguments.index("--config") + 1], str(self.config_path))
             self.assertIn(str(self.root), arguments)
             self.assertNotIn("--override-config", arguments)
             self.assertNotIn("--remove-existing-container", arguments)
@@ -158,21 +152,15 @@ class ContainerCommandTests(unittest.TestCase):
         self.assertIn("ashaiy.workspace=", " ".join(prepare))
         self.assertEqual(self.config_path.read_bytes(), original)
         self.environment["IMAGE_ID"] = "sha256:" + "c" * 64
-        self.assertEqual(
-            self.cli("image", "run", "--image", "custom:dev").returncode, 0
-        )
+        self.assertEqual(self.cli("image", "run", "--image", "custom:dev").returncode, 0)
         second = self.calls("devcontainer")[2]
-        self.assertNotEqual(
-            second[second.index("--override-config") + 1], str(override)
-        )
+        self.assertNotEqual(second[second.index("--override-config") + 1], str(override))
 
     def test_command_is_passed_literally_without_host_execution(self) -> None:
         command = 'printf "%s" "$HOME"; touch "$(pwd)/unexpected"'
         result = self.cli("image", "run", "--command", command)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(
-            self.calls("devcontainer")[-1][-3:], ["/bin/bash", "-c", command]
-        )
+        self.assertEqual(self.calls("devcontainer")[-1][-3:], ["/bin/bash", "-c", command])
         self.assertFalse((self.root / "unexpected").exists())
 
     def test_direct_script_propagates_exit_status_from_any_directory(self) -> None:
@@ -204,9 +192,7 @@ class ContainerCommandTests(unittest.TestCase):
                 result = self.cli("image", "run")
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(self.calls("devcontainer"), [])
-                self.assertFalse(
-                    any(call[0] in {"rm", "stop"} for call in self.calls("docker"))
-                )
+                self.assertFalse(any(call[0] in {"rm", "stop"} for call in self.calls("docker")))
 
     def test_missing_cli_and_invalid_images_fail_before_docker_changes(self) -> None:
         for image in ("--privileged", "bad image", "bad\nimage"):

@@ -41,9 +41,7 @@ def replace_once(
 ) -> str:
     updated, count = re.subn(pattern, replacement, text, flags=re.MULTILINE)
     if count != 1:
-        raise ValueError(
-            f"{path}: expected exactly one synchronized value, found {count}"
-        )
+        raise ValueError(f"{path}: expected exactly one synchronized value, found {count}")
     return updated
 
 
@@ -51,9 +49,7 @@ def formalization_versions(root: Path, lean_version: str) -> str:
     """Render publication versions from the toolchain and resolved Mathlib lock."""
     path = root / "lean/lake-manifest.json"
     manifest = read_json(path)
-    packages = [
-        package for package in manifest["packages"] if package["name"] == "mathlib"
-    ]
+    packages = [package for package in manifest["packages"] if package["name"] == "mathlib"]
     if len(packages) != 1:
         raise ValueError(f"{path}: expected exactly one Mathlib package")
     package = packages[0]
@@ -92,11 +88,7 @@ def rendered_toolchain_groups(root: Path, toolchain: dict[str, str]) -> dict[Pat
     return {
         root / ".devcontainer/generated" / f"{group}.env": (
             "# Generated from config/toolchain.env; do not edit.\n"
-            + "".join(
-                f"{key}={value}\n"
-                for key, value in toolchain.items()
-                if key.startswith(prefixes)
-            )
+            + "".join(f"{key}={value}\n" for key, value in toolchain.items() if key.startswith(prefixes))
         )
         for group, prefixes in groups.items()
     }
@@ -110,11 +102,7 @@ def rendered_issue_forms(root: Path, books: list[dict]) -> dict[Path, str]:
         form = read_yaml(path)
         if not isinstance(form, dict) or not isinstance(form.get("body"), list):
             raise ValueError(f"{path}: expected an issue form body")
-        choices = [
-            item
-            for item in form["body"]
-            if isinstance(item, dict) and item.get("id") == "book"
-        ]
+        choices = [item for item in form["body"] if isinstance(item, dict) and item.get("id") == "book"]
         if len(choices) != 1 or choices[0]["type"] != "dropdown":
             raise ValueError(f"{path}: expected one textbook dropdown")
         titles = json.dumps([book["title"] for book in books], ensure_ascii=False)
@@ -128,9 +116,7 @@ def rendered_issue_forms(root: Path, books: list[dict]) -> dict[Path, str]:
     return updates
 
 
-def rendered_consumers(
-    root: Path = ROOT, *, image: str | None = None
-) -> dict[Path, str]:
+def rendered_consumers(root: Path = ROOT, *, image: str | None = None) -> dict[Path, str]:
     load_image_build(root)
     toolchain = load_toolchain(root / "config/toolchain.env")
     if image is None:
@@ -146,9 +132,7 @@ def rendered_consumers(
     )
     dev_data = parse_json(dev_text)
     recommendations = read_json(root / ".vscode/extensions.json")["recommendations"]
-    if not isinstance(recommendations, list) or not all(
-        isinstance(extension, str) for extension in recommendations
-    ):
+    if not isinstance(recommendations, list) or not all(isinstance(extension, str) for extension in recommendations):
         raise ValueError("VS Code recommendations must be a list of extension IDs")
     dev_data["customizations"]["vscode"]["extensions"] = recommendations
     dev_text = json.dumps(dev_data, indent=2) + "\n"
@@ -212,9 +196,7 @@ def rendered_consumers(
         **rendered_validation_consumers(root),
         **rendered_toolchain_groups(root, toolchain),
         **rendered_issue_forms(root, books),
-        root / "common/templates/formalization-versions.tex": formalization_versions(
-            root, toolchain["LEAN_VERSION"]
-        ),
+        root / "common/templates/formalization-versions.tex": formalization_versions(root, toolchain["LEAN_VERSION"]),
         devcontainer: dev_text,
         tasks_path: json.dumps(tasks, indent=2) + "\n",
         root / "lean/lean-toolchain": toolchain["LEAN_TOOLCHAIN"] + "\n",
@@ -248,9 +230,7 @@ def _set_image_digest(digest: str, root: Path) -> list[Path]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--check", action="store_true", help="fail on configuration drift"
-    )
+    parser.add_argument("--check", action="store_true", help="fail on configuration drift")
     parser.add_argument("--set-image-digest", metavar="SHA256")
     args = parser.parse_args()
     try:
@@ -265,9 +245,7 @@ def main() -> int:
         return 1
     if args.check and changed:
         for path in changed:
-            print(
-                f"error: synchronized configuration is stale: {path}", file=sys.stderr
-            )
+            print(f"error: synchronized configuration is stale: {path}", file=sys.stderr)
         return 1
     if changed:
         for path in changed:

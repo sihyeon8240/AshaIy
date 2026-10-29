@@ -19,9 +19,7 @@ class CleanTests(unittest.TestCase):
             root = Path(directory)
             scripts = root / "scripts"
             scripts.mkdir()
-            copy_file(
-                ROOT / "scripts/repository/clean.sh", scripts / "repository/clean.sh"
-            )
+            copy_file(ROOT / "scripts/repository/clean.sh", scripts / "repository/clean.sh")
             (root / "build/nested").mkdir(parents=True)
             (root / "build/nested/output.pdf").write_bytes(b"pdf")
             (root / "vscode-build/nested").mkdir(parents=True)
@@ -56,9 +54,7 @@ class CleanArtifactsTests(unittest.TestCase):
             )
             (root / "config/generated").mkdir(parents=True)
             for name in ("cleanup-files.txt", "cleanup-prune.txt"):
-                copy_file(
-                    ROOT / "config/generated" / name, root / "config/generated" / name
-                )
+                copy_file(ROOT / "config/generated" / name, root / "config/generated" / name)
 
             artifacts = (
                 root / "chapter.aux",
@@ -104,9 +100,7 @@ class CleanArtifactsTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(all(not artifact.exists() for artifact in artifacts))
-            self.assertTrue(
-                all(path.read_text(encoding="utf-8") == "keep" for path in preserved)
-            )
+            self.assertTrue(all(path.read_text(encoding="utf-8") == "keep" for path in preserved))
 
     def test_traversal_failure_is_reported(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

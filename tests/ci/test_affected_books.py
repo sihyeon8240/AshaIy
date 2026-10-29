@@ -57,9 +57,7 @@ class AffectedBookTests(unittest.TestCase):
     def plan(self, paths, old=None):
         with (
             mock.patch.object(affected, "load_manifest", return_value=self.manifest),
-            mock.patch.object(
-                affected, "dependencies", side_effect=lambda slug: self.deps[slug]
-            ),
+            mock.patch.object(affected, "dependencies", side_effect=lambda slug: self.deps[slug]),
         ):
             return affected.plan(paths, old)
 
@@ -74,9 +72,7 @@ class AffectedBookTests(unittest.TestCase):
             mock.patch.object(affected, "load_manifest", return_value=self.manifest),
             mock.patch.object(affected, "changed_paths", return_value=[]),
             mock.patch.object(affected, "manifest_at", return_value=self.manifest),
-            mock.patch.object(
-                affected, "dependencies", side_effect=lambda slug: self.deps[slug]
-            ),
+            mock.patch.object(affected, "dependencies", side_effect=lambda slug: self.deps[slug]),
             mock.patch.dict(os.environ, {"RELEASE_MATRIX": '{"book":["beta"]}'}),
             mock.patch.object(sys, "argv", ["ci/affected_books.py", "--base", "HEAD"]),
             contextlib.redirect_stdout(output),
@@ -99,9 +95,7 @@ class AffectedBookTests(unittest.TestCase):
         self.assertEqual(self.plan(["common/styles/alpha.sty"])["book"], ["alpha"])
 
     def test_unknown_shared_assets_are_conservative_but_scaffolds_are_exempt(self):
-        self.assertEqual(
-            self.plan(["common/templates/diagram.png"])["book"], ["alpha", "beta"]
-        )
+        self.assertEqual(self.plan(["common/templates/diagram.png"])["book"], ["alpha", "beta"])
         self.assertEqual(self.plan(["common/templates/section.tex"])["book"], [])
 
     def test_graphics_are_tracked_as_shared_book_dependencies(self):
@@ -118,13 +112,9 @@ class AffectedBookTests(unittest.TestCase):
             beta.write_text("No graphic.\n")
             with (
                 mock.patch.object(affected, "ROOT", root),
-                mock.patch.object(
-                    affected, "load_manifest", return_value=self.manifest
-                ),
+                mock.patch.object(affected, "load_manifest", return_value=self.manifest),
             ):
-                self.assertEqual(
-                    affected.plan(["common/templates/diagram.png"])["book"], ["alpha"]
-                )
+                self.assertEqual(affected.plan(["common/templates/diagram.png"])["book"], ["alpha"])
                 asset.unlink()
                 self.assertEqual(
                     affected.plan(["common/templates/diagram.png"])["book"],
@@ -160,9 +150,7 @@ class AffectedBookTests(unittest.TestCase):
                 self.assertTrue(result["site_changed"])
 
     def test_changed_canonical_image_reference_selects_all_books(self):
-        self.assertEqual(
-            self.plan(["config/container-image.txt"])["book"], ["alpha", "beta"]
-        )
+        self.assertEqual(self.plan(["config/container-image.txt"])["book"], ["alpha", "beta"])
 
     def test_site_and_document_only_changes_select_no_books(self):
         paths = (
@@ -217,9 +205,7 @@ class AffectedBookTests(unittest.TestCase):
             "schema_version": 0,
             "books": [{"slug": slug, "build": True} for slug in ("alpha", "beta")],
         }
-        self.assertEqual(
-            self.plan(["config/books.yml"], old)["book"], ["alpha", "beta"]
-        )
+        self.assertEqual(self.plan(["config/books.yml"], old)["book"], ["alpha", "beta"])
 
     def test_manifest_site_only_change_does_not_build(self):
         old = {
@@ -249,22 +235,16 @@ class AffectedBookTests(unittest.TestCase):
         current["books"][0]["site"] = True
         with (
             mock.patch.object(affected, "load_manifest", return_value=current),
-            mock.patch.object(
-                affected, "dependencies", side_effect=lambda slug: self.deps[slug]
-            ),
+            mock.patch.object(affected, "dependencies", side_effect=lambda slug: self.deps[slug]),
         ):
             result = affected.plan(["config/books.yml"], previous)
 
         self.assertEqual(result["book"], ["alpha"])
-        snapshot = plan_snapshot(
-            {}, {slug: 100 for slug in result["book"]}, {"alpha", "beta"}, {"alpha"}
-        )
+        snapshot = plan_snapshot({}, {slug: 100 for slug in result["book"]}, {"alpha", "beta"}, {"alpha"})
         self.assertEqual(snapshot.replace, ("alpha",))
         with (
             mock.patch.object(affected, "load_manifest", return_value=previous),
-            mock.patch.object(
-                affected, "dependencies", side_effect=lambda slug: self.deps[slug]
-            ),
+            mock.patch.object(affected, "dependencies", side_effect=lambda slug: self.deps[slug]),
         ):
             self.assertEqual(affected.plan(["config/books.yml"], current)["book"], [])
 
@@ -279,9 +259,7 @@ class AffectedBookTests(unittest.TestCase):
         )
 
     def test_consecutive_push_planner_uses_cumulative_snapshot_diff(self):
-        with mock.patch.object(
-            affected, "shared_changed_paths", return_value=["books/alpha/book.tex"]
-        ) as output:
+        with mock.patch.object(affected, "shared_changed_paths", return_value=["books/alpha/book.tex"]) as output:
             self.assertEqual(
                 affected.changed_paths("snapshot-sha", "latest-sha"),
                 ["books/alpha/book.tex"],
@@ -397,9 +375,7 @@ class AffectedBookTests(unittest.TestCase):
                 }
             ],
         }
-        with mock.patch.object(
-            affected, "git_output", return_value=yaml.safe_dump(manifest)
-        ):
+        with mock.patch.object(affected, "git_output", return_value=yaml.safe_dump(manifest)):
             result = affected.manifest_at("base")
         assert result is not None
         self.assertEqual(result["books"][0]["slug"], "deleted")

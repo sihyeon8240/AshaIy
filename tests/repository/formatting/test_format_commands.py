@@ -40,9 +40,7 @@ class SingleFileFormattingTests(unittest.TestCase):
             copy_script(ROOT / path, self.root / path)
         subprocess.run(["git", "init", "-q"], cwd=self.root, check=True, timeout=30)
 
-    def run_format(
-        self, language: str, path: str, check: bool = False
-    ) -> subprocess.CompletedProcess[str]:
+    def run_format(self, language: str, path: str, check: bool = False) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [
                 sys.executable,
@@ -140,9 +138,7 @@ class FormatTexTests(unittest.TestCase):
         subprocess.run(["git", "init", "-q"], cwd=root, check=True, timeout=30)
         return scripts
 
-    def run_formatter(
-        self, root: Path, *arguments: str
-    ) -> subprocess.CompletedProcess[str]:
+    def run_formatter(self, root: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [sys.executable, str(root / "scripts/latex/format_tex.py"), *arguments],
             cwd=root,
@@ -162,9 +158,7 @@ class FormatTexTests(unittest.TestCase):
             literal = r"\verb|x^2 \frac12|"
             source = "$\\int_0^1 \\frac12 x^2$ " + literal + "\n"
             path.write_text(source)
-            subprocess.run(
-                ["git", "add", "arguments.tex"], cwd=root, check=True, timeout=30
-            )
+            subprocess.run(["git", "add", "arguments.tex"], cwd=root, check=True, timeout=30)
             editor = subprocess.run(
                 [str(scripts / "latex/format_tex_file.sh"), str(path)],
                 cwd=root,
@@ -210,9 +204,7 @@ class FormatTexTests(unittest.TestCase):
                 self.assertIn(block, formatted)
             self.assertIn(r"\begin{lemma} \label{sample:lem:result}", formatted)
             path.write_text(formatted)
-            self.assertEqual(
-                subprocess.check_output(command, text=True, timeout=30), formatted
-            )
+            self.assertEqual(subprocess.check_output(command, text=True, timeout=30), formatted)
 
     @unittest.skipUnless(shutil.which("latexindent"), "latexindent is required")
     def test_preserves_manual_lines_and_aligns_equation_rows(self) -> None:
@@ -240,17 +232,13 @@ class FormatTexTests(unittest.TestCase):
             path.write_text(source)
             command = [str(ROOT / "scripts/latex/format_tex_file.sh"), str(path)]
             formatted = subprocess.check_output(command, text=True, timeout=30)
-            self.assertIn(
-                "  Keep this short line.\n  Keep this separate line.\n", formatted
-            )
+            self.assertIn("  Keep this short line.\n  Keep this separate line.\n", formatted)
             self.assertTrue(all(len(line) <= 120 for line in formatted.splitlines()))
             rows = [line for line in formatted.splitlines() if line.endswith("\\\\")]
             self.assertEqual(len(rows), 2)
             self.assertEqual(rows[0].index("\\\\"), rows[1].index("\\\\"))
             path.write_text(formatted)
-            self.assertEqual(
-                subprocess.check_output(command, text=True, timeout=30), formatted
-            )
+            self.assertEqual(subprocess.check_output(command, text=True, timeout=30), formatted)
 
     @unittest.skipUnless(shutil.which("latexindent"), "latexindent is required")
     def test_wraps_prose_to_120_columns_and_preserves_lean(self) -> None:
@@ -276,9 +264,7 @@ class FormatTexTests(unittest.TestCase):
             )
             path = root / "proof.tex"
             path.write_text(source, encoding="utf-8")
-            subprocess.run(
-                ["git", "add", "proof.tex"], cwd=root, check=True, timeout=30
-            )
+            subprocess.run(["git", "add", "proof.tex"], cwd=root, check=True, timeout=30)
 
             editor_result = subprocess.run(
                 [str(scripts / "latex/format_tex_file.sh"), str(path)],
@@ -310,9 +296,7 @@ class FormatTexTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(path.read_text(), formatted)
             settings = root / "config/latexindent.yaml"
-            settings.write_text(
-                settings.read_text().replace("columns: 120", "columns: 60")
-            )
+            settings.write_text(settings.read_text().replace("columns: 120", "columns: 60"))
             result = self.run_formatter(root, "--check")
             self.assertEqual(result.returncode, 1, result.stderr)
             self.assertEqual(path.read_text(), formatted)
@@ -323,12 +307,7 @@ class FormatTexTests(unittest.TestCase):
             root = Path(directory)
             self.prepare_formatter(root)
             metadata = (
-                (
-                    "% !TEX root = book.tex\n"
-                    "% BEGIN GENERATED APPENDICES\n"
-                    "% END GENERATED APPENDICES\n"
-                    "% Lean source: "
-                )
+                ("% !TEX root = book.tex\n% BEGIN GENERATED APPENDICES\n% END GENERATED APPENDICES\n% Lean source: ")
                 + "Textbooks.LongModule." * 8
                 + "result\n%\n"
             )
@@ -344,22 +323,16 @@ class FormatTexTests(unittest.TestCase):
             )
             path = root / "proof.tex"
             path.write_text(source)
-            subprocess.run(
-                ["git", "add", "proof.tex"], cwd=root, check=True, timeout=30
-            )
+            subprocess.run(["git", "add", "proof.tex"], cwd=root, check=True, timeout=30)
 
             result = self.run_formatter(root)
             self.assertEqual(result.returncode, 0, result.stderr)
             formatted = path.read_text()
             self.assertTrue(formatted.startswith(metadata))
-            self.assertIn(
-                "\\begin{proof}\n  First sentence. Second sentence.\n", formatted
-            )
+            self.assertIn("\\begin{proof}\n  First sentence. Second sentence.\n", formatted)
             self.assertIn(display, formatted)
             body = formatted[len(metadata) :]
-            comments = [
-                line for line in body.splitlines() if line.lstrip().startswith("%")
-            ]
+            comments = [line for line in body.splitlines() if line.lstrip().startswith("%")]
             self.assertGreater(len(comments), 1)
             self.assertEqual(
                 " ".join(line.lstrip()[1:].strip() for line in comments),
@@ -425,9 +398,7 @@ class FormatTexTests(unittest.TestCase):
             )
             path = root / "proof.tex"
             path.write_text(source, encoding="utf-8")
-            subprocess.run(
-                ["git", "add", "proof.tex"], cwd=root, check=True, timeout=30
-            )
+            subprocess.run(["git", "add", "proof.tex"], cwd=root, check=True, timeout=30)
 
             result = self.run_formatter(root, "--check")
             self.assertEqual(result.returncode, 1, result.stderr)
@@ -478,9 +449,7 @@ class FormatTexTests(unittest.TestCase):
             )
             path = root / "theorem.tex"
             path.write_text(source, encoding="utf-8")
-            subprocess.run(
-                ["git", "add", "theorem.tex"], cwd=root, check=True, timeout=30
-            )
+            subprocess.run(["git", "add", "theorem.tex"], cwd=root, check=True, timeout=30)
 
             result = self.run_formatter(root, "--check")
             self.assertEqual(result.returncode, 1, result.stderr)
@@ -502,9 +471,7 @@ class FormatTexTests(unittest.TestCase):
             scripts = self.prepare_formatter(root)
             (root / "tracked.tex").write_text("tracked\n", encoding="utf-8")
             (root / "draft.tex").write_text("draft\n", encoding="utf-8")
-            subprocess.run(
-                ["git", "add", "tracked.tex"], cwd=root, check=True, timeout=30
-            )
+            subprocess.run(["git", "add", "tracked.tex"], cwd=root, check=True, timeout=30)
             binary = root / "bin"
             binary.mkdir()
             latexindent = binary / "latexindent"
@@ -623,17 +590,13 @@ class FormatShellTests(unittest.TestCase):
                 scripts / "repository/formatting/normalize_eof.py",
             )
             subprocess.run(["git", "init", "-q"], cwd=root, check=True, timeout=30)
-            (scripts / "tracked.sh").write_text(
-                "#!/usr/bin/env bash\n", encoding="utf-8"
-            )
+            (scripts / "tracked.sh").write_text("#!/usr/bin/env bash\n", encoding="utf-8")
             (scripts / "draft.sh").write_text("#!/usr/bin/env bash\n", encoding="utf-8")
             nested = scripts / "nested/tools/draft.sh"
             nested.parent.mkdir(parents=True)
             nested.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
             (root / "outside.sh").write_text("#!/usr/bin/env bash\n", encoding="utf-8")
-            subprocess.run(
-                ["git", "add", "scripts/tracked.sh"], cwd=root, check=True, timeout=30
-            )
+            subprocess.run(["git", "add", "scripts/tracked.sh"], cwd=root, check=True, timeout=30)
             binary = root / "bin"
             binary.mkdir()
             shfmt = binary / "shfmt"

@@ -43,9 +43,7 @@ def plan_tag(tag: str, manifest: dict) -> dict:
             raise ValueError("invalid slug")
         version_key(version)
     except ValueError as error:
-        raise ValueError(
-            f"invalid release tag '{tag}'; expected <book>-v<version>"
-        ) from error
+        raise ValueError(f"invalid release tag '{tag}'; expected <book>-v<version>") from error
 
     book = next((book for book in manifest["books"] if book["slug"] == slug), None)
     if book is None or not book["release"]:
@@ -63,11 +61,7 @@ def plan(previous: dict, current: dict) -> list[str]:
     for book in current["books"]:
         before = old.get(book["slug"])
         changed = before is not None and before["version"] != book["version"]
-        if (
-            before is not None
-            and changed
-            and version_key(book["version"]) <= version_key(before["version"])
-        ):
+        if before is not None and changed and version_key(book["version"]) <= version_key(before["version"]):
             raise ValueError(f"version must increase: {book['slug']}")
         enabled_before = before is not None and before.get(
             "release", previous.get("defaults", {}).get("release", False)
@@ -102,16 +96,11 @@ def check_remote_tags(selected: list[str], manifest: dict) -> None:
         return
 
     # Query the base repository directly; checkout's local tags may be stale.
-    output = subprocess.check_output(
-        ["git", "ls-remote", "--refs", "origin", *refs], cwd=ROOT, text=True
-    )
+    output = subprocess.check_output(["git", "ls-remote", "--refs", "origin", *refs], cwd=ROOT, text=True)
     existing = {line.split()[1] for line in output.splitlines()}
     conflicts = [ref.removeprefix("refs/tags/") for ref in refs if ref in existing]
     if conflicts:
-        raise ValueError(
-            "release tags already exist; choose a higher version: "
-            + ", ".join(conflicts)
-        )
+        raise ValueError("release tags already exist; choose a higher version: " + ", ".join(conflicts))
 
 
 def release_edits(text: str, node: yaml.MappingNode, version: str) -> list[tuple]:
@@ -124,11 +113,7 @@ def release_edits(text: str, node: yaml.MappingNode, version: str) -> list[tuple
         if value is None:
             missing.append((name, replacement))
         else:
-            if (
-                not node.start_mark.index
-                <= value.start_mark.index
-                < node.end_mark.index
-            ):
+            if not node.start_mark.index <= value.start_mark.index < node.end_mark.index:
                 raise ValueError(f"release field '{name}' must not be a YAML alias")
             edits.append((value.start_mark.index, value.end_mark.index, replacement))
 
@@ -155,9 +140,7 @@ def release_edits(text: str, node: yaml.MappingNode, version: str) -> list[tuple
         else:
             position += 1
         indent = " " * key.start_mark.column
-        addition = prefix + "".join(
-            f"{indent}{name}: {value}\n" for name, value in missing
-        )
+        addition = prefix + "".join(f"{indent}{name}: {value}\n" for name, value in missing)
     edits.append((position, position, addition))
     return edits
 
@@ -168,9 +151,7 @@ def prepare(book_slug: str, version: str) -> None:
 
 
 def _prepare(book_slug: str, version: str) -> None:
-    branch = subprocess.check_output(
-        ["git", "branch", "--show-current"], cwd=ROOT, text=True
-    ).strip()
+    branch = subprocess.check_output(["git", "branch", "--show-current"], cwd=ROOT, text=True).strip()
     if not branch or branch == "main":
         raise ValueError("prepare releases on local-work or another development branch")
 
@@ -183,18 +164,14 @@ def _prepare(book_slug: str, version: str) -> None:
 
     requested, current = version_key(version), version_key(book["version"])
     if requested < current or (requested == current and book["release"]):
-        raise ValueError(
-            "version must increase unless enabling release for the first time"
-        )
+        raise ValueError("version must increase unless enabling release for the first time")
 
     path = ROOT / "config/books.yml"
     text = read_text(path)
     document = yaml.compose(text)
     books_node = next(v for k, v in document.value if k.value == "books")
     node = next(
-        item
-        for item in books_node.value
-        if any(k.value == "slug" and v.value == book_slug for k, v in item.value)
+        item for item in books_node.value if any(k.value == "slug" and v.value == book_slug for k, v in item.value)
     )
     edits = release_edits(text, node, version)
 
@@ -211,9 +188,7 @@ def _prepare(book_slug: str, version: str) -> None:
     write_updates(updates, durable=True)
 
     print(f"Prepared {book_slug} {version}; review and commit the changes in your PR.")
-    print(
-        "Merging this release preparation authorizes automatic publication after CI passes."
-    )
+    print("Merging this release preparation authorizes automatic publication after CI passes.")
 
 
 def main() -> int:
@@ -228,9 +203,7 @@ def main() -> int:
     planning.add_argument("--check-remote-tags", action="store_true")
     planning.add_argument("--summary", type=Path)
 
-    tag_parser = sub.add_parser(
-        "tag", help="validate a release tag and export its plan"
-    )
+    tag_parser = sub.add_parser("tag", help="validate a release tag and export its plan")
     tag_parser.add_argument("tag")
     args = parser.parse_args()
 
@@ -241,9 +214,7 @@ def main() -> int:
             book = plan_tag(args.tag, load_manifest())
             print(f"{book['slug'].replace('-', '_')}_version={book['version']}")
             print(f"version={book['version']}")
-            print(
-                "matrix=" + json.dumps({"book": [book["slug"]]}, separators=(",", ":"))
-            )
+            print("matrix=" + json.dumps({"book": [book["slug"]]}, separators=(",", ":")))
         else:
             # A branch's first push has no previous manifest to compare.
             previous = {"books": []}

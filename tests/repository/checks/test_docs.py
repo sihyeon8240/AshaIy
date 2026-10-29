@@ -37,8 +37,7 @@ class DocumentationTests(unittest.TestCase):
             (root / "docs").mkdir()
             (root / "common/styles").mkdir(parents=True)
             (root / "docs/writing-guide.md").write_text(
-                "### Theorem environments\n\n"
-                "The public environments are `theorem`, `exercise`, and `proof`. Use them.\n"
+                "### Theorem environments\n\nThe public environments are `theorem`, `exercise`, and `proof`. Use them.\n"
             )
             (root / "common/styles/theorems.sty").write_text(
                 "\\RequirePackage{amsthm}\n"

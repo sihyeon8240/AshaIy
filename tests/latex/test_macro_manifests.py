@@ -121,16 +121,12 @@ class MacroManifestTests(unittest.TestCase):
     def test_common_input_is_consistent_per_plan_and_edits_reach_next_plan(
         self,
     ) -> None:
-        with patch(
-            "scripts.latex.macro_generation.load_macros", wraps=load_macros
-        ) as reader:
+        with patch("scripts.latex.macro_generation.load_macros", wraps=load_macros) as reader:
             repository = MacroRepository(self.root)
             first = repository.registry("alpha", check=False)
             second = repository.registry("beta", check=False)
         common = self.root / "common/styles/macros.yml"
-        self.assertEqual(
-            sum(call.args[0] == common for call in reader.call_args_list), 1
-        )
+        self.assertEqual(sum(call.args[0] == common for call in reader.call_args_list), 1)
         output = self.root / "common/styles" / COMMON_GENERATED_NAME
         self.assertEqual(first.updates[output], second.updates[output])
         self.shared["R"]["body"] = r"\mathbf{R}"
@@ -142,9 +138,7 @@ class MacroManifestTests(unittest.TestCase):
 
     def test_generation_is_idempotent_scoped_and_check_is_read_only(self) -> None:
         targets = sorted(self.root.rglob("generated*-macros.sty"))
-        originals = {
-            path: (path.read_bytes(), path.stat().st_mtime_ns) for path in targets
-        }
+        originals = {path: (path.read_bytes(), path.stat().st_mtime_ns) for path in targets}
         self.assertEqual(self.generate(check=True), 0)
         self.assertEqual(self.generate(), 0)
         self.assertEqual(
@@ -167,15 +161,9 @@ class MacroManifestTests(unittest.TestCase):
         alpha = repository.for_source(self.root / "books/alpha/draft.tex")
         beta = repository.for_source(self.root / "books/beta/draft.tex")
         shared = repository.for_source(self.root / "common/templates/draft.tex")
-        self.assertEqual(
-            normalize_braces(r"$\Local xy$", alpha.commands), r"$\Local{x}y$"
-        )
-        self.assertEqual(
-            normalize_braces(r"$\Local xy$", beta.commands), r"$\Local{x}{y}$"
-        )
-        self.assertEqual(
-            normalize_braces(r"$\Local xy$", shared.commands), r"$\Local xy$"
-        )
+        self.assertEqual(normalize_braces(r"$\Local xy$", alpha.commands), r"$\Local{x}y$")
+        self.assertEqual(normalize_braces(r"$\Local xy$", beta.commands), r"$\Local{x}{y}$")
+        self.assertEqual(normalize_braces(r"$\Local xy$", shared.commands), r"$\Local xy$")
         examples = {
             r"$x_\R + \Abs*x + \Abs[\Big]x + \Inner xy$": r"$x_{\R} + \Abs*{x} + \Abs[\Big]{x} + \Inner{x}{y}$",
             r"$\WithDefault{x} + \WithDefault[a_i]x$": r"$\WithDefault{x} + \WithDefault[a_{i}]{x}$",
@@ -237,9 +225,7 @@ class MacroManifestTests(unittest.TestCase):
                 )
                 with self.assertRaises(ValueError):
                     self.generate()
-                self.assertEqual(
-                    {path: path.read_bytes() for path in targets}, originals
-                )
+                self.assertEqual({path: path.read_bytes() for path in targets}, originals)
 
     def test_duplicate_names_reserved_names_and_owners_are_rejected(self) -> None:
         path = self.root / "books/alpha/styles/macros.yml"
@@ -255,16 +241,12 @@ class MacroManifestTests(unittest.TestCase):
                     path,
                     {
                         "schema_version": 1,
-                        "macros": {
-                            name: {"kind": "command", "arguments": [], "body": "x"}
-                        },
+                        "macros": {name: {"kind": "command", "arguments": [], "body": "x"}},
                     },
                 )
                 with self.assertRaises(ValueError):
                     self.generate()
-        path.write_text(
-            "schema_version: 1\nmacros:\n  A: {kind: operator, text: a}\n  A: {kind: operator, text: b}\n"
-        )
+        path.write_text("schema_version: 1\nmacros:\n  A: {kind: operator, text: a}\n  A: {kind: operator, text: b}\n")
         with self.assertRaisesRegex(ValueError, r"macros.yml:4:"):
             load_macros(path)
         self.write_book("alpha", 1)
@@ -302,9 +284,7 @@ class MacroManifestTests(unittest.TestCase):
             ROOT / "scripts/latex/format_tex.py",
             self.root / "scripts/latex/format_tex.py",
         )
-        copy_file(
-            ROOT / "config/latexindent.yaml", self.root / "config/latexindent.yaml"
-        )
+        copy_file(ROOT / "config/latexindent.yaml", self.root / "config/latexindent.yaml")
         self.write_shared()
         self.generate()
         subprocess.run(["git", "init", "-q"], cwd=self.root, check=True, timeout=30)
@@ -353,14 +333,10 @@ class MacroManifestTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which("latexindent"), "latexindent is required")
     def test_bulk_preflight_preserves_all_sources_when_one_book_is_stale(self) -> None:
         self.prepare_formatter()
-        sources = [
-            self.root / "books" / slug / "draft.tex" for slug in ("alpha", "beta")
-        ]
+        sources = [self.root / "books" / slug / "draft.tex" for slug in ("alpha", "beta")]
         for source in sources:
             source.write_text(r"$x^2 + \Local xy$" + "\n")
-        subprocess.run(
-            ["git", "add", *map(str, sources)], cwd=self.root, check=True, timeout=30
-        )
+        subprocess.run(["git", "add", *map(str, sources)], cwd=self.root, check=True, timeout=30)
         originals = [source.read_bytes() for source in sources]
         self.write_book("beta", 3)
         result = self.run_format()

@@ -86,9 +86,7 @@ class FullCheckTests(unittest.TestCase):
                             proof_status or source_status,
                             result.stderr,
                         )
-                        proof = (
-                            "check_lean.sh " if mode == "build" else "proof_links.py "
-                        )
+                        proof = "check_lean.sh " if mode == "build" else "proof_links.py "
                         expected = [proof]
                         if not proof_status:
                             expected.append("check_repository.sh --defer-lean")
@@ -172,9 +170,7 @@ class FullCheckTests(unittest.TestCase):
                     self.assertIn("normalize_eof.py --check --exclude-formatted", calls)
                     self.assertEqual(calls.count("check_lean.sh "), 1)
                     self.assertEqual("build_all.py check" in calls, status == 0)
-                    environments = (
-                        Path(f"{capture}.environment").read_text().splitlines()
-                    )
+                    environments = Path(f"{capture}.environment").read_text().splitlines()
                     for environment in environments:
                         name, strict_flag, manifest_flag = environment.split()
                         self.assertEqual(strict_flag, "1" if strict else "0")
@@ -213,11 +209,7 @@ class BuildVSCodeTests(unittest.TestCase):
             latexmk = bin_dir / "latexmk"
             write_executable(
                 latexmk,
-                (
-                    "#!/usr/bin/env bash\n"
-                    "set -euo pipefail\n"
-                    'printf "%s\\n" "$PWD" "$@" > "$LATEXMK_CAPTURE"\n'
-                ),
+                ('#!/usr/bin/env bash\nset -euo pipefail\nprintf "%s\\n" "$PWD" "$@" > "$LATEXMK_CAPTURE"\n'),
             )
             capture = root / "latexmk-arguments"
             environment = os.environ.copy()
@@ -263,9 +255,7 @@ class BookCommandTests(unittest.TestCase):
         copy_validation_configuration(self.root)
         from tests.support.fixtures import book_record, manifest_document, write_yaml
 
-        write_yaml(
-            self.root / "config/books.yml", manifest_document([book_record("sample")])
-        )
+        write_yaml(self.root / "config/books.yml", manifest_document([book_record("sample")]))
         (self.root / "books/sample").mkdir(parents=True)
         (self.root / "books/sample/book.tex").write_text("Fixture.\n")
         shutil.copytree(
@@ -303,9 +293,7 @@ class BookCommandTests(unittest.TestCase):
             'Path("bulk-strict").write_text(os.environ.get("CHECK_LOG_STRICT", "0"))\n',
         )
 
-    def run_cli(
-        self, *goals: str, log_text: str = ""
-    ) -> subprocess.CompletedProcess[str]:
+    def run_cli(self, *goals: str, log_text: str = "") -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [
                 sys.executable,
@@ -350,9 +338,7 @@ class BookCommandTests(unittest.TestCase):
         self.assertEqual((self.root / "build-options").read_text(), "2 1")
 
     def test_check_rejects_a_latex_log_error(self) -> None:
-        result = self.run_cli(
-            "check", log_text="LaTeX Warning: Reference `x` undefined.\n"
-        )
+        result = self.run_cli("check", log_text="LaTeX Warning: Reference `x` undefined.\n")
         self.assertEqual(result.returncode, 1)
         self.assertIn("undefined reference", result.stderr)
 
@@ -388,14 +374,10 @@ class BookCommandTests(unittest.TestCase):
                         (self.root / "bulk-arguments").read_text(),
                         "check" if check else "",
                     )
-                    self.assertEqual(
-                        (self.root / "bulk-strict").read_text(), "1" if strict else "0"
-                    )
+                    self.assertEqual((self.root / "bulk-strict").read_text(), "1" if strict else "0")
 
     def test_direct_book_command_preserves_build_failure_status(self) -> None:
-        (self.root / "scripts/latex/build_book.sh").write_text(
-            "#!/usr/bin/env bash\nexit 23\n"
-        )
+        (self.root / "scripts/latex/build_book.sh").write_text("#!/usr/bin/env bash\nexit 23\n")
         result = subprocess.run(
             [
                 sys.executable,
@@ -454,9 +436,7 @@ class BookCommandTests(unittest.TestCase):
         output = self.root / "build/sample"
         output.mkdir(parents=True)
         (output / "book.log").write_text("Previous successful build\n")
-        (self.root / "scripts/latex/build_book.sh").write_text(
-            "#!/usr/bin/env bash\necho build-failed >&2\nexit 23\n"
-        )
+        (self.root / "scripts/latex/build_book.sh").write_text("#!/usr/bin/env bash\necho build-failed >&2\nexit 23\n")
         for goals in ((), ("check",), ("check", "strict")):
             with self.subTest(goals=goals):
                 result = self.run_cli(*goals)
@@ -464,10 +444,7 @@ class BookCommandTests(unittest.TestCase):
                 self.assertIn("build-failed", result.stderr)
 
     def test_strict_controls_overfull_box_failure(self) -> None:
-        log = (
-            "Overfull \\hbox (1.0pt too wide) detected at line 1\n"
-            "Output written on book.pdf (1 page, 123 bytes).\n"
-        )
+        log = "Overfull \\hbox (1.0pt too wide) detected at line 1\nOutput written on book.pdf (1 page, 123 bytes).\n"
         advisory = self.run_cli("check", log_text=log)
         strict = self.run_cli("check", "strict", log_text=log)
         self.assertEqual(advisory.returncode, 0, advisory.stderr)
@@ -485,9 +462,7 @@ class BuildBookTests(unittest.TestCase):
         scripts = self.root / "scripts"
         scripts.mkdir(exist_ok=True)
         copy_file(ROOT / "scripts/latex/build_book.sh", scripts / "latex/build_book.sh")
-        copy_file(
-            ROOT / "scripts/latex/build_support.sh", scripts / "latex/build_support.sh"
-        )
+        copy_file(ROOT / "scripts/latex/build_support.sh", scripts / "latex/build_support.sh")
         copy_file(
             ROOT / "scripts/latex/build_environment.py",
             scripts / "latex/build_environment.py",
@@ -548,9 +523,7 @@ class BuildBookTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue((output / "chapters/start").is_dir())
-        self.assertIn(
-            str(self.root / "common/styles//"), (output / "texinputs").read_text()
-        )
+        self.assertIn(str(self.root / "common/styles//"), (output / "texinputs").read_text())
         self.assertIn(f"-outdir={output}", (output / "arguments").read_text())
 
     def test_editor_and_cli_share_environment_and_failure_cleanup(self) -> None:
@@ -606,9 +579,7 @@ class BuildBookTests(unittest.TestCase):
                     text=True,
                     timeout=30,
                 )
-                self.assertEqual(
-                    result.returncode, 2 if option == "invalid" else 0, result.stderr
-                )
+                self.assertEqual(result.returncode, 2 if option == "invalid" else 0, result.stderr)
                 if option != "invalid":
                     arguments = (self.root / "build/sample/arguments").read_text()
                     self.assertEqual("-shell-escape" in arguments, option == "1")
@@ -686,12 +657,8 @@ class BuildBookTests(unittest.TestCase):
                     timeout=30,
                 )
                 self.assertEqual(result.returncode, status, result.stderr)
-                self.assertEqual(
-                    "-g" in (output / "arguments").read_text().splitlines(), forced
-                )
-                environment = json.loads(
-                    (output / "book.build-environment.json").read_text()
-                )
+                self.assertEqual("-g" in (output / "arguments").read_text().splitlines(), forced)
+                environment = json.loads((output / "book.build-environment.json").read_text())
                 self.assertEqual(
                     environment["SOURCE_DATE_EPOCH"],
                     "1700000000" if status else epoch,

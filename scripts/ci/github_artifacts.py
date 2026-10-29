@@ -22,9 +22,7 @@ DOWNLOAD_LOG_INTERVAL = 15
 
 
 def command(*args: str) -> bytes:
-    return subprocess.run(
-        args, cwd=ROOT, check=True, capture_output=True, timeout=60
-    ).stdout
+    return subprocess.run(args, cwd=ROOT, check=True, capture_output=True, timeout=60).stdout
 
 
 def api(endpoint: str, execute: Callable = command):
@@ -60,9 +58,7 @@ def validate_identity(manifest: dict, expected: dict, run: dict, *, label: str) 
     for key, value in expected.items():
         if manifest.get(key) != value:
             raise ValueError(f"{label} identity differs: {key}")
-    if manifest.get("run_id") != str(run["id"]) or manifest.get("run_attempt") != str(
-        run["run_attempt"]
-    ):
+    if manifest.get("run_id") != str(run["id"]) or manifest.get("run_attempt") != str(run["run_attempt"]):
         raise ValueError(f"{label} belongs to a different run or attempt")
 
 
@@ -75,8 +71,7 @@ def require_space(path: Path, size: int, *, operation: str) -> None:
     free = shutil.disk_usage(path).free
     required = size + DISK_RESERVE
     print(
-        f"{operation}: {free / 1024**3:.1f} GiB free; "
-        f"{required / 1024**3:.1f} GiB required including reserve",
+        f"{operation}: {free / 1024**3:.1f} GiB free; {required / 1024**3:.1f} GiB required including reserve",
         flush=True,
     )
     if free < required:
@@ -91,10 +86,7 @@ def download_timeout(size: int) -> float:
 
 
 def download(repository: str, artifact: dict, target: Path, *, max_bytes: int) -> None:
-    if (
-        artifact.get("expired", True)
-        or artifact.get("size_in_bytes", max_bytes + 1) > max_bytes
-    ):
+    if artifact.get("expired", True) or artifact.get("size_in_bytes", max_bytes + 1) > max_bytes:
         raise ValueError("artifact is expired or too large")
     label = artifact.get("name", str(artifact["id"]))
     expected_size = artifact["size_in_bytes"]
@@ -105,8 +97,7 @@ def download(repository: str, artifact: dict, target: Path, *, max_bytes: int) -
     args = ["gh", "api", f"repos/{repository}/actions/artifacts/{artifact['id']}/zip"]
     for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
         print(
-            f"Downloading {label}: attempt {attempt}/{DOWNLOAD_ATTEMPTS}, "
-            f"expected {expected_size / 1024**2:.1f} MiB",
+            f"Downloading {label}: attempt {attempt}/{DOWNLOAD_ATTEMPTS}, expected {expected_size / 1024**2:.1f} MiB",
             flush=True,
         )
         try:
@@ -151,10 +142,7 @@ def download_attempt(
                 if size != previous_size:
                     last_progress = now
                     previous_size = size
-                if (
-                    now - last_log >= DOWNLOAD_LOG_INTERVAL
-                    or process.returncode is not None
-                ):
+                if now - last_log >= DOWNLOAD_LOG_INTERVAL or process.returncode is not None:
                     elapsed = max(now - started, 0.001)
                     percent = 100 * size / max(expected_size, 1)
                     print(

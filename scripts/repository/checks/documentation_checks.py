@@ -63,18 +63,12 @@ def link_errors(path: Path, root: Path) -> list[str]:
 
     def inline_code(match: re.Match[str]) -> str:
         # Keep code-formatted link labels, but ignore standalone code examples.
-        if (
-            text[max(0, match.start() - 1) : match.start()] == "["
-            and text[match.end() : match.end() + 1] == "]"
-        ):
+        if text[max(0, match.start() - 1) : match.start()] == "[" and text[match.end() : match.end() + 1] == "]":
             return match[2]
         return ""
 
     text = re.sub(r"(`+)(.*?)\1", inline_code, text)
-    definitions = dict(
-        (key.casefold(), target)
-        for key, target in re.findall(r"^\s*\[([^]]+)\]:\s*(\S+)", text, re.M)
-    )
+    definitions = dict((key.casefold(), target) for key, target in re.findall(r"^\s*\[([^]]+)\]:\s*(\S+)", text, re.M))
     links = re.findall(r"\[[^]\n]+\]\(([^)\n]+)\)", text)
     errors = []
     for label, key in re.findall(r"\[([^]\n]+)\]\[([^]\n]*)\]", text):
@@ -92,10 +86,7 @@ def link_errors(path: Path, root: Path) -> list[str]:
         url = urlsplit(target)
         if url.scheme or url.netloc:
             continue
-        if (
-            path.relative_to(root).as_posix() == ".github/generated-pdfs-README.md"
-            and target == "pdf/"
-        ):
+        if path.relative_to(root).as_posix() == ".github/generated-pdfs-README.md" and target == "pdf/":
             continue
         if not url.path:
             destination = path
@@ -106,9 +97,7 @@ def link_errors(path: Path, root: Path) -> list[str]:
         if not destination.exists():
             errors.append(f"missing link target: {target}")
         elif url.fragment and destination.suffix.lower() == ".md":
-            if unquote(url.fragment) not in anchors(
-                destination.read_text(encoding="utf-8")
-            ):
+            if unquote(url.fragment) not in anchors(destination.read_text(encoding="utf-8")):
                 errors.append(f"missing heading anchor: {target}")
     return errors
 
@@ -123,9 +112,7 @@ def environment_errors(root: Path) -> list[str]:
     if not match:
         return ["writing guide is missing its public environment list"]
     documented = set(re.findall(r"`([a-z]+)`", match[1]))
-    style = without_comments(
-        (root / "common/styles/theorems.sty").read_text(encoding="utf-8")
-    )
+    style = without_comments((root / "common/styles/theorems.sty").read_text(encoding="utf-8"))
     implemented = set(re.findall(r"\\newtheorem\*?\{([^}]+)\}", style))
     # proof is supplied by amsthm, not a repository newtheorem declaration.
     if re.search(r"\\RequirePackage(?:\[[^]]*\])?\{amsthm\}", style):
@@ -156,11 +143,7 @@ def markdown_files(root: Path) -> list[Path]:
     )
     if result.returncode == 0:
         return sorted(
-            {
-                root / name.decode()
-                for name in result.stdout.split(b"\0")
-                if name and (root / name.decode()).is_file()
-            }
+            {root / name.decode() for name in result.stdout.split(b"\0") if name and (root / name.decode()).is_file()}
         )
     # Source archives have no Git metadata; exclude generated pages and dependencies.
     candidates = [root / "README.md", root / "AGENTS.md"]
@@ -173,9 +156,7 @@ def main() -> int:
     errors = []
     paths = markdown_files(ROOT)
     for path in paths:
-        errors.extend(
-            f"{path.relative_to(ROOT)}: {error}" for error in link_errors(path, ROOT)
-        )
+        errors.extend(f"{path.relative_to(ROOT)}: {error}" for error in link_errors(path, ROOT))
     errors.extend(environment_errors(ROOT))
     for error in errors:
         print(f"error: {error}", file=sys.stderr)

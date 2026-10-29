@@ -48,9 +48,7 @@ def normalize_lean_indentation(source: bytes) -> bytes:
     return LEAN_BLOCK.sub(replace, source)
 
 
-def format_file(
-    file: Path, *, source: Path | None = None, registry: MacroRegistry | None = None
-) -> bytes:
+def format_file(file: Path, *, source: Path | None = None, registry: MacroRegistry | None = None) -> bytes:
     if not file.is_file():
         raise ValueError(f"FILE does not exist: {file}")
     settings = ROOT / "config/latexindent.yaml"
@@ -67,14 +65,10 @@ def format_file(
         literal = source_text[span.start : span.end]
         # Reindenting multiline strings would change their values; protect the whole block.
         if span.kind == "lean" and not any(
-            kind == "literal" and "\n" in literal[start:end]
-            for start, end, kind in ignored_spans(literal)
+            kind == "literal" and "\n" in literal[start:end] for start, end, kind in ignored_spans(literal)
         ):
             continue
-        marker = (
-            f"ASHAIYLITERAL{span.start}X"
-            + hashlib.sha256(literal.encode()).hexdigest().upper()
-        )
+        marker = f"ASHAIYLITERAL{span.start}X" + hashlib.sha256(literal.encode()).hexdigest().upper()
         if marker in source_text:
             raise ValueError("literal protection marker already occurs in source")
         protected[marker] = literal
@@ -85,9 +79,7 @@ def format_file(
         original = cruft / file.name
         original.write_text(source_text, encoding="utf-8")
         options = ["latexindent", f"--local={settings}", f"--cruft={cruft}"]
-        result = subprocess.check_output(
-            [*options, "--modifylinebreaks", str(original)]
-        )
+        result = subprocess.check_output([*options, "--modifylinebreaks", str(original)])
         wrapped.write_bytes(result)
         # The second pass corrects indentation added to short wrapped sentences.
         result = subprocess.check_output([*options, str(wrapped)])
@@ -111,24 +103,16 @@ def format_file(
 
 def selected_files(root: Path, file: Path | None) -> list[Path]:
     if file is None:
-        output = subprocess.check_output(
-            ["git", "ls-files", "-z", "--cached", "--", "*.tex", "*.sty"], cwd=root
-        )
+        output = subprocess.check_output(["git", "ls-files", "-z", "--cached", "--", "*.tex", "*.sty"], cwd=root)
         return [
-            Path(os.fsdecode(name))
-            for name in output.split(b"\0")
-            if name and (root / os.fsdecode(name)).is_file()
+            Path(os.fsdecode(name)) for name in output.split(b"\0") if name and (root / os.fsdecode(name)).is_file()
         ]
     path = file.resolve()
     if not path.is_relative_to(root) or path.suffix not in {".tex", ".sty"}:
-        raise ValueError(
-            "FILE must be an existing .tex or .sty file inside the repository"
-        )
+        raise ValueError("FILE must be an existing .tex or .sty file inside the repository")
     if not path.is_file():
         raise ValueError(f"FILE does not exist: {path}")
-    result = subprocess.run(
-        ["git", "check-ignore", "--quiet", "--", str(path)], cwd=root, check=False
-    )
+    result = subprocess.run(["git", "check-ignore", "--quiet", "--", str(path)], cwd=root, check=False)
     if result.returncode == 0:
         raise ValueError("FILE must not be ignored by Git")
     if result.returncode != 1:
@@ -156,10 +140,7 @@ def cache_directory(root: Path) -> Path:
     digest.update((ROOT / "config/latexindent.yaml").read_bytes())
     version = subprocess.check_output(["latexindent", "--version"]).splitlines()[0]
     digest.update(version)
-    cache = (
-        Path(os.environ.get("FORMAT_TEX_CACHE_DIR", root / ".cache/latexindent"))
-        / digest.hexdigest()
-    )
+    cache = Path(os.environ.get("FORMAT_TEX_CACHE_DIR", root / ".cache/latexindent")) / digest.hexdigest()
     cache.mkdir(parents=True, exist_ok=True)
     return cache
 
@@ -176,9 +157,7 @@ def prune_cache(cache: Path) -> None:
             shutil.rmtree(entry)
 
 
-def format_sources(
-    root: Path, *, check: bool, file: Path | None, prune: bool = False
-) -> int:
+def format_sources(root: Path, *, check: bool, file: Path | None, prune: bool = False) -> int:
     files = selected_files(root, file)
     if shutil.which("latexindent") is None:
         print("error: latexindent is required", file=sys.stderr)
@@ -188,9 +167,7 @@ def format_sources(
     cache = cache_directory(root)
     if prune:
         prune_cache(cache)
-    print(
-        f"[tex] {'checking' if check else 'formatting'} LaTeX source files", flush=True
-    )
+    print(f"[tex] {'checking' if check else 'formatting'} LaTeX source files", flush=True)
     cached = changed = status = 0
     for path in files:
         source = root / path
@@ -211,15 +188,11 @@ def format_sources(
             source.write_bytes(formatted)
             changed += 1
             print(f"[tex] reformatted: {path}")
-        entry.write_text(
-            hashlib.sha256(formatted + registry.fingerprint).hexdigest() + "\n"
-        )
+        entry.write_text(hashlib.sha256(formatted + registry.fingerprint).hexdigest() + "\n")
     if status:
         return status
     if check:
-        print(
-            f"[tex] {len(files)} files checked, all correctly formatted ({cached} cached)"
-        )
+        print(f"[tex] {len(files)} files checked, all correctly formatted ({cached} cached)")
     else:
         print(
             f"[tex] {len(files)} files total: {cached} cached, "
@@ -245,9 +218,7 @@ def main() -> int:
         action="store_true",
         help="remove obsolete cache generations; avoid concurrent formatter runs",
     )
-    parser.add_argument(
-        "--stdout", type=Path, help="format one file to stdout for the editor"
-    )
+    parser.add_argument("--stdout", type=Path, help="format one file to stdout for the editor")
     parser.add_argument(
         "--source",
         type=Path,
@@ -256,12 +227,8 @@ def main() -> int:
     args = parser.parse_args()
     if args.source is not None and args.stdout is None:
         parser.error("--source requires --stdout")
-    if args.stdout is not None and (
-        args.check or args.file is not None or args.prune_cache
-    ):
-        parser.error(
-            "--stdout cannot be combined with --check, --file, or --prune-cache"
-        )
+    if args.stdout is not None and (args.check or args.file is not None or args.prune_cache):
+        parser.error("--stdout cannot be combined with --check, --file, or --prune-cache")
     try:
         if args.stdout is not None:
             source = args.source or editor_source(args.stdout)
@@ -269,11 +236,7 @@ def main() -> int:
             return 0
         # Resolve caller-relative paths before changing to the repository root.
         file = args.file.resolve() if args.file is not None else None
-        root = Path(
-            subprocess.check_output(
-                ["git", "rev-parse", "--show-toplevel"], text=True
-            ).strip()
-        )
+        root = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
         os.chdir(root)
         return format_sources(root, check=args.check, file=file, prune=args.prune_cache)
     except subprocess.CalledProcessError as error:

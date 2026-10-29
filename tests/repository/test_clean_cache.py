@@ -52,9 +52,7 @@ class CleanCacheTests(unittest.TestCase):
 
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertFalse(caches[scope].exists())
-                self.assertTrue(
-                    all(path.exists() for name, path in caches.items() if name != scope)
-                )
+                self.assertTrue(all(path.exists() for name, path in caches.items() if name != scope))
 
     def test_all_removes_every_cache(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

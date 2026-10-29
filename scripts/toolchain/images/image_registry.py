@@ -22,9 +22,7 @@ from scripts.repository.config.repository_config import (
 
 
 def command(*args: str, env: dict | None = None) -> str:
-    return subprocess.run(
-        args, env=env, check=True, capture_output=True, text=True, timeout=60
-    ).stdout.strip()
+    return subprocess.run(args, env=env, check=True, capture_output=True, text=True, timeout=60).stdout.strip()
 
 
 def report(image: str) -> None:
@@ -51,9 +49,7 @@ def report(image: str) -> None:
         )
         messages.append("Updated latest and source-commit aliases for current main.")
     else:
-        messages.append(
-            "Main advanced; skipped mutable alias updates for this older run."
-        )
+        messages.append("Main advanced; skipped mutable alias updates for this older run.")
     platforms = ", ".join(item["arch"] for item in load_image_build()["platforms"])
     messages.append(f"Validated Linux platforms: {platforms}.")
     if pin == image:
@@ -75,9 +71,7 @@ def report(image: str) -> None:
                     env={**os.environ, "DOCKER_CONFIG": temporary},
                 )
             )
-            required = {
-                ("linux", item["arch"]) for item in load_image_build()["platforms"]
-            }
+            required = {("linux", item["arch"]) for item in load_image_build()["platforms"]}
             available = {
                 (
                     entry.get("platform", {}).get("os"),
@@ -87,9 +81,7 @@ def report(image: str) -> None:
             }
             if not required <= available:
                 raise ValueError("anonymous index is missing a configured platform")
-            messages.append(
-                "Anonymous image lookup succeeded; fork PRs and local pulls can access the index."
-            )
+            messages.append("Anonymous image lookup succeeded; fork PRs and local pulls can access the index.")
         except (subprocess.SubprocessError, ValueError) as error:
             messages.append(
                 "Anonymous image lookup failed. For fork PRs or anonymous local pulls, "

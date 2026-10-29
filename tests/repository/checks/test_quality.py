@@ -68,15 +68,7 @@ class SchemaQualityTests(unittest.TestCase):
             root = Path(directory)
             (root / ".vscode").mkdir()
             (root / ".vscode/settings.json").write_text(
-                json.dumps(
-                    {
-                        "yaml.schemas": {
-                            "config/schemas/modules.schema.json": [
-                                "/lean/Textbooks/**/modules.yml"
-                            ]
-                        }
-                    }
-                )
+                json.dumps({"yaml.schemas": {"config/schemas/modules.schema.json": ["/lean/Textbooks/**/modules.yml"]}})
             )
             schema = Path("config/schemas/modules.schema.json")
             (root / schema).parent.mkdir(parents=True)

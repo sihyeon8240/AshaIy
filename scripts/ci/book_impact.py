@@ -36,9 +36,7 @@ IMAGE_INPUTS = set(load_image_build()["inputs"])
 
 
 def git_output(*args: str) -> str:
-    return subprocess.run(
-        ["git", *args], cwd=ROOT, check=True, text=True, capture_output=True
-    ).stdout
+    return subprocess.run(["git", *args], cwd=ROOT, check=True, text=True, capture_output=True).stdout
 
 
 def manifest_at(revision: str | None) -> dict | None:
@@ -69,18 +67,10 @@ def _resolve_tex(reference: str, source: Path, command: str) -> list[Path]:
         if not name:
             continue
         if command == "includegraphics":
-            suffixes = (
-                ("",)
-                if Path(name).suffix
-                else (".pdf", ".png", ".jpg", ".jpeg", ".eps")
-            )
+            suffixes = ("",) if Path(name).suffix else (".pdf", ".png", ".jpg", ".jpeg", ".eps")
             for directory in (source.parent, book_root, ROOT):
                 found = next(
-                    (
-                        directory / (name + suffix)
-                        for suffix in suffixes
-                        if (directory / (name + suffix)).is_file()
-                    ),
+                    (directory / (name + suffix) for suffix in suffixes if (directory / (name + suffix)).is_file()),
                     None,
                 )
                 if found is not None:
@@ -135,9 +125,7 @@ def dependencies(slug: str) -> set[str]:
     if (ROOT / "common/styles/macros.yml").is_file():
         seen.add((ROOT / "common/styles/macros.yml").resolve())
     seen.update(path.resolve() for path in book_dir.rglob("*") if path.is_file())
-    return {
-        path.relative_to(ROOT).as_posix() for path in seen if path.is_relative_to(ROOT)
-    }
+    return {path.relative_to(ROOT).as_posix() for path in seen if path.is_relative_to(ROOT)}
 
 
 def plan(
@@ -164,13 +152,9 @@ def plan(
         reason = "comparison unavailable; safe full build"
     else:
         path_set = {PurePosixPath(path).as_posix() for path in paths}
-        dependency_map = (
-            {slug: dependencies(slug) for slug in slugs} if path_set else {}
-        )
+        dependency_map = {slug: dependencies(slug) for slug in slugs} if path_set else {}
         for slug, inputs in dependency_map.items():
-            matched = path_set & inputs | {
-                path for path in path_set if path.startswith(book_input_prefix(slug))
-            }
+            matched = path_set & inputs | {path for path in path_set if path.startswith(book_input_prefix(slug))}
             if matched:
                 select([slug], "changed book inputs", list(matched))
         infrastructure = path_set & (BUILD_INFRA | IMAGE_INPUTS)
@@ -183,9 +167,7 @@ def plan(
                 select(slugs, "historical manifest unavailable", ["config/books.yml"])
             else:
                 old = {book["slug"]: book for book in old_manifest["books"]}
-                if old_manifest.get("schema_version") != current_manifest.get(
-                    "schema_version"
-                ):
+                if old_manifest.get("schema_version") != current_manifest.get("schema_version"):
                     select(slugs, "manifest schema changed", ["config/books.yml"])
                 for book in build_books:
                     previous = old.get(book["slug"])
@@ -195,9 +177,7 @@ def plan(
                             "book added or build flag changed",
                             ["config/books.yml"],
                         )
-                    if book.get("site", False) and not (previous or {}).get(
-                        "site", False
-                    ):
+                    if book.get("site", False) and not (previous or {}).get("site", False):
                         select(
                             [book["slug"]],
                             "site publication enabled; snapshot requires a PDF",
@@ -217,9 +197,7 @@ def plan(
         unknown = sorted(
             path
             for path in path_set
-            if path not in known
-            and not path.startswith(ignored)
-            and not is_documentation(path)
+            if path not in known and not path.startswith(ignored) and not is_documentation(path)
         )
         if unknown:
             select(slugs, "unknown build inputs; safe full build", unknown)

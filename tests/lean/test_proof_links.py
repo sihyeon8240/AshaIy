@@ -45,17 +45,13 @@ class ProofLinkTests(unittest.TestCase):
         )
         self.write_yaml(
             "config/books.yml",
-            self.books(
-                {"slug": "sample", "label_prefix": "sa", "lean_module": "Sample"}
-            ),
+            self.books({"slug": "sample", "label_prefix": "sa", "lean_module": "Sample"}),
         )
         self.write_yaml(
             "books/sample/chapters.yml",
             {
                 "schema_version": 1,
-                "chapters": [
-                    {"slug": "start", "title": "Start", "lean_namespace": "Start"}
-                ],
+                "chapters": [{"slug": "start", "title": "Start", "lean_namespace": "Start"}],
             },
         )
         self.write_yaml("books/sample/chapters/start/proofs.yml", {"proofs": []})
@@ -127,9 +123,7 @@ class ProofLinkTests(unittest.TestCase):
             },
         )
         errors = MODULE.validate_index(self.root)[0]
-        self.assertTrue(
-            any("unknown fields: book, chapter" in error for error in errors)
-        )
+        self.assertTrue(any("unknown fields: book, chapter" in error for error in errors))
 
     def test_missing_index_is_rejected(self) -> None:
         path = self.root / "books/sample/chapters/start/proofs.yml"
@@ -216,9 +210,7 @@ class ProofLinkTests(unittest.TestCase):
     def test_commented_label_is_rejected_and_multiline_label_is_accepted(self) -> None:
         tex = self.root / "books/sample/chapters/start/result.tex"
         tex.write_text("% \\label{sa:thm:result}\n", encoding="utf-8")
-        self.assertTrue(
-            any("label is absent" in error for error in self.errors([self.entry]))
-        )
+        self.assertTrue(any("label is absent" in error for error in self.errors([self.entry])))
         tex.write_text(
             "\\begin{theorem}\n\\label\n  {sa:thm:result}\n\\end{theorem}\n",
             encoding="utf-8",
@@ -236,12 +228,7 @@ class ProofLinkTests(unittest.TestCase):
         ):
             with self.subTest(body=body):
                 tex.write_text(body + "\n")
-                self.assertTrue(
-                    any(
-                        "theorem environment" in error
-                        for error in self.errors([self.entry])
-                    )
-                )
+                self.assertTrue(any("theorem environment" in error for error in self.errors([self.entry])))
 
     def test_literal_result_is_absent_from_proof_index_sources(self) -> None:
         tex = self.root / "books/sample/chapters/start/result.tex"
@@ -249,9 +236,7 @@ class ProofLinkTests(unittest.TestCase):
             r"\begin{lean}\begin{theorem}\label{sa:thm:result}"
             r"\end{theorem}\end{lean}" + "\n"
         )
-        self.assertTrue(
-            any("label is absent" in error for error in self.errors([self.entry]))
-        )
+        self.assertTrue(any("label is absent" in error for error in self.errors([self.entry])))
 
     def test_appendix_shard_owns_its_sources_and_namespace(self) -> None:
         source = self.root / "books/sample/appendices/tables/result.tex"
@@ -262,30 +247,17 @@ class ProofLinkTests(unittest.TestCase):
             "books/sample/chapters.yml",
             {
                 "schema_version": 1,
-                "chapters": [
-                    {"slug": "start", "title": "Start", "lean_namespace": "Start"}
-                ],
-                "appendices": [
-                    {"slug": "tables", "title": "Tables", "lean_namespace": "Tables"}
-                ],
+                "chapters": [{"slug": "start", "title": "Start", "lean_namespace": "Start"}],
+                "appendices": [{"slug": "tables", "title": "Tables", "lean_namespace": "Tables"}],
             },
         )
         shard = "books/sample/appendices/tables/proofs.yml"
         self.write_yaml(shard, {"proofs": [entry]})
         self.assertEqual(MODULE.validate_index(self.root)[0], [])
-        self.write_yaml(
-            shard, {"proofs": [dict(entry, declaration="Sample.Start.extra")]}
-        )
-        self.assertTrue(
-            any("namespace" in error for error in MODULE.validate_index(self.root)[0])
-        )
+        self.write_yaml(shard, {"proofs": [dict(entry, declaration="Sample.Start.extra")]})
+        self.assertTrue(any("namespace" in error for error in MODULE.validate_index(self.root)[0]))
         self.write_yaml(shard, {"proofs": [self.entry]})
-        self.assertTrue(
-            any(
-                "outside shard" in error
-                for error in MODULE.validate_index(self.root)[0]
-            )
-        )
+        self.assertTrue(any("outside shard" in error for error in MODULE.validate_index(self.root)[0]))
 
     def test_duplicate_declaration_is_rejected(self) -> None:
         duplicate = dict(self.entry, id="sa:lem:result")
@@ -320,21 +292,11 @@ class ProofLinkTests(unittest.TestCase):
 
     def test_legacy_namespace_is_rejected(self) -> None:
         self.entry["declaration"] = "Textbooks.Sample.Start.result"
-        self.assertTrue(
-            any(
-                "outside the book namespace" in error
-                for error in self.errors([self.entry])
-            )
-        )
+        self.assertTrue(any("outside the book namespace" in error for error in self.errors([self.entry])))
 
     def test_wrong_chapter_namespace_is_rejected(self) -> None:
         self.entry["declaration"] = "Sample.Next.result"
-        self.assertTrue(
-            any(
-                "outside the book namespace" in error
-                for error in self.errors([self.entry])
-            )
-        )
+        self.assertTrue(any("outside the book namespace" in error for error in self.errors([self.entry])))
 
     def test_topic_layout(self) -> None:
         lean = self.root / "lean"
@@ -362,46 +324,34 @@ class ProofLinkTests(unittest.TestCase):
                 if valid:
                     self.assertEqual(errors, [])
                 else:
-                    self.assertTrue(
-                        any("ChapterName/Topic.lean" in error for error in errors)
-                    )
+                    self.assertTrue(any("ChapterName/Topic.lean" in error for error in errors))
                 source.unlink()
 
     def test_unreachable_lean_source_is_rejected(self) -> None:
         self.write_yaml(
             "config/books.yml",
-            self.books(
-                {"slug": "sample", "label_prefix": "sa", "lean_module": "Sample"}
-            ),
+            self.books({"slug": "sample", "label_prefix": "sa", "lean_module": "Sample"}),
         )
         lean = self.root / "lean"
         module = lean / "Textbooks/Sample"
         module.mkdir(parents=True)
-        (lean / "Textbooks.lean").write_text(
-            "import Textbooks.Sample.All\n", encoding="utf-8"
-        )
+        (lean / "Textbooks.lean").write_text("import Textbooks.Sample.All\n", encoding="utf-8")
         (module / "All.lean").write_text("", encoding="utf-8")
         (module / "Chapter01").mkdir()
         (module / "Chapter01/Orphan.lean").write_text("", encoding="utf-8")
         errors = MODULE.validate_import_boundaries(self.root)
-        self.assertTrue(
-            any("not reachable from Textbooks" in error for error in errors)
-        )
+        self.assertTrue(any("not reachable from Textbooks" in error for error in errors))
 
     def test_shared_foundation_source_is_rejected(self) -> None:
         self.write_yaml(
             "config/books.yml",
-            self.books(
-                {"slug": "sample", "label_prefix": "sa", "lean_module": "Sample"}
-            ),
+            self.books({"slug": "sample", "label_prefix": "sa", "lean_module": "Sample"}),
         )
         foundation = self.root / "lean/Textbooks/Foundation.lean"
         foundation.parent.mkdir(parents=True)
         foundation.write_text("", encoding="utf-8")
         errors = MODULE.validate_import_boundaries(self.root)
-        self.assertTrue(
-            any("outside a registered textbook namespace" in error for error in errors)
-        )
+        self.assertTrue(any("outside a registered textbook namespace" in error for error in errors))
 
     def test_cross_book_import_is_rejected(self) -> None:
         self.write_yaml(
@@ -437,19 +387,11 @@ class ProofLinkTests(unittest.TestCase):
         for text in imports:
             source.write_text(text, encoding="utf-8")
             errors = MODULE.validate_import_boundaries(self.root)
-            self.assertTrue(
-                any("cross-book import" in error for error in errors), errors
-            )
+            self.assertTrue(any("cross-book import" in error for error in errors), errors)
         source.write_text(
-            "-- import Textbooks.LinearAlgebra.All\n"
-            'def sample := r#"import Textbooks.LinearAlgebra.All"#\n'
+            '-- import Textbooks.LinearAlgebra.All\ndef sample := r#"import Textbooks.LinearAlgebra.All"#\n'
         )
-        self.assertFalse(
-            any(
-                "cross-book import" in error
-                for error in MODULE.validate_import_boundaries(self.root)
-            )
-        )
+        self.assertFalse(any("cross-book import" in error for error in MODULE.validate_import_boundaries(self.root)))
 
 
 if __name__ == "__main__":

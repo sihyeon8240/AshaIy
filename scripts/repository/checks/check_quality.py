@@ -26,9 +26,7 @@ def check_schemas(root: Path, files: set[Path]) -> int:
     # Reuse the editor's schema associations so CLI coverage cannot drift.
     settings = read_json(root / ".vscode/settings.json")
     associations = list(settings["yaml.schemas"].items())
-    associations.extend(
-        (item["url"], item["fileMatch"]) for item in settings.get("json.schemas", [])
-    )
+    associations.extend((item["url"], item["fileMatch"]) for item in settings.get("json.schemas", []))
     for schema, patterns in associations:
         targets = sorted(
             {
@@ -50,11 +48,7 @@ def check_schemas(root: Path, files: set[Path]) -> int:
         if status:
             return status
 
-    schemas = sorted(
-        path
-        for path in files
-        if path.parent == Path("config/schemas") and path.suffix == ".json"
-    )
+    schemas = sorted(path for path in files if path.parent == Path("config/schemas") and path.suffix == ".json")
     if schemas:
         return run(
             root,
@@ -72,9 +66,7 @@ def main() -> int:
             cwd=ROOT,
         )
         files = {
-            Path(os.fsdecode(name))
-            for name in output.split(b"\0")
-            if name and (ROOT / os.fsdecode(name)).is_file()
+            Path(os.fsdecode(name)) for name in output.split(b"\0") if name and (ROOT / os.fsdecode(name)).is_file()
         }
         for path in sorted(files):
             if path.suffix == ".json":
@@ -90,9 +82,7 @@ def main() -> int:
         if status:
             return status
 
-        yaml_files = sorted(
-            str(path) for path in files if path.suffix in {".yaml", ".yml", ".cff"}
-        )
+        yaml_files = sorted(str(path) for path in files if path.suffix in {".yaml", ".yml", ".cff"})
         if yaml_files:
             status = run(ROOT, "yamllint", "-c", "config/yamllint.yml", *yaml_files)
             if status:
@@ -101,11 +91,7 @@ def main() -> int:
         if status:
             return status
 
-        templates = sorted(
-            str(path)
-            for path in files
-            if path.is_relative_to("site") and path.suffix == ".html"
-        )
+        templates = sorted(str(path) for path in files if path.is_relative_to("site") and path.suffix == ".html")
         if templates:
             return run(ROOT, "djlint", "--profile=liquid", "--lint", *templates)
         return 0

@@ -21,24 +21,16 @@ from scripts.books.book_manifest import (
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Validate and query the config/books.yml textbook manifest."
-    )
+    parser = argparse.ArgumentParser(description="Validate and query the config/books.yml textbook manifest.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     list_parser = subparsers.add_parser("list")
-    list_parser.add_argument(
-        "--for", dest="purpose", choices=("build", "check", "release", "site")
-    )
+    list_parser.add_argument("--for", dest="purpose", choices=("build", "check", "release", "site"))
     list_parser.add_argument("--format", choices=("text", "json"), default="text")
     list_parser.add_argument("--warnings", action="store_true")
 
-    export_parser = subparsers.add_parser(
-        "export", help="export normalized manifest records"
-    )
-    export_parser.add_argument(
-        "--for", dest="purpose", choices=("build", "check", "release", "site")
-    )
+    export_parser = subparsers.add_parser("export", help="export normalized manifest records")
+    export_parser.add_argument("--for", dest="purpose", choices=("build", "check", "release", "site"))
     export_parser.add_argument("--format", choices=("json",), default="json")
     export_parser.add_argument(
         "--manifest",
@@ -51,22 +43,17 @@ def build_parser() -> argparse.ArgumentParser:
         "add",
         help="register an existing book directory in config/books.yml",
         description=(
-            "Register a book whose required files already exist; this command "
-            "does not create a book directory."
+            "Register a book whose required files already exist; this command does not create a book directory."
         ),
     )
     add_parser.add_argument("slug")
     add_parser.add_argument("title")
-    validate_new_parser = subparsers.add_parser(
-        "validate-new", help="validate a proposed new book slug and title"
-    )
+    validate_new_parser = subparsers.add_parser("validate-new", help="validate a proposed new book slug and title")
     validate_new_parser.add_argument("slug")
     validate_new_parser.add_argument("title")
     subparsers.add_parser("version").add_argument("slug")
     subparsers.add_parser("label-prefix").add_argument("slug")
-    subparsers.add_parser(
-        "require", help="require a slug to be registered and print it"
-    ).add_argument("slug")
+    subparsers.add_parser("require", help="require a slug to be registered and print it").add_argument("slug")
     return parser
 
 

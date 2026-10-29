@@ -39,9 +39,7 @@ FAILURES = {
         re.I,
     ),
 }
-PDF_OUTPUT = re.compile(
-    r"^Output written on .+\.pdf\s+\(\d+ pages?,\s+\d+ bytes\)\.", re.M
-)
+PDF_OUTPUT = re.compile(r"^Output written on .+\.pdf\s+\(\d+ pages?,\s+\d+ bytes\)\.", re.M)
 OVERFULL = re.compile(r"Overfull \\[hv]box", re.I)
 
 

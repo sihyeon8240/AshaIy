@@ -46,11 +46,7 @@ class CheckLabelsTests(unittest.TestCase):
 
     def test_comments_are_ignored_and_multiline_labels_are_scanned(self) -> None:
         result = self.run_checker(
-            {
-                "books/linear-algebra/chapter.tex": (
-                    "% \\label{wrong}\n\\label\n  {la:thm:multiline}\n"
-                )
-            }
+            {"books/linear-algebra/chapter.tex": ("% \\label{wrong}\n\\label\n  {la:thm:multiline}\n")}
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -59,9 +55,7 @@ class CheckLabelsTests(unittest.TestCase):
             {
                 "books/linear-algebra/a.tex": "\\label{la:thm:one}\n\\label{}\n",
                 "books/linear-algebra/b.tex": (
-                    "\\label{la:thm:one}\n"
-                    "\\label{la:thm:bad label}\n"
-                    "\\label{ma:thm:collision}\n"
+                    "\\label{la:thm:one}\n\\label{la:thm:bad label}\n\\label{ma:thm:collision}\n"
                 ),
             }
         )
@@ -79,8 +73,7 @@ class CheckLabelsTests(unittest.TestCase):
         result = self.run_checker({"books/linear-algebra/a.tex": r"\label{old-style}"})
         self.assertEqual(result.returncode, 0)
         self.assertIn(
-            "a.tex:1: warning: legacy label 'old-style' does not follow "
-            "<book>:<kind>:<description>",
+            "a.tex:1: warning: legacy label 'old-style' does not follow <book>:<kind>:<description>",
             result.stderr,
         )
         self.assertIn("1 legacy labels", result.stderr)

@@ -169,9 +169,7 @@ class BuildAllTests(unittest.TestCase):
             "TMPDIR": str(self.tmpdir),
         }
 
-    def run_build(
-        self, purpose: str = "build", **env: str
-    ) -> subprocess.CompletedProcess[str]:
+    def run_build(self, purpose: str = "build", **env: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [sys.executable, str(self.root / "scripts/latex/build_all.py"), purpose],
             cwd=self.root,
@@ -188,9 +186,7 @@ class BuildAllTests(unittest.TestCase):
         self.assertIn("No books are enabled for build", result.stdout)
 
     def test_single_book_does_not_prepare_biber_cache(self) -> None:
-        result = self.run_build(
-            TARGETS="alpha", BOOK_BUILD_JOBS="2", BIBER_EXIT_CODE="6"
-        )
+        result = self.run_build(TARGETS="alpha", BOOK_BUILD_JOBS="2", BIBER_EXIT_CODE="6")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("succeeded: 1", result.stdout)
 
@@ -221,9 +217,7 @@ class BuildAllTests(unittest.TestCase):
     def test_invalid_manifest_stops_before_builds_even_with_inherited_confirmation(
         self,
     ):
-        result = self.run_build(
-            BOOK_BUILD_JOBS="1", INVALID_MANIFEST="1", BOOKS_MANIFEST_VALIDATED="1"
-        )
+        result = self.run_build(BOOK_BUILD_JOBS="1", INVALID_MANIFEST="1", BOOKS_MANIFEST_VALIDATED="1")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("invalid manifest", result.stderr)
         self.assertNotIn("config/books.yml is valid", result.stdout)
@@ -239,9 +233,7 @@ class BuildAllTests(unittest.TestCase):
             REQUIRE_BIBER_CACHE="1",
         )
         self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
-        self.assertEqual(
-            (self.root / "events").read_text().splitlines()[0], "biber ready"
-        )
+        self.assertEqual((self.root / "events").read_text().splitlines()[0], "biber ready")
         self.assertEqual((self.root / "state").read_text().split()[1], "2")
         self.assertIn("succeeded: 3", result.stdout)
         self.assertIn("failed: 0", result.stdout)
@@ -282,19 +274,12 @@ class BuildAllTests(unittest.TestCase):
         deadline = time.monotonic() + 5
         try:
             while time.monotonic() < deadline:
-                events = (
-                    (self.root / "events").read_text().splitlines()
-                    if (self.root / "events").exists()
-                    else []
-                )
+                events = (self.root / "events").read_text().splitlines() if (self.root / "events").exists() else []
                 if "start gamma" in events:
                     break
                 if process.poll() is not None:
                     stdout, stderr = process.communicate()
-                    self.fail(
-                        "build exited before gamma started:\n"
-                        f"stdout:\n{stdout}\nstderr:\n{stderr}"
-                    )
+                    self.fail(f"build exited before gamma started:\nstdout:\n{stdout}\nstderr:\n{stderr}")
                 time.sleep(0.01)
             else:
                 self.fail("gamma did not start while beta was blocked")

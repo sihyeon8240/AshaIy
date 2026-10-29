@@ -5,13 +5,9 @@ from __future__ import annotations
 import re
 
 RAW_STRING = re.compile(r'r(#+)?"')
-CHARACTER = re.compile(
-    r"'(?:\\(?:u\{[0-9A-Fa-f]+\}|u[0-9A-Fa-f]{4}|x[0-9A-Fa-f]{2}|[^\r\n])|[^'\\\r\n])'"
-)
+CHARACTER = re.compile(r"'(?:\\(?:u\{[0-9A-Fa-f]+\}|u[0-9A-Fa-f]{4}|x[0-9A-Fa-f]{2}|[^\r\n])|[^'\\\r\n])'")
 MODULE_PART = r"(?:[A-Za-z_][A-Za-z0-9_']*|«[^»\r\n]+»)"
-IMPORT = re.compile(
-    r"(?m)^\s*(?:public\s+)?import\s+(" + MODULE_PART + r"(?:\." + MODULE_PART + r")*)"
-)
+IMPORT = re.compile(r"(?m)^\s*(?:public\s+)?import\s+(" + MODULE_PART + r"(?:\." + MODULE_PART + r")*)")
 
 
 def ignored_spans(text: str) -> list[tuple[int, int, str]]:
@@ -39,10 +35,7 @@ def ignored_spans(text: str) -> list[tuple[int, int, str]]:
                     position += 1
         elif (
             text[position] == "'"
-            and (
-                position == 0
-                or not (text[position - 1].isalnum() or text[position - 1] in "_'")
-            )
+            and (position == 0 or not (text[position - 1].isalnum() or text[position - 1] in "_'"))
             and (character := CHARACTER.match(text, position))
         ):
             kind = "literal"
@@ -70,9 +63,7 @@ def ignored_spans(text: str) -> list[tuple[int, int, str]]:
     return spans
 
 
-def without_comments_and_literals(
-    text: str, *, preserve_identifiers: bool = False
-) -> str:
+def without_comments_and_literals(text: str, *, preserve_identifiers: bool = False) -> str:
     """Preserve positions while masking comments and literals."""
     output = list(text)
     for start, end, _ in ignored_spans(text):
@@ -99,7 +90,4 @@ def imports(text: str) -> list[tuple[str, int]]:
 def escape_hatch_lines(text: str) -> list[int]:
     """Find unfinished proofs and axiom declarations, including anonymous examples."""
     clean = without_comments_and_literals(text)
-    return [
-        clean.count("\n", 0, match.start()) + 1
-        for match in re.finditer(r"\b(?:sorry|admit|axiom)\b", clean)
-    ]
+    return [clean.count("\n", 0, match.start()) + 1 for match in re.finditer(r"\b(?:sorry|admit|axiom)\b", clean)]

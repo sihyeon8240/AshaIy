@@ -65,9 +65,7 @@ def write_override(path: Path, config: dict) -> None:
         return
     temporary = None
     try:
-        with tempfile.NamedTemporaryFile(
-            mode="w", encoding="utf-8", dir=path.parent, delete=False
-        ) as stream:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as stream:
             temporary = Path(stream.name)
             stream.write(text)
         temporary.replace(path)
@@ -78,9 +76,7 @@ def write_override(path: Path, config: dict) -> None:
 
 def matching_container(labels: list[str]) -> dict | None:
     filters = [value for label in labels for value in ("--filter", f"label={label}")]
-    identifiers = captured(
-        "docker", "ps", "--all", *filters, "--format", "{{.ID}}"
-    ).splitlines()
+    identifiers = captured("docker", "ps", "--all", *filters, "--format", "{{.ID}}").splitlines()
     if len(identifiers) > 1:
         raise ValueError(
             "multiple development containers match this checkout: "
@@ -134,9 +130,7 @@ def report_container(identifier: str, image: str) -> None:
             "the container to apply new port settings, or use VS Code forwarding.",
             file=sys.stderr,
         )
-    print(
-        f"[Container] Stop when unused: docker stop {identifier[:12]}", file=sys.stderr
-    )
+    print(f"[Container] Stop when unused: docker stop {identifier[:12]}", file=sys.stderr)
 
 
 def main(root: Path = ROOT) -> int:
@@ -146,16 +140,10 @@ def main(root: Path = ROOT) -> int:
     config = read_json(config_path)
     pin = (root / "config/container-image.txt").read_text(encoding="utf-8").strip()
     if config.get("image") != pin:
-        raise ValueError(
-            "development image settings have drifted; run ashaiy config generate"
-        )
+        raise ValueError("development image settings have drifted; run ashaiy config generate")
     override_image = os.environ.get("IMAGE", "")
     image = override_image or pin
-    if (
-        not image
-        or image.startswith("-")
-        or any(character.isspace() for character in image)
-    ):
+    if not image or image.startswith("-") or any(character.isspace() for character in image):
         raise ValueError(f"invalid container image reference: {image!r}")
     identity = image_identity(image)
     directory = cache_directory(root)
@@ -166,9 +154,7 @@ def main(root: Path = ROOT) -> int:
     ]
     if override_image:
         config["image"] = image
-        config.setdefault("runArgs", []).extend(
-            ["--label", f"ashaiy.image-id={identity}"]
-        )
+        config.setdefault("runArgs", []).extend(["--label", f"ashaiy.image-id={identity}"])
         # Include host substitutions and image identity when isolating mutable local tags.
         profile_input = json.dumps(
             [config, identity, os.environ.get("ASHAIY_PREVIEW_PORT", "4000")],

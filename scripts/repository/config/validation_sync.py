@@ -19,14 +19,11 @@ SHELL_CONSUMERS = (
     "scripts/release/snapshot_base.sh",
 )
 SCHEMA_CONSUMERS = tuple(
-    f"config/schemas/{name}.schema.json"
-    for name in ("books", "chapters", "sections", "modules", "image-build")
+    f"config/schemas/{name}.schema.json" for name in ("books", "chapters", "sections", "modules", "image-build")
 )
 MARKER = "validation-pattern: "
 # These expressions use the same syntax in Python, JavaScript, and Bash ERE.
-SHELL_PATTERNS = frozenset(
-    {"sha256", "image_digest", "git_commit", "image_tag", "nonnegative_integer"}
-)
+SHELL_PATTERNS = frozenset({"sha256", "image_digest", "git_commit", "image_tag", "nonnegative_integer"})
 
 
 def schema_patterns(value: object, patterns: dict[str, str]) -> None:
@@ -59,9 +56,7 @@ def shell_patterns(text: str, patterns: dict[str, str], path: Path) -> str:
         # Keep generated expressions unquoted, single-token Bash ERE operands.
         if not re.fullmatch(r"[a-z0-9\[\]{}:+*-]+", expression):
             raise ValueError(f"{path}: expression for {name} is not shell portable")
-        updated, count = re.subn(
-            r"(?<==~ )\S+", lambda _: "^" + expression + "$", lines[index + 1]
-        )
+        updated, count = re.subn(r"(?<==~ )\S+", lambda _: "^" + expression + "$", lines[index + 1])
         if count != 1:
             raise ValueError(f"{path}: expected one marked Bash regex operand")
         lines[index + 1] = updated

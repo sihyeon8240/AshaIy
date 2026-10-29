@@ -49,9 +49,7 @@ class AshaiyTests(unittest.TestCase):
             book_record("linear-algebra", label_prefix="la"),
             book_record("linear-analysis", label_prefix="lan"),
         ]
-        with patch(
-            "scripts.books.book_manifest.load_manifest", return_value={"books": books}
-        ):
+        with patch("scripts.books.book_manifest.load_manifest", return_value={"books": books}):
             parser = build_parser()
             for selector in ("lin", "missing", ""):
                 with (
@@ -112,8 +110,7 @@ class AshaiyTests(unittest.TestCase):
             book.mkdir(parents=True)
             (book / "book.tex").write_text("Fixture.\n")
             (root / "scripts/repository/formatting/format_code.py").write_text(
-                "import sys\nfrom pathlib import Path\n"
-                'Path("captured").write_text(sys.argv[-1])\n'
+                'import sys\nfrom pathlib import Path\nPath("captured").write_text(sys.argv[-1])\n'
             )
             environment = {
                 **os.environ,
@@ -137,9 +134,7 @@ class AshaiyTests(unittest.TestCase):
                 text=True,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(
-                (root / "captured").read_text(), str(book / "draft space.py")
-            )
+            self.assertEqual((root / "captured").read_text(), str(book / "draft space.py"))
 
     def test_image_launcher_dispatches_to_the_selected_checkout(self):
         with tempfile.TemporaryDirectory(prefix="image launcher ") as directory:
@@ -154,6 +149,4 @@ class AshaiyTests(unittest.TestCase):
                 timeout=15,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn(
-                "linear-algebra", [book["slug"] for book in json.loads(result.stdout)]
-            )
+            self.assertIn("linear-algebra", [book["slug"] for book in json.loads(result.stdout)])

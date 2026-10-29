@@ -23,9 +23,7 @@ def book_record(slug: str = "sample", **overrides: object) -> dict[str, Any]:
     }
 
 
-def manifest_document(
-    records: list[dict[str, Any]], **defaults: object
-) -> dict[str, Any]:
+def manifest_document(records: list[dict[str, Any]], **defaults: object) -> dict[str, Any]:
     return {
         "schema_version": 1,
         "defaults": {
@@ -52,9 +50,7 @@ def write_executable(path: Path, source: str) -> None:
 
 
 def git_environment() -> dict[str, str]:
-    environment = {
-        key: value for key, value in os.environ.items() if not key.startswith("GIT_")
-    }
+    environment = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
     environment.update(
         {
             "GIT_CONFIG_GLOBAL": os.devnull,
@@ -96,9 +92,7 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 def copy_file(source: Path, destination: Path) -> None:
     """Preserve package paths when copying repository tools into a fixture."""
     if destination.is_dir():
-        if destination.name == "scripts" and source.is_relative_to(
-            REPOSITORY / "scripts"
-        ):
+        if destination.name == "scripts" and source.is_relative_to(REPOSITORY / "scripts"):
             destination = destination / source.relative_to(REPOSITORY / "scripts")
         else:
             destination = destination / source.name

@@ -41,9 +41,7 @@ class ArtifactDownloadTests(unittest.TestCase):
                 patch.object(artifacts, "download_attempt", side_effect=transfer),
                 self.assertRaisesRegex(ValueError, "digest mismatch"),
             ):
-                artifacts.download(
-                    "owner/repo", {**artifact, "digest": "wrong"}, target, max_bytes=100
-                )
+                artifacts.download("owner/repo", {**artifact, "digest": "wrong"}, target, max_bytes=100)
             self.assertFalse(target.exists())
 
     def test_large_archives_receive_a_bounded_size_dependent_budget(self):

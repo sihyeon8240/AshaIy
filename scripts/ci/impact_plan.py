@@ -77,9 +77,7 @@ def create_plan(
         raise ValueError("impact planning requires a committed Git checkout")
     source_comparison, source_paths = comparison(source_base, head)
     pdf_comparison, pdf_paths = comparison(pdf_base, head)
-    source = source_selection(
-        source_paths, source_comparison["base"] or "", head, root=ROOT
-    )
+    source = source_selection(source_paths, source_comparison["base"] or "", head, root=ROOT)
     pdf = pdf_selection(
         pdf_paths,
         pdf_comparison["base"],

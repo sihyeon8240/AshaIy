@@ -49,9 +49,7 @@ def load_patterns(root: Path = ROOT) -> dict[str, str]:
         try:
             re.compile(expression)
         except re.error as error:
-            raise ValueError(
-                f"{path}: invalid expression for {name}: {error}"
-            ) from error
+            raise ValueError(f"{path}: invalid expression for {name}: {error}") from error
         resolved[name] = expression
         return expression
 

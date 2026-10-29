@@ -71,9 +71,7 @@ esac
                     timeout=15,
                 )
                 self.assertEqual(result.returncode, status, result.stderr)
-                self.assertEqual(
-                    output.read_text() if output.exists() else "", expected
-                )
+                self.assertEqual(output.read_text() if output.exists() else "", expected)
 
     def run_pdf_update(
         self,
@@ -154,12 +152,7 @@ elif args[-2:] == ["rev-parse", "HEAD"]:
                 copy_file(ROOT / "scripts" / name, root / "scripts" / name)
             write_yaml(
                 root / "config/books.yml",
-                manifest_document(
-                    [
-                        book_record(slug, label_prefix=slug, site=slug in site)
-                        for slug in registered
-                    ]
-                ),
+                manifest_document([book_record(slug, label_prefix=slug, site=slug in site) for slug in registered]),
             )
             for slug in registered:
                 book = root / "books" / slug
@@ -186,18 +179,13 @@ elif args[-2:] == ["rev-parse", "HEAD"]:
                     "FIXTURE": str(root),
                     "TMPDIR": str(root / "tmp"),
                     "GITHUB_SHA": "a" * 40,
-                    "BUILD_PLAN": json.dumps(
-                        {"book": [Path(name).stem for name in updated]}
-                    ),
+                    "BUILD_PLAN": json.dumps({"book": [Path(name).stem for name in updated]}),
                     "GITHUB_OUTPUT": str(root / "output"),
                     **environment,
                 },
                 timeout=30,
             )
-            snapshot = {
-                path.name: path.read_bytes()
-                for path in (root / "snapshot" / "pdf").iterdir()
-            }
+            snapshot = {path.name: path.read_bytes() for path in (root / "snapshot" / "pdf").iterdir()}
             output = root / "output"
             return (
                 result,
@@ -281,13 +269,9 @@ esac
         for gate in ("plan", "book", "check", "build-check"):
             for result in ("success", "failure", "cancelled", "skipped"):
                 with self.subTest(gate=gate, result=result):
-                    expected = result == "success" or (
-                        gate == "book" and result == "skipped"
-                    )
+                    expected = result == "success" or (gate == "book" and result == "skipped")
                     self.assertEqual(
-                        condition_allows(
-                            publish["if"], {**baseline, f"needs.{gate}.result": result}
-                        ),
+                        condition_allows(publish["if"], {**baseline, f"needs.{gate}.result": result}),
                         expected,
                     )
         for event, branch, count, site, snapshot in itertools.product(
@@ -297,9 +281,7 @@ esac
             ("false", "true"),
             ("false", "true"),
         ):
-            with self.subTest(
-                event=event, branch=branch, count=count, site=site, snapshot=snapshot
-            ):
+            with self.subTest(event=event, branch=branch, count=count, site=site, snapshot=snapshot):
                 context = {
                     **baseline,
                     "github.event_name": event,
@@ -379,9 +361,7 @@ esac
 
     def test_missing_planned_artifact_preserves_pdfs_and_never_pushes(self):
         existing = {"alpha.pdf": b"old-a", "beta.pdf": b"old-b"}
-        result, snapshot, report = self.run_pdf_update(
-            {}, existing, BUILD_PLAN='{"book":["alpha"]}'
-        )
+        result, snapshot, report = self.run_pdf_update({}, existing, BUILD_PLAN='{"book":["alpha"]}')
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("artifacts differ from the build plan", result.stderr)
         self.assertEqual(snapshot, existing)
@@ -422,9 +402,7 @@ esac
 
     def test_newer_main_skips_snapshot_updates(self):
         existing = {"alpha.pdf": b"old-a", "beta.pdf": b"old-b"}
-        result, snapshot, _ = self.run_pdf_update(
-            {"alpha.pdf": b"new-a"}, existing, REMOTE_SHA="b" * 40
-        )
+        result, snapshot, _ = self.run_pdf_update({"alpha.pdf": b"new-a"}, existing, REMOTE_SHA="b" * 40)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(snapshot, existing)
         self.assertIn("A newer main commit exists", result.stdout)
@@ -438,9 +416,7 @@ esac
 
     def test_later_unknown_update_does_not_replace_valid_book(self):
         existing = {"alpha.pdf": b"old-a", "beta.pdf": b"old-b"}
-        result, snapshot, _ = self.run_pdf_update(
-            {"alpha.pdf": b"new-a", "unknown.pdf": b"unknown"}, existing
-        )
+        result, snapshot, _ = self.run_pdf_update({"alpha.pdf": b"new-a", "unknown.pdf": b"unknown"}, existing)
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(snapshot, existing)
 
@@ -458,18 +434,14 @@ esac
                 self.assertEqual(report["temporary"], [])
 
     def test_absent_remote_ref_bootstraps_and_cleans_its_worktree(self):
-        result, _, report = self.run_pdf_update(
-            {"alpha.pdf": b"a", "beta.pdf": b"b"}, {}, LS_REMOTE_STATUS="2"
-        )
+        result, _, report = self.run_pdf_update({"alpha.pdf": b"a", "beta.pdf": b"b"}, {}, LS_REMOTE_STATUS="2")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("switch --orphan snapshot-bootstrap-", report["git"])
         self.assertIn("current=true", report["outputs"])
         self.assertEqual(report["temporary"], [])
 
     def test_recovery_copy_retains_the_worktree_and_bootstrap_branch(self):
-        result, _, report = self.run_pdf_update(
-            {}, {}, retain_recovery=True, LS_REMOTE_STATUS="2"
-        )
+        result, _, report = self.run_pdf_update({}, {}, retain_recovery=True, LS_REMOTE_STATUS="2")
         self.assertEqual(result.returncode, 1)
         self.assertEqual(len(report["temporary"]), 1)
         self.assertIn("Snapshot recovery worktree retained:", result.stderr)
@@ -487,9 +459,7 @@ esac
                 result, _, report = self.run_pdf_update(
                     {}, {"alpha.pdf": b"a", "beta.pdf": b"b"}, environment=environment
                 )
-                self.assertEqual(
-                    result.returncode, int(next(iter(environment.values())))
-                )
+                self.assertEqual(result.returncode, int(next(iter(environment.values()))))
                 self.assertEqual(report["outputs"], "")
                 self.assertEqual(report["temporary"], [])
                 if "DIFF_STATUS" in environment:
@@ -499,9 +469,7 @@ esac
         for environment in ({"FETCH_MAIN_STATUS": "1"}, {"MAIN_LOOKUP_STATUS": "128"}):
             with self.subTest(environment=environment):
                 result, _, report = self.run_pdf_update({}, {}, environment=environment)
-                self.assertEqual(
-                    result.returncode, int(next(iter(environment.values())))
-                )
+                self.assertEqual(result.returncode, int(next(iter(environment.values()))))
                 self.assertEqual(report["outputs"], "")
                 self.assertEqual(report["temporary"], [])
 
@@ -519,9 +487,7 @@ esac
     def test_superseded_pages_skip_all_build_upload_and_deploy_steps(self):
         workflow = yaml.safe_load((ROOT / ".github/workflows/pages.yml").read_text())
         steps = workflow["jobs"]["deploy"]["steps"]
-        early = next(
-            index for index, step in enumerate(steps) if step.get("id") == "eligible"
-        )
+        early = next(index for index, step in enumerate(steps) if step.get("id") == "eligible")
         for step in steps[early + 1 :]:
             with self.subTest(step=step.get("name", step.get("uses"))):
                 self.assertFalse(
@@ -536,11 +502,7 @@ esac
 
     def test_pages_requires_snapshot_source_correspondence(self):
         workflow = yaml.safe_load((ROOT / ".github/workflows/pages.yml").read_text())
-        step = next(
-            step
-            for step in workflow["jobs"]["deploy"]["steps"]
-            if step.get("id") == "source"
-        )
+        step = next(step for step in workflow["jobs"]["deploy"]["steps"] if step.get("id") == "source")
         for snapshot_sha, call_sha, success in (
             ("a" * 40, "a" * 40, True),
             ("b" * 40, "", True),
@@ -575,9 +537,7 @@ esac
                 )
                 self.assertEqual(result.returncode == 0, success, result.stderr)
                 if success:
-                    self.assertEqual(
-                        output.read_text(), f"sha={snapshot_sha}\nsnapshot={'c' * 40}\n"
-                    )
+                    self.assertEqual(output.read_text(), f"sha={snapshot_sha}\nsnapshot={'c' * 40}\n")
                 else:
                     self.assertFalse(output.exists())
 

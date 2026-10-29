@@ -63,9 +63,7 @@ def record(arch: str, image: str, directory: Path) -> None:
 
 def validate_manifest(manifest: dict, expected: dict, run: dict) -> None:
     github_artifacts.validate_identity(manifest, expected, run, label="candidate")
-    if not re.fullmatch(
-        validation_pattern("image_digest"), manifest.get("image_id", "")
-    ):
+    if not re.fullmatch(validation_pattern("image_digest"), manifest.get("image_id", "")):
         raise ValueError("invalid candidate image ID")
 
 
@@ -86,15 +84,11 @@ def check_archive(image_path: Path) -> int:
     return expanded
 
 
-def load_candidate(
-    repository: str, artifact: dict, expected: dict, run: dict, image: str
-) -> None:
+def load_candidate(repository: str, artifact: dict, expected: dict, run: dict, image: str) -> None:
     with tempfile.TemporaryDirectory() as temporary:
         directory = Path(temporary)
         archive_path = directory / "candidate.zip"
-        github_artifacts.download(
-            repository, artifact, archive_path, max_bytes=MAX_BYTES
-        )
+        github_artifacts.download(repository, artifact, archive_path, max_bytes=MAX_BYTES)
         print(f"Extracting {expected['arch']} candidate archive", flush=True)
         with zipfile.ZipFile(archive_path) as archive:
             if sorted(archive.namelist()) != ["candidate.json", "image.tar.gz"]:
@@ -124,14 +118,10 @@ def load_candidate(
             raise ValueError("candidate image checksum mismatch")
         check_archive(image_path)
         print(f"Loading {expected['arch']} image into Docker", flush=True)
-        subprocess.run(
-            ["docker", "load", "--input", str(image_path)], check=True, timeout=600
-        )
+        subprocess.run(["docker", "load", "--input", str(image_path)], check=True, timeout=600)
         image_path.unlink()
         image_id = manifest["image_id"]
-        arch = command(
-            "docker", "image", "inspect", image_id, "--format", "{{.Architecture}}"
-        )
+        arch = command("docker", "image", "inspect", image_id, "--format", "{{.Architecture}}")
         if arch != expected["arch"]:
             raise ValueError("candidate architecture mismatch")
         command("docker", "tag", image_id, image)
@@ -153,10 +143,7 @@ def restore(arch: str, image: str) -> bool:
             continue
         head = pull["head"]["sha"]
         # Bind provenance to GitHub's commit tree, not an artifact's own claims.
-        if (
-            api(f"repos/{repository}/git/commits/{head}")["tree"]["sha"]
-            != expected["tree"]
-        ):
+        if api(f"repos/{repository}/git/commits/{head}")["tree"]["sha"] != expected["tree"]:
             continue
         runs = api(
             f"repos/{repository}/actions/workflows/build.yml/runs"
@@ -165,26 +152,17 @@ def restore(arch: str, image: str) -> bool:
         for run in runs:
             if not eligible_run(run, repository, head):
                 continue
-            artifacts = api(
-                f"repos/{repository}/actions/runs/{run['id']}/artifacts?per_page=100"
-            )["artifacts"]
+            artifacts = api(f"repos/{repository}/actions/runs/{run['id']}/artifacts?per_page=100")["artifacts"]
             # Both architectures must survive; never promote half of a candidate.
             candidates = {
                 artifact["name"]: artifact
                 for artifact in artifacts
-                if not artifact.get("expired", True)
-                and artifact.get("size_in_bytes", MAX_BYTES + 1) <= MAX_BYTES
+                if not artifact.get("expired", True) and artifact.get("size_in_bytes", MAX_BYTES + 1) <= MAX_BYTES
             }
-            architectures = [
-                item["arch"] for item in load_image_build(ROOT)["platforms"]
-            ]
-            if not all(
-                f"toolchain-image-{item}" in candidates for item in architectures
-            ):
+            architectures = [item["arch"] for item in load_image_build(ROOT)["platforms"]]
+            if not all(f"toolchain-image-{item}" in candidates for item in architectures):
                 continue
-            load_candidate(
-                repository, candidates[f"toolchain-image-{arch}"], expected, run, image
-            )
+            load_candidate(repository, candidates[f"toolchain-image-{arch}"], expected, run, image)
             print(f"Reused {arch} candidate from PR #{pull['number']}, run {run['id']}")
             return True
     return False

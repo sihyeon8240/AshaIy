@@ -26,9 +26,7 @@ class ArchitectureTests(unittest.TestCase):
         chapter.mkdir(parents=True)
         front.mkdir()
         (self.root / "docs").mkdir()
-        (self.root / "docs" / "ARCHITECTURE.md").write_text(
-            "contract\n", encoding="utf-8"
-        )
+        (self.root / "docs" / "ARCHITECTURE.md").write_text("contract\n", encoding="utf-8")
         self.write_manifest()
         self.entry(
             r"\addbibresource{references.bib}"
@@ -55,9 +53,7 @@ class ArchitectureTests(unittest.TestCase):
             "schema_version: 1\nsections:\n  - slug: section\n    title: One\n",
             encoding="utf-8",
         )
-        (self.book / "references.bib").write_text(
-            "@book{one, title={One}}\n", encoding="utf-8"
-        )
+        (self.book / "references.bib").write_text("@book{one, title={One}}\n", encoding="utf-8")
         (front / "cover.tex").write_text(
             r"\input{cover}" "\n",
             encoding="utf-8",
@@ -95,9 +91,7 @@ class ArchitectureTests(unittest.TestCase):
         manifest_path = self.book / "chapters.yml"
         manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
         manifest["chapters"].append({"slug": name, "title": title})
-        manifest_path.write_text(
-            yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8"
-        )
+        manifest_path.write_text(yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8")
         (chapter / "sections.yml").write_text(
             "schema_version: 1\nsections:\n  - slug: placeholder\n    title: Placeholder\n",
             encoding="utf-8",
@@ -197,9 +191,7 @@ class ArchitectureTests(unittest.TestCase):
         self.assert_error("configured bibliography does not exist")
 
     def test_duplicate_bibliography_key_is_error(self) -> None:
-        (self.book / "second.bib").write_text(
-            "@book{one, title={Again}}\n", encoding="utf-8"
-        )
+        (self.book / "second.bib").write_text("@book{one, title={Again}}\n", encoding="utf-8")
         self.entry(
             r"\addbibresource{references.bib}"
             "\n"
@@ -210,9 +202,7 @@ class ArchitectureTests(unittest.TestCase):
         )
         self.assert_error("duplicate bibliography key 'one'")
 
-    def set_sections(
-        self, filenames: list[str], inputs: list[str] | None = None
-    ) -> None:
+    def set_sections(self, filenames: list[str], inputs: list[str] | None = None) -> None:
         chapter = self.book / "chapters/start"
         for path in chapter.glob("*.tex"):
             if path.name != "index.tex":
@@ -223,9 +213,7 @@ class ArchitectureTests(unittest.TestCase):
         lines = [r"\chapter{Start}"] + [rf"\input{{{target}}}" for target in targets]
         (chapter / "index.tex").write_text("\n".join(lines) + "\n", encoding="utf-8")
         findings = MODULE.Findings()
-        MODULE.parse_section_sources(
-            [chapter / filename for filename in filenames], chapter.name, findings
-        )
+        MODULE.parse_section_sources([chapter / filename for filename in filenames], chapter.name, findings)
         if not findings.errors:
             sections = []
             for filename in filenames:
@@ -233,9 +221,7 @@ class ArchitectureTests(unittest.TestCase):
                 item = {"slug": slug, "title": slug.replace("-", " ").title()}
                 sections.append(item)
             (chapter / "sections.yml").write_text(
-                yaml.safe_dump(
-                    {"schema_version": 1, "sections": sections}, sort_keys=False
-                ),
+                yaml.safe_dump({"schema_version": 1, "sections": sections}, sort_keys=False),
                 encoding="utf-8",
             )
 
@@ -243,21 +229,14 @@ class ArchitectureTests(unittest.TestCase):
         appendix = self.book / "appendices/tables"
         appendix.mkdir(parents=True)
         manifest = self.book / "chapters.yml"
-        manifest.write_text(
-            manifest.read_text() + "appendices:\n  - slug: tables\n    title: Tables\n"
-        )
-        (appendix / "sections.yml").write_text(
-            "schema_version: 1\nsections:\n  - slug: values\n    title: Values\n"
-        )
+        manifest.write_text(manifest.read_text() + "appendices:\n  - slug: tables\n    title: Tables\n")
+        (appendix / "sections.yml").write_text("schema_version: 1\nsections:\n  - slug: values\n    title: Values\n")
         source = appendix / "values.tex"
         source.write_text("Body.\n")
         entry = self.book / "book.tex"
-        entry.write_text(
-            entry.read_text() + "\\appendix\n\\include{appendices/tables/index}\n"
-        )
+        entry.write_text(entry.read_text() + "\\appendix\n\\include{appendices/tables/index}\n")
         (appendix / "index.tex").write_text(
-            "\\chapter{Tables}\n\\section{Values}\n"
-            "\\input{appendices/tables/values.tex}\n"
+            "\\chapter{Tables}\n\\section{Values}\n\\input{appendices/tables/values.tex}\n"
         )
         self.assertEqual(self.findings().errors, [])
         source.unlink()
@@ -269,9 +248,7 @@ class ArchitectureTests(unittest.TestCase):
 
     def test_logical_sections_must_be_in_manifest_order(self) -> None:
         self.set_sections(["first.tex", "second.tex"], ["second", "first"])
-        self.assert_error(
-            "section inputs do not match the canonical sections.yml order"
-        )
+        self.assert_error("section inputs do not match the canonical sections.yml order")
 
     def test_missing_orphan_and_duplicate_inputs_are_errors(self) -> None:
         cases = [

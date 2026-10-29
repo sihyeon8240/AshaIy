@@ -37,15 +37,10 @@ def tracked_text_files(*, exclude_formatted: bool) -> list[Path]:
         path = Path(os.fsdecode(name))
         if not path.is_file():
             continue
-        if exclude_formatted and any(
-            fnmatch.fnmatchcase(str(path), pattern) for pattern in FORMATTED
-        ):
+        if exclude_formatted and any(fnmatch.fnmatchcase(str(path), pattern) for pattern in FORMATTED):
             continue
         # Match the text-only discovery policy; explicit files remain byte-oriented.
-        if (
-            subprocess.run(["grep", "-Iq", "", "--", str(path)], check=False).returncode
-            == 0
-        ):
+        if subprocess.run(["grep", "-Iq", "", "--", str(path)], check=False).returncode == 0:
             files.append(path)
     return files
 
@@ -60,9 +55,7 @@ def main() -> int:
     if args.exclude_formatted and (not args.check or args.files):
         parser.error("--exclude-formatted requires --check without file arguments")
     try:
-        files = args.files or tracked_text_files(
-            exclude_formatted=args.exclude_formatted
-        )
+        files = args.files or tracked_text_files(exclude_formatted=args.exclude_formatted)
         status = 0
         for path in files:
             original = path.read_bytes()

@@ -32,12 +32,8 @@ def book_command(arguments: argparse.Namespace) -> int:
             print(json.dumps(books, indent=2))
         else:
             for book in books:
-                flags = ", ".join(
-                    name for name in ("build", "check", "release", "site") if book[name]
-                )
-                print(
-                    f"{book['slug']} ({book['label_prefix']})  {book['title']}  [{flags}]"
-                )
+                flags = ", ".join(name for name in ("build", "check", "release", "site") if book[name])
+                print(f"{book['slug']} ({book['label_prefix']})  {book['title']}  [{flags}]")
         return 0
     if action == "new":
         return run("books/new_book.py", arguments.slug, arguments.title)
@@ -52,9 +48,7 @@ def book_command(arguments: argparse.Namespace) -> int:
 
 
 def config_command(arguments: argparse.Namespace) -> int:
-    return run(
-        "repository/config/config_sync.py", *(["--check"] if arguments.check else [])
-    )
+    return run("repository/config/config_sync.py", *(["--check"] if arguments.check else []))
 
 
 def lean_command(arguments: argparse.Namespace) -> int:
@@ -73,11 +67,7 @@ def doctor_command(arguments: argparse.Namespace) -> int:
         return run("toolchain/check_environment.py")
     from scripts.books.book_manifest import load_manifest
 
-    slugs = (
-        [arguments.book]
-        if arguments.book
-        else [book["slug"] for book in load_manifest()["books"]]
-    )
+    slugs = [arguments.book] if arguments.book else [book["slug"] for book in load_manifest()["books"]]
     for slug in slugs:
         status = run("books/book_doctor.py", slug)
         if status:
@@ -112,9 +102,7 @@ def image_command(arguments: argparse.Namespace) -> int:
     if action == "run" and arguments.container_command is not None:
         environment["CMD"] = arguments.container_command
     return run(
-        "toolchain/images/build_image.sh"
-        if action == "build"
-        else "toolchain/run_container.sh",
+        "toolchain/images/build_image.sh" if action == "build" else "toolchain/run_container.sh",
         environment=environment,
     )
 
@@ -143,9 +131,7 @@ def test_command(arguments: argparse.Namespace) -> int:
         "--buffer",
     ]
     if not arguments.coverage:
-        return subprocess.run(
-            [sys.executable, "-m", "unittest", *discovery], cwd=ROOT, check=False
-        ).returncode
+        return subprocess.run([sys.executable, "-m", "unittest", *discovery], cwd=ROOT, check=False).returncode
 
     environment = {**os.environ, "ASHAIY_TEST_ROOT": str(ROOT)}
     coverage = [

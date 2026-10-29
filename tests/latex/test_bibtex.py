@@ -34,9 +34,7 @@ class BibtexTests(unittest.TestCase):
         self.assertEqual(entry_keys(text), ["first", "second"])
 
     def test_even_backslashes_do_not_escape_quote_delimiters(self) -> None:
-        text = (
-            '@misc{first, note="two\\\\", title={done}}\n@book{second, title={Two}}\n'
-        )
+        text = '@misc{first, note="two\\\\", title={done}}\n@book{second, title={Two}}\n'
         self.assertEqual(entry_keys(text), ["first", "second"])
 
 

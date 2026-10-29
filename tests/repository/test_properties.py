@@ -22,18 +22,14 @@ settings.register_profile(
     "repository",
     max_examples=150,
     deadline=None,
-    database=DirectoryBasedExampleDatabase(
-        Path(__file__).resolve().parents[2] / ".cache/hypothesis/examples"
-    ),
+    database=DirectoryBasedExampleDatabase(Path(__file__).resolve().parents[2] / ".cache/hypothesis/examples"),
 )
 settings.load_profile("repository")
 
 TEX_TEXT = st.text(alphabet="abc XYZ012%\n한글", max_size=30)
 BALANCED_TEX = st.recursive(
     st.one_of(TEX_TEXT, st.sampled_from([r"\{", r"\}", r"\\", r"\%"])),
-    lambda children: st.lists(children, max_size=5).map(
-        lambda parts: "{" + "".join(parts) + "}"
-    ),
+    lambda children: st.lists(children, max_size=5).map(lambda parts: "{" + "".join(parts) + "}"),
     max_leaves=20,
 )
 VERSION = st.tuples(*(st.integers(min_value=0, max_value=10000) for _ in range(3)))
@@ -73,9 +69,7 @@ class CorePropertyTests(unittest.TestCase):
         st.booleans(),
         st.booleans(),
     )
-    def test_manifest_normalization_is_stable_and_preserves_overrides(
-        self, orders, default_check, override_check
-    ):
+    def test_manifest_normalization_is_stable_and_preserves_overrides(self, orders, default_check, override_check):
         records = [
             book_record(
                 f"book-{index}",
@@ -92,10 +86,7 @@ class CorePropertyTests(unittest.TestCase):
         self.assertEqual(normalize_manifest(normalized), normalized)
         self.assertEqual(
             [book["slug"] for book in normalized["books"]],
-            [
-                book["slug"]
-                for book in sorted(records, key=lambda b: (b["order"], b["slug"]))
-            ],
+            [book["slug"] for book in sorted(records, key=lambda b: (b["order"], b["slug"]))],
         )
         actual = {book["slug"]: book["check"] for book in normalized["books"]}
         self.assertEqual(

@@ -41,9 +41,7 @@ def job_count() -> int:
     if configured is None:
         return min(4, os.cpu_count() or 2)
     if not re.fullmatch(validation_pattern("positive_integer"), configured):
-        raise ValueError(
-            "BOOK_BUILD_JOBS must be a positive integer (for example, BOOK_BUILD_JOBS=2)"
-        )
+        raise ValueError("BOOK_BUILD_JOBS must be a positive integer (for example, BOOK_BUILD_JOBS=2)")
     return int(configured)
 
 
@@ -104,10 +102,7 @@ def build_all(purpose: str) -> int:
     def interrupted(signum, frame) -> None:
         raise BuildInterrupted
 
-    previous_handlers = {
-        sig: signal.signal(sig, interrupted)
-        for sig in (signal.SIGHUP, signal.SIGINT, signal.SIGTERM)
-    }
+    previous_handlers = {sig: signal.signal(sig, interrupted) for sig in (signal.SIGHUP, signal.SIGINT, signal.SIGTERM)}
     try:
         with (
             tempfile.TemporaryDirectory(prefix="book-build-all.") as temporary,
@@ -136,11 +131,7 @@ def build_all(purpose: str) -> int:
                         if status is None:
                             continue
                         if status == 0 and purpose == "check" and not worker.checking:
-                            options = (
-                                ["--strict"]
-                                if os.environ.get("CHECK_LOG_STRICT") == "1"
-                                else []
-                            )
+                            options = ["--strict"] if os.environ.get("CHECK_LOG_STRICT") == "1" else []
                             worker.process = subprocess.Popen(
                                 [
                                     python,
@@ -194,9 +185,7 @@ def build_all(purpose: str) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "purpose", choices=("build", "check"), nargs="?", default="build"
-    )
+    parser.add_argument("purpose", choices=("build", "check"), nargs="?", default="build")
     args = parser.parse_args()
     try:
         return build_all(args.purpose)

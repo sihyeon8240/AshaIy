@@ -32,15 +32,11 @@ class ContentsCommandTests(unittest.TestCase):
         copy_validation_configuration(self.root)
         shutil.copytree(ROOT / "common/templates", self.root / "common/templates")
         (self.root / "common/styles").mkdir()
-        shutil.copyfile(
-            ROOT / "common/styles/macros.yml", self.root / "common/styles/macros.yml"
-        )
+        shutil.copyfile(ROOT / "common/styles/macros.yml", self.root / "common/styles/macros.yml")
         shutil.copytree(ROOT / "config/generated", self.root / "config/generated")
         write_yaml(
             self.root / "config/books.yml",
-            manifest_document(
-                [book_record(slug, label_prefix=slug) for slug in ("first", "second")]
-            ),
+            manifest_document([book_record(slug, label_prefix=slug) for slug in ("first", "second")]),
         )
         for slug in ("first", "second"):
             book = self.root / "books" / slug
@@ -63,11 +59,7 @@ class ContentsCommandTests(unittest.TestCase):
             (chapter / "topic.tex").write_text("Body.\n")
 
     def book_sources(self) -> dict[Path, bytes]:
-        return {
-            path: path.read_bytes()
-            for path in (self.root / "books").rglob("*")
-            if path.is_file()
-        }
+        return {path: path.read_bytes() for path in (self.root / "books").rglob("*") if path.is_file()}
 
     def run_command(self, entry, scope, *options):
         arguments = [sys.executable, f"scripts/{entry}"]
@@ -170,9 +162,7 @@ class ContentsCommandTests(unittest.TestCase):
                 ]
                 assembly = self.root / "books/first/book.tex"
                 assembly.write_text("stale assembly\n")
-                checked_arguments = [
-                    value if value != "generate" else "check" for value in arguments
-                ]
+                checked_arguments = [value if value != "generate" else "check" for value in arguments]
                 before = self.book_sources()
                 checked = subprocess.run(
                     checked_arguments,
@@ -183,13 +173,9 @@ class ContentsCommandTests(unittest.TestCase):
                 )
                 self.assertNotEqual(checked.returncode, 0)
                 self.assertEqual(before, self.book_sources())
-                generated = subprocess.run(
-                    arguments, cwd=self.root, capture_output=True, text=True, timeout=15
-                )
+                generated = subprocess.run(arguments, cwd=self.root, capture_output=True, text=True, timeout=15)
                 self.assertEqual(generated.returncode, 0, generated.stderr)
-                self.assertIn(
-                    "Skipped site generation for disabled book: first", generated.stdout
-                )
+                self.assertIn("Skipped site generation for disabled book: first", generated.stdout)
                 self.assertTrue((self.root / "lean/Textbooks.lean").is_file())
                 self.assertEqual(
                     (self.root / "books/second/book.tex").read_text(),

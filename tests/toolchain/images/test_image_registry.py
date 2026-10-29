@@ -35,8 +35,7 @@ class RegistryPromotionTests(unittest.TestCase):
                         return json.dumps(
                             {
                                 "manifests": [
-                                    {"platform": {"os": "linux", "architecture": arch}}
-                                    for arch in ("amd64", "arm64")
+                                    {"platform": {"os": "linux", "architecture": arch}} for arch in ("amd64", "arm64")
                                 ]
                             }
                         )
@@ -64,9 +63,7 @@ class RegistryPromotionTests(unittest.TestCase):
                         self.assertEqual(promotion[0][-1], IMAGE)
                     text = summary.read_text()
                     self.assertIn("local pin differs", text)
-                    self.assertIn(
-                        "lookup succeeded" if anonymous else "lookup failed", text
-                    )
+                    self.assertIn("lookup succeeded" if anonymous else "lookup failed", text)
 
     def test_registry_migration_never_updates_aliases(self):
         with (

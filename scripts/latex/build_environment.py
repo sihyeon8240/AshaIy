@@ -29,9 +29,7 @@ def canonical_environment(root: Path) -> dict[str, str]:
     match = re.search(r"^TEXLIVE_ARCHIVE_DATE=(\d{4}/\d{2}/\d{2})$", toolchain, re.M)
     if match is None:
         raise ValueError("missing TeX Live archive date")
-    date = datetime.datetime.strptime(match[1], "%Y/%m/%d").replace(
-        tzinfo=datetime.timezone.utc
-    )
+    date = datetime.datetime.strptime(match[1], "%Y/%m/%d").replace(tzinfo=datetime.timezone.utc)
     return {
         "policy": POLICY,
         "SOURCE_DATE_EPOCH": str(int(date.timestamp())),

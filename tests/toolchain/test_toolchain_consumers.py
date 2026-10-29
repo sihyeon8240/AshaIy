@@ -35,9 +35,7 @@ class ToolchainConsumerTests(unittest.TestCase):
         ):
             with self.subTest(event=event, ref=ref):
                 self.assertEqual(
-                    condition_allows(
-                        main["if"], {"github.event_name": event, "github.ref": ref}
-                    ),
+                    condition_allows(main["if"], {"github.event_name": event, "github.ref": ref}),
                     expected,
                 )
         self.assertIn("main-image", jobs["prepare-image"]["needs"])
@@ -117,9 +115,7 @@ class ToolchainConsumerTests(unittest.TestCase):
                 self.assertIn("needs.prepare-image.outputs.artifact == ''", step["if"])
 
     def test_local_images_run_without_a_registry_pull(self):
-        action = yaml.safe_load(
-            (ROOT / ".github/actions/run-toolchain/action.yml").read_text()
-        )
+        action = yaml.safe_load((ROOT / ".github/actions/run-toolchain/action.yml").read_text())
         script = action["runs"]["steps"][-1]["run"]
         for artifact, measured in (
             ("", False),
@@ -183,9 +179,7 @@ class ToolchainConsumerTests(unittest.TestCase):
                 self.assertIn("--pull=never", commands)
                 self.assertIn("ashaiy book build --check --strict", commands)
                 if measured:
-                    metrics = json.loads(
-                        (root / "build/ci-metrics/sample/image.json").read_text()
-                    )
+                    metrics = json.loads((root / "build/ci-metrics/sample/image.json").read_text())
                     self.assertGreaterEqual(metrics["seconds"], 0)
                     self.assertEqual(metrics["exit_code"], 0)
 

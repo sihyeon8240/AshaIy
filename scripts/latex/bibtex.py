@@ -20,9 +20,7 @@ def entry_keys(text: str) -> list[str]:
         while position < length and text[position].isspace():
             position += 1
         start = position
-        while position < length and (
-            text[position].isalnum() or text[position] in "_-"
-        ):
+        while position < length and (text[position].isalnum() or text[position] in "_-"):
             position += 1
         entry_type = text[start:position].lower()
         while position < length and text[position].isspace():
@@ -39,12 +37,7 @@ def entry_keys(text: str) -> list[str]:
         while position < length and text[position] not in ",\r\n":
             position += 1
         key = text[key_start:position].strip()
-        if (
-            entry_type not in NON_ENTRY_TYPES
-            and key
-            and position < length
-            and text[position] == ","
-        ):
+        if entry_type not in NON_ENTRY_TYPES and key and position < length and text[position] == ",":
             keys.append(key)
         braces = 0
         position = body_start

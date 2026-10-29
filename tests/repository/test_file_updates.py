@@ -27,9 +27,7 @@ class FileUpdateTests(unittest.TestCase):
                 tempfile.TemporaryDirectory() as temporary,
             ):
                 root = Path(temporary)
-                first, created, last = (
-                    root / name for name in ("first", "new", "last")
-                )
+                first, created, last = (root / name for name in ("first", "new", "last"))
                 first.write_bytes(b"old-first")
                 first.chmod(0o640)
                 last.write_bytes(b"old-last")
@@ -45,9 +43,7 @@ class FileUpdateTests(unittest.TestCase):
                     updates.source_updates(root),
                     patch.object(updates.os, "replace", interrupted),
                 ):
-                    updates.write_updates(
-                        {first: "new-first", created: "created", last: "new-last"}
-                    )
+                    updates.write_updates({first: "new-first", created: "created", last: "new-last"})
                 self.assertEqual(first.read_bytes(), b"old-first")
                 self.assertEqual(first.stat().st_mode & 0o777, 0o640)
                 self.assertEqual(last.read_bytes(), b"old-last")
@@ -75,9 +71,7 @@ class FileUpdateTests(unittest.TestCase):
             recovery = next((root / "build/recovery").iterdir())
             records = json.loads((recovery / "files.json").read_text())
             self.assertEqual(records[0]["path"], str(first))
-            self.assertEqual(
-                (recovery / records[0]["backup"]).read_bytes(), b"old-first"
-            )
+            self.assertEqual((recovery / records[0]["backup"]).read_bytes(), b"old-first")
             self.assertEqual(last.read_text(), "old-last")
 
     def test_edits_after_planning_prevent_all_installation(self) -> None:

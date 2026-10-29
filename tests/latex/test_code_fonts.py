@@ -71,10 +71,7 @@ class CodeFontTests(unittest.TestCase):
         output = ROOT / "build/mathematics-layout"
         output.mkdir(parents=True, exist_ok=True)
         (output / "mathematics-layout.bib").write_text(
-            "@misc{layout,\n"
-            "  title = {A typesetting test fixture},\n"
-            "  year = {2026},\n"
-            "}\n",
+            "@misc{layout,\n  title = {A typesetting test fixture},\n  year = {2026},\n}\n",
             encoding="utf-8",
         )
         self.render("mathematics-layout", output)
@@ -83,14 +80,9 @@ class CodeFontTests(unittest.TestCase):
         self.render("lean-fonts", ROOT / "build/font-check")
 
     def test_empty_sections_break_without_separating_heading_and_body(self) -> None:
-        aux = self.render(
-            "empty-section-page-breaks", ROOT / "build/empty-section-page-breaks"
-        )
+        aux = self.render("empty-section-page-breaks", ROOT / "build/empty-section-page-breaks")
         pages = {
-            name: int(page)
-            for name, page in re.findall(
-                r"\\newlabel\{([^}]+)\}\{\{[^}]*\}\{(\d+)\}", aux.read_text()
-            )
+            name: int(page) for name, page in re.findall(r"\\newlabel\{([^}]+)\}\{\{[^}]*\}\{(\d+)\}", aux.read_text())
         }
         self.assertGreater(pages["body-heading"], pages["first-empty"])
         self.assertEqual(pages["body-heading"], pages["body-paragraph"])
@@ -98,10 +90,7 @@ class CodeFontTests(unittest.TestCase):
     def test_short_boxes_stay_whole_and_long_boxes_split(self) -> None:
         aux = self.render("lean-page-breaks", ROOT / "build/lean-page-breaks")
         pages = {
-            name: int(page)
-            for name, page in re.findall(
-                r"\\newlabel\{([^}]+)\}\{\{[^}]*\}\{(\d+)\}", aux.read_text()
-            )
+            name: int(page) for name, page in re.findall(r"\\newlabel\{([^}]+)\}\{\{[^}]*\}\{(\d+)\}", aux.read_text())
         }
         for kind in ("short", "long"):
             self.assertGreater(pages[f"{kind}-start"], pages[f"before-{kind}"])

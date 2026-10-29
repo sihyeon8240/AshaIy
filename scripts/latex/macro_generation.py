@@ -30,9 +30,7 @@ class MacroRegistry:
     def check(self) -> None:
         stale = changed_files(self.updates)
         if stale:
-            raise ValueError(
-                f"{stale[0]}: generated macros are stale; run ashaiy macros generate"
-            )
+            raise ValueError(f"{stale[0]}: generated macros are stale; run ashaiy macros generate")
 
 
 class MacroRepository:
@@ -44,9 +42,7 @@ class MacroRepository:
 
     def books(self) -> list[str]:
         if self._books is None:
-            manifest = load_manifest(
-                self.root / "config/books.yml", repository_root=self.root
-            )
+            manifest = load_manifest(self.root / "config/books.yml", repository_root=self.root)
             self._books = [book["slug"] for book in manifest["books"]]
         return list(self._books)
 
@@ -68,18 +64,14 @@ class MacroRepository:
                 if path.is_file():
                     manifests.append((path, generated, "styles/generated-book-macros"))
                 elif generated.exists():
-                    raise ValueError(
-                        f"{generated}: generated macros have no macros.yml owner"
-                    )
+                    raise ValueError(f"{generated}: generated macros have no macros.yml owner")
             commands = dict(BUILTIN_COMMANDS)
             updates = {}
             digest = hashlib.sha256()
             for path, output, package in manifests:
                 if path not in self._manifests:
                     declarations = load_macros(path)
-                    rendered = render_macros(
-                        declarations, path.relative_to(self.root).as_posix(), package
-                    )
+                    rendered = render_macros(declarations, path.relative_to(self.root).as_posix(), package)
                     self._manifests[path] = (
                         declarations,
                         rendered,
@@ -88,12 +80,8 @@ class MacroRepository:
                 declarations, rendered, source = self._manifests[path]
                 duplicate = commands.keys() & declarations.keys()
                 if duplicate:
-                    raise ValueError(
-                        f"{path}: duplicate macro names: {', '.join(sorted(duplicate))}"
-                    )
-                commands.update(
-                    {name: macro.spec for name, macro in declarations.items()}
-                )
+                    raise ValueError(f"{path}: duplicate macro names: {', '.join(sorted(duplicate))}")
+                commands.update({name: macro.spec for name, macro in declarations.items()})
                 updates[output] = rendered
                 digest.update(path.relative_to(self.root).as_posix().encode())
                 digest.update(source)
@@ -127,9 +115,7 @@ def _generate(*, book: str | None, check: bool, root: Path) -> int:
         registered = set(books)
         for path in (root / "books").glob("*/styles/macros.yml"):
             if path.parents[1].name not in registered:
-                raise ValueError(
-                    f"{path}: macro manifest belongs to an unregistered book"
-                )
+                raise ValueError(f"{path}: macro manifest belongs to an unregistered book")
         updates = dict(repository.registry(check=False).updates)
         for slug in [book] if book is not None else books:
             updates.update(repository.registry(slug, check=False).updates)

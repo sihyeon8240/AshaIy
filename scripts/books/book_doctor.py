@@ -70,30 +70,20 @@ def main() -> int:
                 assembly_files.append(content_dir / "index.tex")
                 sections = load_sections(content_dir)
                 section_files.extend(
-                    content_dir / filename
-                    for section in sections
-                    for filename in section_filenames(section)
+                    content_dir / filename for section in sections for filename in section_filenames(section)
                 )
 
-        stale = [
-            path
-            for path, expected in expected_files(directory, book=record).items()
-            if read(path) != expected
-        ]
+        stale = [path for path, expected in expected_files(directory, book=record).items() if read(path) != expected]
         if stale:
             warnings.append(
-                "stale generated assembly: "
-                + ", ".join(str(path.relative_to(directory)) for path in stale)
+                "stale generated assembly: " + ", ".join(str(path.relative_to(directory)) for path in stale)
             )
 
         content = "\n".join(read(path) for path in section_files)
         checks.update(
             {
-                "Chapter structure": bool(chapters)
-                and all(path.is_file() for path in assembly_files)
-                and not stale,
-                "Section structure": bool(section_files)
-                and all(path.is_file() for path in section_files),
+                "Chapter structure": bool(chapters) and all(path.is_file() for path in assembly_files) and not stale,
+                "Section structure": bool(section_files) and all(path.is_file() for path in section_files),
                 "Labels": bool(command_arguments(content, {"label"})),
                 "References": "\\printbibliography" in entry,
             }

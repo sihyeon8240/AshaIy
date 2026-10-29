@@ -53,9 +53,7 @@ def source_spans(text: str) -> list[SourceSpan]:
             environment = match.group(1)
             if environment.rstrip("*") not in LITERAL_ENVIRONMENTS:
                 continue
-            closing = re.search(
-                r"\\end\s*\{" + re.escape(environment) + r"\}", text[position:]
-            )
+            closing = re.search(r"\\end\s*\{" + re.escape(environment) + r"\}", text[position:])
             end = len(text) if closing is None else position + closing.end()
             kind = environment
         spans.append(SourceSpan(match.start(), end, kind))
