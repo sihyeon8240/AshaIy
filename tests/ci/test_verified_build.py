@@ -20,6 +20,19 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class VerifiedBuildTests(unittest.TestCase):
     def setUp(self):
+        self.enterContext(
+            patch.dict(
+                os.environ,
+                {
+                    "GITHUB_EVENT_NAME": "pull_request",
+                    "GITHUB_SHA": "c" * 40,
+                    "GITHUB_RUN_ID": "123",
+                    "GITHUB_RUN_ATTEMPT": "2",
+                    "GITHUB_REPOSITORY": "example/math",
+                    "VALIDATION_SHA": "",
+                },
+            )
+        )
         self.expected = {
             "policy": BUILD.POLICY,
             "book": "linear-algebra",
@@ -241,7 +254,7 @@ class VerifiedBuildTests(unittest.TestCase):
             self.write_environment(directory)
             for name, data in self.files.items():
                 (directory / name).write_bytes(data)
-            for validated in ("", "e" * 40, "c" * 40):
+            for validated in ("", "not-a-sha", "c" * 39, "g" * 40, "e" * 40, "c" * 40):
                 with (
                     self.subTest(validated=validated),
                     patch.dict(
@@ -250,8 +263,6 @@ class VerifiedBuildTests(unittest.TestCase):
                             "GITHUB_EVENT_NAME": "workflow_dispatch",
                             "GITHUB_SHA": "c" * 40,
                             "VALIDATION_SHA": validated,
-                            "GITHUB_RUN_ID": "123",
-                            "GITHUB_RUN_ATTEMPT": "2",
                         },
                     ),
                     patch.object(BUILD, "command", return_value=b""),
@@ -259,6 +270,7 @@ class VerifiedBuildTests(unittest.TestCase):
                     if validated != "c" * 40:
                         with self.assertRaisesRegex(ValueError, "explicit, matching commit"):
                             BUILD.record(self.expected, directory)
+                        self.assertFalse((directory / "verified-build.json").exists())
                     else:
                         BUILD.record(self.expected, directory)
                         self.assertEqual(
@@ -332,7 +344,6 @@ class VerifiedBuildTests(unittest.TestCase):
     def test_candidate_reuse_checks_identity_attempt_and_log(self):
         with (
             tempfile.TemporaryDirectory() as temporary,
-            patch.dict(os.environ, {"GITHUB_RUN_ID": "123", "GITHUB_RUN_ATTEMPT": "2"}),
             patch.object(
                 BUILD,
                 "command",
@@ -352,6 +363,9 @@ class VerifiedBuildTests(unittest.TestCase):
             expected = BUILD.identity("linear-algebra", "sha256:" + "a" * 64, candidate=True)
             archive = root / "candidate.zip"
             BUILD.record_candidate(expected, source, archive)
+            with zipfile.ZipFile(archive) as candidate:
+                manifest = json.loads(candidate.read("verified-build.json"))
+            self.assertNotIn("validation_sha", manifest)
             target = root / "target"
             self.assertTrue(BUILD.restore_candidate(expected, target, archive))
             self.assertEqual((target / "book.pdf").read_bytes(), self.files["book.pdf"])
@@ -418,13 +432,6 @@ class VerifiedBuildTests(unittest.TestCase):
     def test_record_round_trip(self):
         with (
             tempfile.TemporaryDirectory() as temporary,
-            patch.dict(
-                os.environ,
-                {
-                    "GITHUB_RUN_ID": "123",
-                    "GITHUB_RUN_ATTEMPT": "2",
-                },
-            ),
             patch.object(BUILD, "command", return_value=b""),
         ):
             directory = Path(temporary)
@@ -433,6 +440,7 @@ class VerifiedBuildTests(unittest.TestCase):
                 (directory / name).write_bytes(data)
             BUILD.record(self.expected, directory)
             manifest = json.loads((directory / "verified-build.json").read_text())
+            self.assertNotIn("validation_sha", manifest)
             self.assertEqual(manifest["tree"], self.expected["tree"])
             self.assertEqual(
                 manifest["checksums"]["book.pdf"],
