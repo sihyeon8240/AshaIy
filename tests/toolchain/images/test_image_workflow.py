@@ -91,12 +91,7 @@ fi
                 "MANIFEST": manifest
                 if manifest is not None
                 else json.dumps(
-                    {
-                        "manifests": [
-                            {"platform": {"os": "linux", "architecture": arch}}
-                            for arch in ("amd64", "arm64")
-                        ]
-                    }
+                    {"manifests": [{"platform": {"os": "linux", "architecture": arch}} for arch in ("amd64", "arm64")]}
                 ),
                 "PATH": f"{root}:{os.environ['PATH']}",
             }
@@ -198,36 +193,24 @@ fi
                 self.assertEqual(result.returncode == 0, success, result.stderr)
 
     def test_image_queue_preserves_waiting_runs(self):
-        workflow = yaml.safe_load(
-            (ROOT / ".github/workflows/build-toolchain.yml").read_text()
-        )
+        workflow = yaml.safe_load((ROOT / ".github/workflows/build-toolchain.yml").read_text())
         self.assertEqual(workflow["concurrency"]["queue"], "max")
         self.assertIs(workflow["concurrency"]["cancel-in-progress"], False)
 
     def test_main_and_pr_publishers_serialize_and_recheck_registry(self):
-        main = yaml.safe_load(
-            (ROOT / ".github/workflows/build-toolchain.yml").read_text()
-        )["jobs"]["publish"]
-        pr = yaml.safe_load((ROOT / ".github/workflows/pin-pr-image.yml").read_text())[
-            "jobs"
-        ]["pin"]
+        main = yaml.safe_load((ROOT / ".github/workflows/build-toolchain.yml").read_text())["jobs"]["publish"]
+        pr = yaml.safe_load((ROOT / ".github/workflows/pin-pr-image.yml").read_text())["jobs"]["pin"]
         self.assertEqual(main["concurrency"], pr["concurrency"])
         self.assertIs(main["concurrency"]["cancel-in-progress"], False)
         steps = main["steps"]
         registry = next(step for step in steps if step.get("id") == "registry")
-        self.assertEqual(
-            registry["run"], "./scripts/toolchain/images/check_image_tag.sh"
-        )
-        assemble = next(
-            step for step in steps if "imagetools create" in step.get("run", "")
-        )
+        self.assertEqual(registry["run"], "./scripts/toolchain/images/check_image_tag.sh")
+        assemble = next(step for step in steps if "imagetools create" in step.get("run", ""))
         self.assertLess(steps.index(registry), steps.index(assemble))
         self.assertIn("steps.registry.outputs.exists != 'true'", assemble["if"])
 
     def test_existing_image_validation_failure_cannot_reach_consumers(self):
-        workflow = yaml.safe_load(
-            (ROOT / ".github/workflows/build-toolchain.yml").read_text()
-        )
+        workflow = yaml.safe_load((ROOT / ".github/workflows/build-toolchain.yml").read_text())
         for validate in (False, True):
             for result in ("success", "failure", "cancelled", "skipped"):
                 with self.subTest(validate=validate, result=result):
@@ -242,9 +225,7 @@ fi
                         result == "success" or (not validate and result == "skipped"),
                     )
         builder = workflow["jobs"]["build"]
-        login = next(
-            step for step in builder["steps"] if "login-action@" in step.get("uses", "")
-        )
+        login = next(step for step in builder["steps"] if "login-action@" in step.get("uses", ""))
         for repository in ("owner/repo", "fork/repo"):
             self.assertEqual(
                 condition_allows(
@@ -280,17 +261,11 @@ fi
                 self.assertEqual(output, "")
 
     def test_existing_image_cache_refresh_requires_explicit_manual_input(self):
-        workflow = yaml.safe_load(
-            (ROOT / ".github/workflows/build-toolchain.yml").read_text()
-        )
+        workflow = yaml.safe_load((ROOT / ".github/workflows/build-toolchain.yml").read_text())
         main_inputs = build_workflow()["jobs"]["main-image"]["with"]
-        manual = yaml.safe_load(
-            (ROOT / ".github/workflows/build-image.yml").read_text()
-        )
+        manual = yaml.safe_load((ROOT / ".github/workflows/build-image.yml").read_text())
         # SafeLoader treats the YAML 1.1 key "on" as True.
-        default = manual[True]["workflow_dispatch"]["inputs"]["refresh_cache"][
-            "default"
-        ]
+        default = manual[True]["workflow_dispatch"]["inputs"]["refresh_cache"]["default"]
         for requested in (main_inputs.get("refresh_cache", False), default, True):
             context = {
                 "needs.publish.result": "success",
@@ -307,9 +282,7 @@ fi
     def test_existing_content_tags_are_reused_without_overwriting(self):
         for event in ("push", "workflow_dispatch"):
             with self.subTest(event=event):
-                result, output = self.run_image(
-                    event, tag_exists=True, inputs_changed=True
-                )
+                result, output = self.run_image(event, tag_exists=True, inputs_changed=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(
                     dict(line.split("=", 1) for line in output.splitlines()),
@@ -321,9 +294,7 @@ fi
                 )
 
     def test_image_builds_and_publication_are_gated(self):
-        workflow = yaml.safe_load(
-            (ROOT / ".github/workflows/build-toolchain.yml").read_text(encoding="utf-8")
-        )
+        workflow = yaml.safe_load((ROOT / ".github/workflows/build-toolchain.yml").read_text(encoding="utf-8"))
         jobs = workflow["jobs"]
         self.assertEqual(jobs["build"]["needs"], "prepare")
         self.assertEqual(
@@ -334,15 +305,9 @@ fi
             jobs["build"]["strategy"]["matrix"],
             "${{ fromJSON(needs.prepare.outputs.matrix) }}",
         )
-        self.assertEqual(
-            jobs["prepare"]["outputs"]["matrix"], "${{ steps.policy.outputs.matrix }}"
-        )
+        self.assertEqual(jobs["prepare"]["outputs"]["matrix"], "${{ steps.policy.outputs.matrix }}")
         steps = jobs["build"]["steps"]
-        build = next(
-            step
-            for step in steps
-            if step.get("name") == "Build image for smoke testing"
-        )
+        build = next(step for step in steps if step.get("name") == "Build image for smoke testing")
         self.assertEqual(build["with"]["platforms"], "linux/${{ matrix.arch }}")
         names = [step.get("name") for step in steps]
         self.assertLess(
@@ -355,20 +320,14 @@ fi
         self.assertIn("!cancelled()", jobs["publish"]["if"])
 
     def test_publishers_authenticate_before_registry_checks(self):
-        jobs = yaml.safe_load(
-            (ROOT / ".github/workflows/build-toolchain.yml").read_text()
-        )["jobs"]
+        jobs = yaml.safe_load((ROOT / ".github/workflows/build-toolchain.yml").read_text())["jobs"]
         for job_name, check_id in (("prepare", "release-tag"), ("publish", "registry")):
             with self.subTest(job=job_name):
                 steps = jobs[job_name]["steps"]
-                login = next(
-                    step for step in steps if "login-action@" in step.get("uses", "")
-                )
+                login = next(step for step in steps if "login-action@" in step.get("uses", ""))
                 check = next(step for step in steps if step.get("id") == check_id)
                 self.assertLess(steps.index(login), steps.index(check))
-                self.assertEqual(
-                    login["with"]["password"], "${{ secrets.GITHUB_TOKEN }}"
-                )
+                self.assertEqual(login["with"]["password"], "${{ secrets.GITHUB_TOKEN }}")
                 for event in ("push", "workflow_dispatch", "pull_request"):
                     for head_repository in ("owner/repo", "contributor/fork"):
                         self.assertEqual(
@@ -399,50 +358,29 @@ fi
                 self.assertIn("initial publication and pin recovery", result.stderr)
 
     def test_pr_images_do_not_publish(self):
-        manual = yaml.safe_load(
-            (ROOT / ".github/workflows/build-image.yml").read_text()
-        )
+        manual = yaml.safe_load((ROOT / ".github/workflows/build-image.yml").read_text())
         self.assertIn("workflow_dispatch", manual[True])
         self.assertNotIn("pull_request_target", manual[True])
         for scope in (manual, *manual["jobs"].values()):
-            self.assertNotEqual(
-                scope.get("permissions", {}).get("pull-requests"), "write"
-            )
+            self.assertNotEqual(scope.get("permissions", {}).get("pull-requests"), "write")
 
-        workflow = yaml.safe_load(
-            (ROOT / ".github/workflows/build-toolchain.yml").read_text()
-        )
+        workflow = yaml.safe_load((ROOT / ".github/workflows/build-toolchain.yml").read_text())
         for job in workflow["jobs"].values():
             for step in job.get("steps", []):
-                if "docker push" in step.get(
-                    "run", ""
-                ) or "imagetools create" in step.get("run", ""):
+                if "docker push" in step.get("run", "") or "imagetools create" in step.get("run", ""):
                     with self.subTest(step=step.get("name")):
                         self.assertIn("github.event_name != 'pull_request'", step["if"])
         build_steps = workflow["jobs"]["build"]["steps"]
-        archive = next(
-            step for step in build_steps if "docker save" in step.get("run", "")
-        )
+        archive = next(step for step in build_steps if "docker save" in step.get("run", ""))
         self.assertIn("github.event_name == 'pull_request'", archive["if"])
         self.assertNotIn("matrix.arch", archive["if"])
         for name in ("latex", "book"):
             steps = build_workflow()["jobs"][name]["steps"]
-            self.assertTrue(
-                any(
-                    step.get("uses") == "./.github/actions/run-toolchain"
-                    for step in steps
-                )
-            )
+            self.assertTrue(any(step.get("uses") == "./.github/actions/run-toolchain" for step in steps))
 
     def test_run_local_image_selection_does_not_access_the_registry(self):
-        workflow = yaml.safe_load(
-            (ROOT / ".github/workflows/build-toolchain.yml").read_text()
-        )
-        script = next(
-            step["run"]
-            for step in workflow["jobs"]["publish"]["steps"]
-            if step.get("id") == "image"
-        )
+        workflow = yaml.safe_load((ROOT / ".github/workflows/build-toolchain.yml").read_text())
+        script = next(step["run"] for step in workflow["jobs"]["publish"]["steps"] if step.get("id") == "image")
         for digest, success in (("sha256:" + "a" * 64, True), ("invalid", False)):
             with (
                 self.subTest(digest=digest),
@@ -475,16 +413,13 @@ fi
                 if success:
                     self.assertEqual(
                         output.read_text(),
-                        f"digest={'a' * 64}\n"
-                        "image=ghcr.io/example/toolchain:build-123-2-amd64\n",
+                        f"digest={'a' * 64}\nimage=ghcr.io/example/toolchain:build-123-2-amd64\n",
                     )
                 else:
                     self.assertFalse(output.exists())
 
     def test_loaded_image_must_match_identity_and_architecture(self):
-        action = yaml.safe_load(
-            (ROOT / ".github/actions/load-toolchain/action.yml").read_text()
-        )
+        action = yaml.safe_load((ROOT / ".github/actions/load-toolchain/action.yml").read_text())
         script = action["runs"]["steps"][-1]["run"]
         for image_id, arch, success in (
             ("sha256:" + "a" * 64, "amd64", True),
@@ -531,9 +466,7 @@ fi
                 self.assertEqual(archive.exists(), not success)
 
     def test_image_pin_requires_successful_pr_and_trusted_publication_code(self):
-        workflow = yaml.safe_load(
-            (ROOT / ".github/workflows/pin-pr-image.yml").read_text()
-        )
+        workflow = yaml.safe_load((ROOT / ".github/workflows/pin-pr-image.yml").read_text())
         job = workflow["jobs"]["pin"]
         self.assertIn("workflow_run.event == 'pull_request'", job["if"])
         self.assertIn("workflow_run.conclusion == 'success'", job["if"])
@@ -542,9 +475,7 @@ fi
         self.assertEqual(checkout["with"]["ref"], "main")
         self.assertEqual(job["permissions"]["pull-requests"], "read")
         self.assertNotIn("pin-image", build_workflow()["jobs"])
-        build = yaml.safe_load(
-            (ROOT / ".github/workflows/build-toolchain.yml").read_text()
-        )
+        build = yaml.safe_load((ROOT / ".github/workflows/build-toolchain.yml").read_text())
         steps = build["jobs"]["build"]["steps"]
         names = [step.get("name") for step in steps]
         self.assertLess(
@@ -555,11 +486,7 @@ fi
             names.index("Login to GitHub Container Registry"),
             names.index("Build image for smoke testing"),
         )
-        image_build = next(
-            step
-            for step in steps
-            if step.get("name") == "Build image for smoke testing"
-        )
+        image_build = next(step for step in steps if step.get("name") == "Build image for smoke testing")
         self.assertIn("steps.candidate.outputs.reused != 'true'", image_build["if"])
 
     def test_incomplete_or_invalid_existing_images_are_not_reused(self):
@@ -576,17 +503,13 @@ fi
         ]
         for manifest in [*(json.dumps(value) for value in manifests), "not json"]:
             with self.subTest(manifest=manifest):
-                result, output = self.run_image(
-                    "push", tag_exists=True, inputs_changed=False, manifest=manifest
-                )
+                result, output = self.run_image("push", tag_exists=True, inputs_changed=False, manifest=manifest)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(output, "")
                 self.assertIn("immutable tags must not be overwritten", result.stderr)
 
     def test_required_published_image_cannot_be_missing(self):
-        result, output = self.run_image(
-            "push", tag_exists=False, inputs_changed=False, require_image=True
-        )
+        result, output = self.run_image("push", tag_exists=False, inputs_changed=False, require_image=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(output, "")
 
@@ -598,9 +521,7 @@ fi
                 {"platform": {"os": "unknown", "architecture": "unknown"}},
             ]
         }
-        result, output = self.run_image(
-            "push", tag_exists=True, inputs_changed=False, manifest=json.dumps(manifest)
-        )
+        result, output = self.run_image("push", tag_exists=True, inputs_changed=False, manifest=json.dumps(manifest))
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(
             dict(line.split("=", 1) for line in output.splitlines()),

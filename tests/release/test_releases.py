@@ -19,11 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class ReleasePlanTests(unittest.TestCase):
     def setUp(self):
-        self.old: dict[str, Any] = {
-            "books": [
-                {"slug": "alpha", "version": "1.0.0", "release": True, "build": True}
-            ]
-        }
+        self.old: dict[str, Any] = {"books": [{"slug": "alpha", "version": "1.0.0", "release": True, "build": True}]}
         self.new = copy.deepcopy(self.old)
 
     def test_content_alone_does_not_release_but_enablement_does(self):
@@ -33,17 +29,13 @@ class ReleasePlanTests(unittest.TestCase):
         self.assertEqual(releases.plan({"books": []}, self.new), ["alpha"])
 
     def test_first_push_plans_releases_without_reading_a_previous_commit(self):
-        self.new["books"].append(
-            {"slug": "beta", "version": "1.0.0", "release": False, "build": True}
-        )
+        self.new["books"].append({"slug": "beta", "version": "1.0.0", "release": False, "build": True})
         for enabled in (True, False):
             with self.subTest(enabled=enabled):
                 self.new["books"][0]["release"] = enabled
                 output = io.StringIO()
                 with (
-                    patch.object(
-                        sys, "argv", ["release/releases.py", "plan", "--base", "0" * 40]
-                    ),
+                    patch.object(sys, "argv", ["release/releases.py", "plan", "--base", "0" * 40]),
                     patch.object(releases, "load_manifest", return_value=self.new),
                     patch.object(releases.subprocess, "check_output") as git_show,
                     contextlib.redirect_stdout(output),
@@ -51,19 +43,13 @@ class ReleasePlanTests(unittest.TestCase):
                     self.assertEqual(releases.main(), 0)
 
                 git_show.assert_not_called()
-                expected = (
-                    'matrix={"book":["alpha"]}\ncount=1\n'
-                    if enabled
-                    else 'matrix={"book":[]}\ncount=0\n'
-                )
+                expected = 'matrix={"book":["alpha"]}\ncount=1\n' if enabled else 'matrix={"book":[]}\ncount=0\n'
                 self.assertEqual(output.getvalue(), expected)
 
     def test_invalid_nonzero_base_is_still_rejected(self):
         error = subprocess.CalledProcessError(128, ["git", "show"])
         with (
-            patch.object(
-                sys, "argv", ["release/releases.py", "plan", "--base", "missing"]
-            ),
+            patch.object(sys, "argv", ["release/releases.py", "plan", "--base", "missing"]),
             patch.object(releases.subprocess, "check_output", side_effect=error),
             contextlib.redirect_stderr(io.StringIO()),
         ):
@@ -131,13 +117,9 @@ class ReleasePlanTests(unittest.TestCase):
         ref = "refs/tags/alpha-v1.0.0"
         with patch.object(releases.subprocess, "check_output", return_value="") as git:
             releases.check_remote_tags(["alpha"], self.new)
-            self.assertEqual(
-                git.call_args.args[0], ["git", "ls-remote", "--refs", "origin", ref]
-            )
+            self.assertEqual(git.call_args.args[0], ["git", "ls-remote", "--refs", "origin", ref])
         with (
-            patch.object(
-                releases.subprocess, "check_output", return_value=f"{'a' * 40}\t{ref}\n"
-            ),
+            patch.object(releases.subprocess, "check_output", return_value=f"{'a' * 40}\t{ref}\n"),
             self.assertRaisesRegex(ValueError, "alpha-v1.0.0"),
         ):
             releases.check_remote_tags(["alpha"], self.new)
@@ -193,9 +175,7 @@ class ReleasePlanTests(unittest.TestCase):
                 releases.check_remote_tags(["alpha"], self.new)
 
     def test_summary_lists_only_selected_releases_and_explains_empty_plan(self):
-        self.new["books"].append(
-            {"slug": "beta", "version": "2.0.0", "release": False, "build": True}
-        )
+        self.new["books"].append({"slug": "beta", "version": "2.0.0", "release": False, "build": True})
         with tempfile.TemporaryDirectory() as directory:
             summary = Path(directory) / "summary.md"
             summary.write_text("Existing summary\n")
@@ -227,19 +207,13 @@ class ReleasePlanTests(unittest.TestCase):
             with (
                 patch.object(releases, "ROOT", root),
                 patch.object(releases, "load_manifest", return_value=self.old),
-                patch.object(
-                    releases.subprocess, "check_output", return_value="local-work\n"
-                ),
-                patch.object(
-                    releases, "expected_files", return_value={generated: "new assembly"}
-                ) as expected,
+                patch.object(releases.subprocess, "check_output", return_value="local-work\n"),
+                patch.object(releases, "expected_files", return_value={generated: "new assembly"}) as expected,
             ):
                 releases.prepare("alpha", "1.1.0")
             self.assertEqual(
                 (root / "config/books.yml").read_text(),
-                source.replace(
-                    "    version:", "    release: true\n    version:"
-                ).replace("'1.0.0'", "1.1.0"),
+                source.replace("    version:", "    release: true\n    version:").replace("'1.0.0'", "1.1.0"),
             )
             self.assertEqual(generated.read_text(), "new assembly")
             self.assertEqual(expected.call_args.kwargs["book"]["version"], "1.1.0")
@@ -252,21 +226,15 @@ class ReleasePlanTests(unittest.TestCase):
                 source = (
                     "schema_version: 1\n"
                     "defaults: {author: Author, status: draft, build: true, check: true, release: false, site: false}\n"
-                    "books:\n  - slug: alpha\n    title: Alpha\n    order: 10\n"
-                    + field
-                    + "    version: 1.0.0\n"
+                    "books:\n  - slug: alpha\n    title: Alpha\n    order: 10\n" + field + "    version: 1.0.0\n"
                 )
                 (root / "config").mkdir(parents=True, exist_ok=True)
                 (root / "config/books.yml").write_text(source)
                 with (
                     patch.object(releases, "ROOT", root),
                     patch.object(releases, "load_manifest", return_value=self.old),
-                    patch.object(
-                        releases.subprocess, "check_output", return_value="local-work\n"
-                    ),
-                    patch.object(
-                        releases, "expected_files", return_value={}
-                    ) as expected,
+                    patch.object(releases.subprocess, "check_output", return_value="local-work\n"),
+                    patch.object(releases, "expected_files", return_value={}) as expected,
                 ):
                     releases.prepare("alpha", "1.0.0")
                 result = (root / "config/books.yml").read_text()
@@ -317,22 +285,14 @@ class ReleasePlanTests(unittest.TestCase):
                     "load_manifest",
                     side_effect=lambda: load_manifest(path, root),
                 ),
-                patch.object(
-                    releases.subprocess, "check_output", return_value="local-work\n"
-                ),
+                patch.object(releases.subprocess, "check_output", return_value="local-work\n"),
             ):
                 releases.prepare("alpha", "1.1.0")
             manifest = load_manifest(path, root)
-            self.assertEqual(
-                [item["version"] for item in manifest["books"]], ["1.1.0", "1.0.0"]
-            )
-            self.assertEqual(
-                [item["release"] for item in manifest["books"]], [True, False]
-            )
+            self.assertEqual([item["version"] for item in manifest["books"]], ["1.1.0", "1.0.0"])
+            self.assertEqual([item["release"] for item in manifest["books"]], [True, False])
             self.assertIn("version: 1.0.0 # keep", path.read_text())
-            self.assertIn(
-                r"\newcommand{\version}{1.1.0}", (book / "book.tex").read_text()
-            )
+            self.assertIn(r"\newcommand{\version}{1.1.0}", (book / "book.tex").read_text())
 
     def test_flow_mapping_edits_preserve_comments_and_trailing_commas(self):
         import yaml
@@ -372,9 +332,7 @@ class ReleasePlanTests(unittest.TestCase):
             ):
                 releases.prepare("alpha", "1.1.0")
         with (
-            patch.object(
-                releases.subprocess, "check_output", return_value="local-work\n"
-            ),
+            patch.object(releases.subprocess, "check_output", return_value="local-work\n"),
             patch.object(releases, "load_manifest", return_value=self.old),
         ):
             with self.assertRaises(ValueError):

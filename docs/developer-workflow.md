@@ -290,7 +290,7 @@ override formatter defaults. Container runs use container paths.
 Python, LaTeX, and shell files format on save with the configured tools.
 Python explicit saves also apply safe Ruff fixes and organize imports. The
 container provides the versions pinned in `config/toolchain.env`.
-Python and LaTeX editors show an 88-column guide; Markdown wraps to the viewport
+Python and LaTeX editors show a 120-column guide; Markdown wraps to the viewport
 without changing source line breaks.
 
 ```sh
@@ -306,7 +306,7 @@ stops at the first failure. Review formatter diffs before committing.
 
 | Scope | Targets and policy |
 |---|---|
-| `tex` | Tracked `.tex`/`.sty` files; `latexindent`, `config/latexindent.yaml`, two-space indentation, 88-column prose wrapping |
+| `tex` | Tracked `.tex`/`.sty` files; `latexindent`, `config/latexindent.yaml`, two-space indentation, 120-column prose wrapping |
 | `py` | `scripts/` and `tests/`; Ruff also removes redundant parentheses, flags consecutive nested context managers, and formats Python examples in docstrings |
 | `sh` | Shell files throughout `scripts/`; shfmt's Bash variant, two-space indentation, indented case clauses, and spaces after redirection operators |
 

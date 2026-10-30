@@ -98,9 +98,7 @@ class CheckScopeTests(unittest.TestCase):
                 self.assertEqual(self.scope(path, "old\n", "new\n"), "lean=true\n")
 
     def test_documentation_only_change_skips_lean(self):
-        self.assertEqual(
-            self.scope("docs/maintainer-guide.md", "old\n", "new\n"), "lean=false\n"
-        )
+        self.assertEqual(self.scope("docs/maintainer-guide.md", "old\n", "new\n"), "lean=false\n")
 
     def test_missing_base_keeps_lean(self):
         self.assertEqual(
@@ -109,12 +107,8 @@ class CheckScopeTests(unittest.TestCase):
         )
 
     def test_registry_check_and_publication_share_the_content_lock(self):
-        wrapper = yaml.safe_load(
-            (ROOT / ".github/workflows/prepare-image.yml").read_text()
-        )
-        locked = yaml.safe_load(
-            (ROOT / ".github/workflows/build-toolchain.yml").read_text()
-        )
+        wrapper = yaml.safe_load((ROOT / ".github/workflows/prepare-image.yml").read_text())
+        locked = yaml.safe_load((ROOT / ".github/workflows/build-toolchain.yml").read_text())
         self.assertNotIn("concurrency", wrapper)
         self.assertEqual(
             wrapper["jobs"]["image"]["with"]["tag"],

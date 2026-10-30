@@ -41,9 +41,7 @@ class BraceNormalizationTests(unittest.TestCase):
         examples = {
             r"\(x^2\) and \[a_i\]": r"\(x^{2}\) and \[a_{i}\]",
             r"$$x^2$$": r"$$x^{2}$$",
-            r"\begin{align}x^2 &= a_i\end{align}": (
-                r"\begin{align}x^{2} &= a_{i}\end{align}"
-            ),
+            r"\begin{align}x^2 &= a_i\end{align}": (r"\begin{align}x^{2} &= a_{i}\end{align}"),
             r"\section*{Example $x^2$}": r"\section*{Example $x^{2}$}",
             r"\emph x": r"\emph{x}",
             r"\hbox to 10pt{$x^2$}": r"\hbox to 10pt{$x^{2}$}",

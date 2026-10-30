@@ -110,9 +110,7 @@ def load_image_build(root: Path = ROOT) -> dict:
         or data["schema_version"] != 1
     ):
         raise ValueError(f"{path}: unsupported image build configuration")
-    if not isinstance(data["policy_version"], str) or not re.fullmatch(
-        r"[A-Za-z0-9-]+", data["policy_version"]
-    ):
+    if not isinstance(data["policy_version"], str) or not re.fullmatch(r"[A-Za-z0-9-]+", data["policy_version"]):
         raise ValueError(f"{path}: invalid policy version")
     inputs = data["inputs"]
     if (
@@ -135,19 +133,14 @@ def load_image_build(root: Path = ROOT) -> dict:
         if (
             not isinstance(platform, dict)
             or set(platform) != {"arch", "runner"}
-            or not all(
-                isinstance(value, str) and re.fullmatch(r"[a-z0-9.-]+", value)
-                for value in platform.values()
-            )
+            or not all(isinstance(value, str) and re.fullmatch(r"[a-z0-9.-]+", value) for value in platform.values())
         ):
             raise ValueError(f"{path}: invalid platform or runner")
     architectures = [platform["arch"] for platform in platforms]
     if not set(architectures) <= {"amd64", "arm64"}:
         raise ValueError(f"{path}: Dockerfile supports only amd64 and arm64")
     if len(architectures) != len(set(architectures)) or "amd64" not in architectures:
-        raise ValueError(
-            f"{path}: architectures must be unique and include the PR consumer's amd64 platform"
-        )
+        raise ValueError(f"{path}: architectures must be unique and include the PR consumer's amd64 platform")
     return data
 
 
@@ -156,8 +149,7 @@ def load_authoring(root: Path = ROOT) -> dict:
     data = read_json(path)
     if (
         not isinstance(data, dict)
-        or set(data)
-        != {"schema_version", "shell_args", "test_directory", "test_pattern"}
+        or set(data) != {"schema_version", "shell_args", "test_directory", "test_pattern"}
         or type(data["schema_version"]) is not int
         or data["schema_version"] != 1
     ):
@@ -172,9 +164,7 @@ def load_authoring(root: Path = ROOT) -> dict:
         or any(option not in ("-ci", "-sr") for option in args[4:])
         or len(args) != len(set(args))
     ):
-        raise ValueError(
-            f"{path}: expected bash shell arguments with positive indentation"
-        )
+        raise ValueError(f"{path}: expected bash shell arguments with positive indentation")
     for key in ("test_directory", "test_pattern"):
         if (
             not isinstance(data[key], str)

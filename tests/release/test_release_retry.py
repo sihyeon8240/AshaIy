@@ -53,9 +53,7 @@ class ReleaseRetryTests(unittest.TestCase):
             **self.expected,
             "run_id": "42",
             "run_attempt": "1",
-            "checksums": {
-                name: RETRY.checksum(data) for name, data in self.files.items()
-            },
+            "checksums": {name: RETRY.checksum(data) for name, data in self.files.items()},
         }
 
     def archive(self, path, *, manifest=None, files=None):
@@ -68,9 +66,7 @@ class ReleaseRetryTests(unittest.TestCase):
             )
 
     def test_failed_publication_run_is_eligible_when_its_build_gates_passed(self):
-        self.assertEqual(
-            RETRY.validate_run(self.workflow_run, "owner/repo"), self.source
-        )
+        self.assertEqual(RETRY.validate_run(self.workflow_run, "owner/repo"), self.source)
         RETRY.validate_jobs(self.jobs, "alpha")
         for key, value in (
             ("event", "pull_request"),
@@ -102,9 +98,7 @@ class ReleaseRetryTests(unittest.TestCase):
             path = Path(temporary) / "release.zip"
             self.archive(path)
             self.assertEqual(
-                RETRY.validate_archive(path, self.expected, self.workflow_run)[
-                    self.pdf_name
-                ],
+                RETRY.validate_archive(path, self.expected, self.workflow_run)[self.pdf_name],
                 self.pdf,
             )
             for key in (*self.expected, "run_id", "run_attempt"):
@@ -157,27 +151,17 @@ class ReleaseRetryTests(unittest.TestCase):
                         self.workflow_run,
                     ],
                 ) as api,
-                patch.object(
-                    RETRY, "collection", side_effect=[[artifact], self.jobs]
-                ) as collection,
+                patch.object(RETRY, "collection", side_effect=[[artifact], self.jobs]) as collection,
                 patch.object(RETRY, "command", side_effect=execute) as command,
                 patch.object(RETRY, "download", side_effect=download),
             ):
                 directory = root / "restored"
-                self.assertEqual(
-                    RETRY.restore("42", "alpha", "1.0.0", directory), self.source
-                )
+                self.assertEqual(RETRY.restore("42", "alpha", "1.0.0", directory), self.source)
                 self.assertEqual((directory / self.pdf_name).read_bytes(), self.pdf)
-                command.assert_any_call(
-                    "git", "merge-base", "--is-ancestor", self.source, "origin/main"
-                )
+                command.assert_any_call("git", "merge-base", "--is-ancestor", self.source, "origin/main")
                 api.assert_any_call("repos/owner/repo/actions/runs/42/attempts/1")
-                collection.assert_any_call(
-                    "repos/owner/repo/actions/runs/42/attempts/1/jobs", "jobs"
-                )
-                self.assertFalse(
-                    any("build_book" in str(call) for call in command.call_args_list)
-                )
+                collection.assert_any_call("repos/owner/repo/actions/runs/42/attempts/1/jobs", "jobs")
+                self.assertFalse(any("build_book" in str(call) for call in command.call_args_list))
 
     def test_wrong_version_or_unmerged_source_cannot_download(self):
         for unmerged in (False, True):
@@ -186,9 +170,7 @@ class ReleaseRetryTests(unittest.TestCase):
                 if args[:2] == ("git", "merge-base") and unmerged:
                     raise subprocess.CalledProcessError(1, args)
                 if args[:2] == ("git", "show"):
-                    return yaml.safe_dump(
-                        manifest_document([book_record("alpha", release=True)])
-                    ).encode()
+                    return yaml.safe_dump(manifest_document([book_record("alpha", release=True)])).encode()
                 return b""
 
             with (
@@ -226,9 +208,7 @@ class ReleaseRetryTests(unittest.TestCase):
                 for name in (*self.files, "release-build.json"):
                     archive.write(directory / name, name)
             self.assertEqual(
-                RETRY.validate_archive(archive_path, self.expected, self.workflow_run)[
-                    self.pdf_name
-                ],
+                RETRY.validate_archive(archive_path, self.expected, self.workflow_run)[self.pdf_name],
                 self.pdf,
             )
 
@@ -251,12 +231,8 @@ class ReleaseRetryTests(unittest.TestCase):
             execute.assert_not_called()
 
     def test_retry_workflow_validates_without_write_permissions(self):
-        workflow = yaml.safe_load(
-            (ROOT / ".github/workflows/release-retry.yml").read_text()
-        )
-        self.assertEqual(
-            workflow["permissions"], {"contents": "read", "actions": "read"}
-        )
+        workflow = yaml.safe_load((ROOT / ".github/workflows/release-retry.yml").read_text())
+        self.assertEqual(workflow["permissions"], {"contents": "read", "actions": "read"})
         self.assertNotIn("permissions", workflow["jobs"]["restore"])
         self.assertEqual(workflow["jobs"]["publish"]["needs"], "restore")
         self.assertEqual(workflow["jobs"]["publish"]["concurrency"]["queue"], "max")

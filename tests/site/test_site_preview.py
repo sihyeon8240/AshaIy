@@ -31,19 +31,13 @@ class SitePreviewTests(unittest.TestCase):
                     ready.put(server)
                     return server
 
-                with mock.patch.object(
-                    preview, "ThreadingHTTPServer", side_effect=create_server
-                ):
-                    worker = threading.Thread(
-                        target=preview.serve, args=(root, 0, host), daemon=True
-                    )
+                with mock.patch.object(preview, "ThreadingHTTPServer", side_effect=create_server):
+                    worker = threading.Thread(target=preview.serve, args=(root, 0, host), daemon=True)
                     worker.start()
                     server = ready.get(timeout=5)
                     try:
                         self.assertEqual(server.server_address[0], host)
-                        with urllib.request.urlopen(
-                            f"http://127.0.0.1:{server.server_port}/", timeout=5
-                        ) as response:
+                        with urllib.request.urlopen(f"http://127.0.0.1:{server.server_port}/", timeout=5) as response:
                             self.assertEqual(response.read(), b"preview response")
                     finally:
                         server.shutdown()
@@ -73,11 +67,7 @@ class SitePreviewTests(unittest.TestCase):
 
                 with contextlib.ExitStack() as stack:
                     stack.enter_context(mock.patch.object(preview, "ROOT", root))
-                    stack.enter_context(
-                        mock.patch.object(
-                            preview, "require_tool", return_value="jekyll"
-                        )
-                    )
+                    stack.enter_context(mock.patch.object(preview, "require_tool", return_value="jekyll"))
                     stack.enter_context(
                         mock.patch.object(
                             preview,
@@ -88,11 +78,7 @@ class SitePreviewTests(unittest.TestCase):
                     stack.enter_context(mock.patch.object(preview.subprocess, "run"))
                     stack.enter_context(mock.patch.object(preview, "check_output"))
                     if failure == "render":
-                        stack.enter_context(
-                            mock.patch.object(
-                                preview, "render", side_effect=OSError("render failed")
-                            )
-                        )
+                        stack.enter_context(mock.patch.object(preview, "render", side_effect=OSError("render failed")))
                     elif failure == "copy":
                         stack.enter_context(
                             mock.patch.object(
@@ -110,19 +96,11 @@ class SitePreviewTests(unittest.TestCase):
                             )
                         )
                     else:
-                        stack.enter_context(
-                            mock.patch.object(
-                                preview.os, "replace", side_effect=fail_install
-                            )
-                        )
+                        stack.enter_context(mock.patch.object(preview.os, "replace", side_effect=fail_install))
                     with self.assertRaises((ValueError, OSError)):
                         preview.build()
-                self.assertEqual(
-                    (destination / "index.html").read_text(), "previous preview"
-                )
-                self.assertEqual(
-                    (destination / "pdf/alpha.pdf").read_bytes(), b"previous PDF"
-                )
+                self.assertEqual((destination / "index.html").read_text(), "previous preview")
+                self.assertEqual((destination / "pdf/alpha.pdf").read_bytes(), b"previous PDF")
                 self.assertEqual(list((root / "build").glob(".site-preview-*")), [])
 
     def test_missing_tool_fails_before_tests_can_skip(self) -> None:
@@ -150,9 +128,7 @@ class SitePreviewTests(unittest.TestCase):
                 for empty in (False, True):
                     if empty:
                         pdf.touch()
-                    with self.assertRaisesRegex(
-                        ValueError, "ashaiy book build --book alpha"
-                    ):
+                    with self.assertRaisesRegex(ValueError, "ashaiy book build --book alpha"):
                         preview.build()
                     self.assertEqual(output.read_text(), "previous preview")
                 run.assert_not_called()

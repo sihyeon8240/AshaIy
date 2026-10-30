@@ -22,9 +22,7 @@ def registered_and_site_slugs() -> tuple[set[str], set[str]]:
     )
 
 
-def snapshot_artifacts(
-    downloaded: Path, registered: set[str], expected: set[str]
-) -> dict[str, Path]:
+def snapshot_artifacts(downloaded: Path, registered: set[str], expected: set[str]) -> dict[str, Path]:
     artifacts: dict[str, Path] = {}
     pdf_dir = downloaded / "pdf"
     if pdf_dir.is_dir():

@@ -82,17 +82,9 @@ def rendered_ignore_consumers(root: Path) -> dict[Path, str]:
         settings[key] = dict.fromkeys(patterns[profile], True)
 
     return {
-        root / "config/generated/cleanup-files.txt": "\n".join(
-            patterns["cleanup-files"]
-        )
-        + "\n",
-        root / "config/generated/cleanup-prune.txt": "\n".join(
-            patterns["cleanup-prune"]
-        )
-        + "\n",
+        root / "config/generated/cleanup-files.txt": "\n".join(patterns["cleanup-files"]) + "\n",
+        root / "config/generated/cleanup-prune.txt": "\n".join(patterns["cleanup-prune"]) + "\n",
         root / ".gitignore": HEADER + "\n".join(patterns["git"]) + "\n",
-        root / ".devcontainer/Dockerfile.dockerignore": HEADER
-        + "\n".join(patterns["docker"])
-        + "\n",
+        root / ".devcontainer/Dockerfile.dockerignore": HEADER + "\n".join(patterns["docker"]) + "\n",
         settings_path: json.dumps(settings, indent=2) + "\n",
     }

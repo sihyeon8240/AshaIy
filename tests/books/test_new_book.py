@@ -37,9 +37,7 @@ class NewBookTests(unittest.TestCase):
         copy_validation_configuration(self.root)
         write_yaml(self.root / "config/books.yml", manifest_document([]))
 
-    def run_new(
-        self, slug: str = "new-book", **environment: str
-    ) -> subprocess.CompletedProcess[str]:
+    def run_new(self, slug: str = "new-book", **environment: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [
                 sys.executable,

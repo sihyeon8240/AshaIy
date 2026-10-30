@@ -21,9 +21,7 @@ def book_content_metrics(slug: str, root: Path = REPO_ROOT) -> dict[str, int]:
     ]
     return {
         "sections": len(sections),
-        "written": sum(
-            bool(without_comments(read_text(path)).strip()) for path in sections
-        ),
+        "written": sum(bool(without_comments(read_text(path)).strip()) for path in sections),
     }
 
 
@@ -44,9 +42,7 @@ def registered_results(root: Path = REPO_ROOT) -> dict[str, set[str]]:
     return registered
 
 
-def result_metrics(
-    results: list[set[str]], registered: set[str]
-) -> dict[str, int | float]:
+def result_metrics(results: list[set[str]], registered: set[str]) -> dict[str, int | float]:
     """Count each result once, even when it has multiple linked labels."""
     total = len(results)
     verified = sum(bool(labels & registered) for labels in results)
@@ -62,11 +58,7 @@ def book_lean_metrics(
 ) -> dict[str, int | float]:
     """Return coverage, optionally reusing a caller's repository-wide index."""
     book_dir = root / "books" / slug
-    results = [
-        labels
-        for path in book_dir.rglob("*.tex")
-        for labels in theorem_label_groups(read_text(path))
-    ]
+    results = [labels for path in book_dir.rglob("*.tex") for labels in theorem_label_groups(read_text(path))]
     if registered is None:
         registered = registered_results(root)
     return result_metrics(results, registered.get(slug, set()))

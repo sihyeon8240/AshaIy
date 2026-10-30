@@ -50,9 +50,7 @@ def tex_value(value: object, context: str, *, parameters: int = 0) -> str:
             position += 2
             continue
         if following not in tuple(str(index) for index in range(1, parameters + 1)):
-            raise ValueError(
-                f"{context} has an invalid parameter reference at #{following}"
-            )
+            raise ValueError(f"{context} has an invalid parameter reference at #{following}")
         position += 2
     return value
 
@@ -65,17 +63,9 @@ def arguments(value: object, context: str, *, paired: bool) -> tuple[ArgumentSpe
         label = f"{context}[{index}]"
         item = field_mapping(raw, label)
         kind = item.get("kind")
-        allowed = (
-            {"kind", "mode", "default"} if kind == "optional" else {"kind", "mode"}
-        )
-        if (
-            set(item) != allowed
-            or not isinstance(item.get("mode"), str)
-            or item["mode"] not in MODES
-        ):
-            raise ValueError(
-                f"{label} requires kind and mode, plus default for optional arguments"
-            )
+        allowed = {"kind", "mode", "default"} if kind == "optional" else {"kind", "mode"}
+        if set(item) != allowed or not isinstance(item.get("mode"), str) or item["mode"] not in MODES:
+            raise ValueError(f"{label} requires kind and mode, plus default for optional arguments")
         default = None
         if kind == "optional" and index == 0 and not paired:
             default = tex_value(item["default"], f"{label}.default")
@@ -90,22 +80,15 @@ def arguments(value: object, context: str, *, paired: bool) -> tuple[ArgumentSpe
                 elif character == "]" and depth == 0:
                     raise ValueError(f"{label}.default: brace literal ] tokens")
         elif kind != "mandatory":
-            raise ValueError(
-                f"{label}: only one leading optional argument is supported"
-            )
+            raise ValueError(f"{label}: only one leading optional argument is supported")
         result.append(ArgumentSpec(kind, item["mode"], default))
     return tuple(result)
 
 
 def declaration(name: str, value: object, context: str) -> MacroDeclaration:
-    if (
-        not isinstance(name, str)
-        or not NAME.fullmatch(name)
-        or name in RESERVED_COMMANDS
-    ):
+    if not isinstance(name, str) or not NAME.fullmatch(name) or name in RESERVED_COMMANDS:
         raise ValueError(
-            f"{context}: expected a non-reserved alphabetic command name "
-            "starting with an uppercase letter"
+            f"{context}: expected a non-reserved alphabetic command name starting with an uppercase letter"
         )
     item = field_mapping(value, context)
     kind = item.get("kind")
@@ -147,9 +130,7 @@ def declaration(name: str, value: object, context: str) -> MacroDeclaration:
     if kind == "operator" and not text.strip():
         raise ValueError(f"{context}.text must not be empty")
     if paired and (not left.strip() or not right.strip()):
-        raise ValueError(
-            f"{context}: delimiters must not be empty (use . for an empty fence)"
-        )
+        raise ValueError(f"{context}: delimiters must not be empty (use . for an empty fence)")
     limits = item.get("limits", False)
     if type(limits) is not bool:
         raise ValueError(f"{context}.limits must be a boolean")
@@ -180,23 +161,18 @@ def load_macros(path: Path) -> dict[str, MacroDeclaration]:
         raise ValueError(f"{path}:1: expected schema_version: 1 and macros")
     entries = field_mapping(data["macros"], f"{path}: macros")
     if not entries:
-        raise ValueError(
-            f"{path}: macros must not be empty; omit unused book manifests"
-        )
+        raise ValueError(f"{path}: macros must not be empty; omit unused book manifests")
     lines = {}
     if isinstance(tree, yaml.MappingNode):
         for key, node in tree.value:
             if key.value == "macros" and isinstance(node, yaml.MappingNode):
                 lines = {key.value: key.start_mark.line + 1 for key, _ in node.value}
     return {
-        name: declaration(name, value, f"{path}:{lines.get(name, 1)}: macros.{name}")
-        for name, value in entries.items()
+        name: declaration(name, value, f"{path}:{lines.get(name, 1)}: macros.{name}") for name, value in entries.items()
     }
 
 
-def render_macros(
-    declarations: dict[str, MacroDeclaration], source: str, package: str
-) -> str:
+def render_macros(declarations: dict[str, MacroDeclaration], source: str, package: str) -> str:
     lines = [
         f"% Generated from {source}; do not edit.",
         r"\NeedsTeXFormat{LaTeX2e}",
@@ -209,15 +185,9 @@ def render_macros(
             star = "*" if macro.limits else ""
             line = rf"\DeclareMathOperator{star}{name}" + tex_group(macro.text)
         elif macro.kind == "paired_delimiter":
-            line = (
-                rf"\DeclarePairedDelimiter{name}"
-                + tex_group(macro.left)
-                + tex_group(macro.right)
-            )
+            line = rf"\DeclarePairedDelimiter{name}" + tex_group(macro.left) + tex_group(macro.right)
         elif macro.kind == "paired_delimiter_x":
-            count = sum(
-                argument.kind == "mandatory" for argument in macro.spec.arguments
-            )
+            count = sum(argument.kind == "mandatory" for argument in macro.spec.arguments)
             command = "DeclarePairedDelimiterX"
             before = ""
             after = ""
@@ -244,9 +214,6 @@ def render_macros(
 
 
 def tex_group(value: str, opening: str = "{", closing: str = "}") -> str:
-    if any(
-        span.kind == "comment" and span.end == len(value)
-        for span in source_spans(value)
-    ):
+    if any(span.kind == "comment" and span.end == len(value) for span in source_spans(value)):
         value += "\n"
     return opening + value + closing

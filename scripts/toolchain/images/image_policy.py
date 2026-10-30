@@ -56,21 +56,13 @@ def validate_context(root: Path, inputs: list[str]) -> None:
             base = next((word for word in words if not word.startswith("--")), None)
             if base is None:
                 raise ValueError(f"{recipe}:{number}: missing base image")
-            if (
-                base != "scratch"
-                and base not in stages
-                and not re.search(r"@sha256:[0-9a-f]{64}$", base)
-            ):
-                raise ValueError(
-                    f"{recipe}:{number}: FROM requires an immutable digest"
-                )
+            if base != "scratch" and base not in stages and not re.search(r"@sha256:[0-9a-f]{64}$", base):
+                raise ValueError(f"{recipe}:{number}: FROM requires an immutable digest")
             if len(words) >= 3 and words[-2].upper() == "AS":
                 stages.add(words[-1])
             continue
         if instruction == "ADD":
-            raise ValueError(
-                f"{recipe}:{number}: use explicit COPY sources instead of ADD"
-            )
+            raise ValueError(f"{recipe}:{number}: use explicit COPY sources instead of ADD")
         if instruction != "COPY":
             continue
         arguments = parts[1]
@@ -81,33 +73,19 @@ def validate_context(root: Path, inputs: list[str]) -> None:
                 raise ValueError(f"{recipe}:{number}: missing COPY sources")
             options.append(option_parts[0])
             arguments = option_parts[1]
-        source_stage = next(
-            (option[7:] for option in options if option.startswith("--from=")), None
-        )
+        source_stage = next((option[7:] for option in options if option.startswith("--from=")), None)
         if source_stage is not None:
             if (
                 source_stage not in stages
                 and not source_stage.isdecimal()
                 and not re.search(r"@sha256:[0-9a-f]{64}$", source_stage)
             ):
-                raise ValueError(
-                    f"{recipe}:{number}: external COPY requires an immutable digest"
-                )
+                raise ValueError(f"{recipe}:{number}: external COPY requires an immutable digest")
             continue
         if not any(re.fullmatch(r"--chmod=0?[0-7]{3}", option) for option in options):
-            raise ValueError(
-                f"{recipe}:{number}: repository COPY requires explicit --chmod"
-            )
-        sources = (
-            json.loads(arguments)
-            if arguments.startswith("[")
-            else shlex.split(arguments)
-        )
-        if (
-            not isinstance(sources, list)
-            or len(sources) < 2
-            or not all(isinstance(source, str) for source in sources)
-        ):
+            raise ValueError(f"{recipe}:{number}: repository COPY requires explicit --chmod")
+        sources = json.loads(arguments) if arguments.startswith("[") else shlex.split(arguments)
+        if not isinstance(sources, list) or len(sources) < 2 or not all(isinstance(source, str) for source in sources):
             raise ValueError(f"{recipe}:{number}: invalid COPY sources")
         required.update(sources[:-1])
     missing = sorted(required - set(inputs))
@@ -129,13 +107,9 @@ def input_hash(root: Path = ROOT) -> str:
         source = root / path
         mode = source.lstat().st_mode
         if not stat.S_ISREG(mode) or any(
-            parent.is_symlink()
-            for parent in source.parents
-            if parent.is_relative_to(root)
+            parent.is_symlink() for parent in source.parents if parent.is_relative_to(root)
         ):
-            raise ValueError(
-                f"image input must be a regular file without symlinks: {path}"
-            )
+            raise ValueError(f"image input must be a regular file without symlinks: {path}")
         with source.open("rb") as stream:
             checksum = hashlib.file_digest(stream, "sha256").hexdigest()
         digest.update(f"{checksum}  {path}\n".encode())
@@ -154,9 +128,7 @@ def main() -> int:
         else:
             config = load_image_build()
             if args.consumer == "matrix":
-                output = json.dumps(
-                    {"include": config["platforms"]}, separators=(",", ":")
-                )
+                output = json.dumps({"include": config["platforms"]}, separators=(",", ":"))
             else:
                 output = " ".join(item["arch"] for item in config["platforms"])
     except (OSError, ValueError) as error:

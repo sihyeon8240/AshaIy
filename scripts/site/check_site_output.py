@@ -38,9 +38,7 @@ class PageLinks(HTMLParser):
         attributes = dict(attrs)
         if tag == "article" and "data-book-slug" in attributes:
             self.books.append(attributes["data-book-slug"] or "")
-        anchor = attributes.get("id") or (
-            attributes.get("name") if tag == "a" else None
-        )
+        anchor = attributes.get("id") or (attributes.get("name") if tag == "a" else None)
         if anchor:
             self.anchors.add(anchor)
         for attribute in RESOURCES.get(tag, ()):
@@ -108,9 +106,7 @@ def expected_book_slugs(book_data: Path) -> set[str]:
     return expected
 
 
-def check_book_pages(
-    root: Path, pages: dict[Path, PageLinks], expected: set[str], base_path: str
-) -> None:
+def check_book_pages(root: Path, pages: dict[Path, PageLinks], expected: set[str], base_path: str) -> None:
     home = pages[root / "index.html"]
     if len(home.books) != len(expected) or set(home.books) != expected:
         raise ValueError("rendered book cards differ from the generated book list")
@@ -118,22 +114,14 @@ def check_book_pages(
         path = root / directory
         actual = {entry.name for entry in path.iterdir()} if path.is_dir() else set()
         if actual != {slug + suffix for slug in expected}:
-            raise ValueError(
-                f"rendered {directory} set differs from the generated book list"
-            )
-    home_targets = {
-        local_target(root, root / "index.html", link, base_path.rstrip("/"))
-        for link in home.links
-    }
+            raise ValueError(f"rendered {directory} set differs from the generated book list")
+    home_targets = {local_target(root, root / "index.html", link, base_path.rstrip("/")) for link in home.links}
     for slug in expected:
         detail = root / "books" / f"{slug}.html"
         pdf = root / "pdf" / f"{slug}.pdf"
         if detail not in home_targets or pdf not in home_targets:
             raise ValueError(f"missing home page book links: {slug}")
-        if not any(
-            local_target(root, detail, link, base_path.rstrip("/")) == pdf
-            for link in pages[detail].links
-        ):
+        if not any(local_target(root, detail, link, base_path.rstrip("/")) == pdf for link in pages[detail].links):
             raise ValueError(f"missing detail page PDF link: {slug}")
 
 
@@ -147,23 +135,16 @@ def check_snapshot_pdfs(root: Path, snapshot: Path) -> None:
                 raise ValueError(f"invalid PDF header: {pdf.name}")
 
 
-def check(
-    destination: Path, snapshot: Path, *, book_data: Path, base_path: str = ""
-) -> None:
+def check(destination: Path, snapshot: Path, *, book_data: Path, base_path: str = "") -> None:
     root = destination.resolve()
     if not (root / "index.html").is_file():
         raise ValueError("rendered site is missing index.html")
-    pages = {
-        path: PageLinks(path.read_text(encoding="utf-8"))
-        for path in root.rglob("*.html")
-    }
+    pages = {path: PageLinks(path.read_text(encoding="utf-8")) for path in root.rglob("*.html")}
     check_local_links(root, pages, base_path)
     expected = expected_book_slugs(book_data)
     check_book_pages(root, pages, expected, base_path)
     check_snapshot_pdfs(root, snapshot)
-    print(
-        f"Validated {len(pages)} rendered pages, local links, and snapshot PDF bytes."
-    )
+    print(f"Validated {len(pages)} rendered pages, local links, and snapshot PDF bytes.")
 
 
 def main() -> int:

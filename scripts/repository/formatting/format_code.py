@@ -24,26 +24,16 @@ def selected_files(root: Path, language: str, file: Path | None = None) -> list[
     if file is not None:
         path = file.resolve()
         suffix = ".py" if language == "py" else ".sh"
-        valid_extension = path.suffix == suffix or (
-            language == "py" and path == root / "scripts/ashaiy"
-        )
+        valid_extension = path.suffix == suffix or (language == "py" and path == root / "scripts/ashaiy")
         if not path.is_relative_to(root) or not path.is_file() or not valid_extension:
-            raise ValueError(
-                f"FILE must be an existing {suffix} file inside the repository"
-            )
+            raise ValueError(f"FILE must be an existing {suffix} file inside the repository")
         relative = path.relative_to(root)
-        ignored = subprocess.run(
-            ["git", "check-ignore", "--quiet", "--", str(relative)], cwd=root
-        )
+        ignored = subprocess.run(["git", "check-ignore", "--quiet", "--", str(relative)], cwd=root)
         if ignored.returncode != 1:
             raise ValueError("FILE must not be ignored by Git")
         return [relative]
 
-    patterns = (
-        ("scripts/ashaiy", "scripts/*.py", "tests/*.py")
-        if language == "py"
-        else ("scripts/*.sh",)
-    )
+    patterns = ("scripts/ashaiy", "scripts/*.py", "tests/*.py") if language == "py" else ("scripts/*.sh",)
     result = subprocess.run(
         [
             "git",
@@ -59,11 +49,7 @@ def selected_files(root: Path, language: str, file: Path | None = None) -> list[
         capture_output=True,
         check=True,
     )
-    return [
-        Path(name.decode())
-        for name in result.stdout.split(b"\0")
-        if name and (root / name.decode()).is_file()
-    ]
+    return [Path(name.decode()) for name in result.stdout.split(b"\0") if name and (root / name.decode()).is_file()]
 
 
 def run_formatter(root: Path, language: str, names: list[str], *, check: bool) -> None:
@@ -126,19 +112,13 @@ def run_formatter(root: Path, language: str, names: list[str], *, check: bool) -
         )
 
 
-def format_sources(
-    language: str, *, check: bool = False, file: Path | None = None
-) -> int:
+def format_sources(language: str, *, check: bool = False, file: Path | None = None) -> int:
     tool = "ruff" if language == "py" else "shfmt"
     if shutil.which(tool) is None:
         print(f"error: {tool} is required", file=sys.stderr)
         return 127
 
-    root = Path(
-        subprocess.check_output(
-            ["git", "rev-parse", "--show-toplevel"], text=True
-        ).strip()
-    )
+    root = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
     files = selected_files(root, language, file)
 
     action = "checking" if check else "formatting"
@@ -148,17 +128,9 @@ def format_sources(
         print(f"[{language}] 0 files total: nothing to process")
         return 0
 
-    originals = (
-        {path: hashlib.sha256((root / path).read_bytes()).digest() for path in files}
-        if not check
-        else {}
-    )
+    originals = {path: hashlib.sha256((root / path).read_bytes()).digest() for path in files} if not check else {}
     # Prefix relative paths so a filename cannot be interpreted as an option.
-    names = (
-        [f"./{path}" for path in files]
-        if file is not None
-        else [str(path) for path in files]
-    )
+    names = [f"./{path}" for path in files] if file is not None else [str(path) for path in files]
 
     run_formatter(root, language, names, check=check)
 
@@ -175,17 +147,10 @@ def format_sources(
         print(f"[{language}] {len(files)} files total: all correctly formatted")
         return 0
 
-    changed = [
-        path
-        for path in files
-        if hashlib.sha256((root / path).read_bytes()).digest() != originals[path]
-    ]
+    changed = [path for path in files if hashlib.sha256((root / path).read_bytes()).digest() != originals[path]]
     for path in changed:
         print(f"[{language}] reformatted: {path}")
-    print(
-        f"[{language}] {len(files)} files total: {len(changed)} reformatted, "
-        f"{len(files) - len(changed)} unchanged"
-    )
+    print(f"[{language}] {len(files)} files total: {len(changed)} reformatted, {len(files) - len(changed)} unchanged")
     return 0
 
 

@@ -89,11 +89,7 @@ def check_repository_files() -> None:
         r"|run\.xml|synctex\.gz|toc|xdv)$"
     )
     output = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT)
-    generated = [
-        os.fsdecode(name)
-        for name in output.split(b"\0")
-        if name and pattern.search(os.fsdecode(name))
-    ]
+    generated = [os.fsdecode(name) for name in output.split(b"\0") if name and pattern.search(os.fsdecode(name))]
     if generated:
         raise ValueError("generated files are tracked:\n" + "\n".join(generated))
 
@@ -135,9 +131,7 @@ def check_sources(*, defer: str | None = None) -> int:
             return 1
 
         files = sorted(
-            path
-            for directory in (ROOT / "books", ROOT / "common/templates")
-            for path in directory.rglob("*.tex")
+            path for directory in (ROOT / "books", ROOT / "common/templates") for path in directory.rglob("*.tex")
         )
         status = label_checks.check_labels(files)
         if status:
@@ -149,9 +143,7 @@ def check_sources(*, defer: str | None = None) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     defer = parser.add_mutually_exclusive_group()
-    defer.add_argument(
-        "--defer-proof-links", dest="defer", action="store_const", const="proof-links"
-    )
+    defer.add_argument("--defer-proof-links", dest="defer", action="store_const", const="proof-links")
     defer.add_argument("--defer-lean", dest="defer", action="store_const", const="lean")
     args = parser.parse_args()
 

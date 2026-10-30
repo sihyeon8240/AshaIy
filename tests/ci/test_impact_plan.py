@@ -38,9 +38,7 @@ class ImpactPlanTests(unittest.TestCase):
                 [
                     book_record("alpha", label_prefix="alpha"),
                     book_record("beta", label_prefix="beta"),
-                    book_record(
-                        "disabled", label_prefix="disabled", build=False, check=False
-                    ),
+                    book_record("disabled", label_prefix="disabled", build=False, check=False),
                 ]
             ),
         )
@@ -102,43 +100,28 @@ class ImpactPlanTests(unittest.TestCase):
         self.assertEqual(legacy.returncode, 0, legacy.stderr)
         old = json.loads(legacy.stdout)
         self.assertEqual({key: result["pdf"][key] for key in old}, old)
-        scope = self.command(
-            "ci/ci_check_scope.py", "--base", source_base, "--format", "github"
-        )
+        scope = self.command("ci/ci_check_scope.py", "--base", source_base, "--format", "github")
         self.assertEqual(scope.returncode, 0, scope.stderr)
         for line in scope.stdout.splitlines():
             name, value = line.split("=")
-            self.assertEqual(
-                result["source"]["consumers"][name]["selected"], value == "true"
-            )
+            self.assertEqual(result["source"]["consumers"][name]["selected"], value == "true")
 
     def test_missing_comparisons_select_all_consumers_and_enabled_books(self) -> None:
         result = self.plan("--source-base", "missing", "--pdf-base", "0" * 40)
         for section in ("source", "pdf"):
             self.assertFalse(result[section]["comparison"]["available"])
             self.assertIsNone(result[section]["comparison"]["paths"])
-        self.assertTrue(
-            all(
-                selection["selected"]
-                for selection in result["source"]["consumers"].values()
-            )
-        )
+        self.assertTrue(all(selection["selected"] for selection in result["source"]["consumers"].values()))
         self.assertEqual(result["pdf"]["book"], ["alpha", "beta"])
-        self.assertIn(
-            "comparison unavailable", result["pdf"]["reasons"]["alpha"][0]["reason"]
-        )
+        self.assertIn("comparison unavailable", result["pdf"]["reasons"]["alpha"][0]["reason"])
 
     def test_unknown_path_explains_conservative_full_build(self) -> None:
         (self.root / "unregistered.cfg").write_text("new input\n")
         self.commit("unknown input")
         result = self.plan("--source-base", self.snapshot, "--pdf-base", self.snapshot)
         self.assertEqual(result["pdf"]["book"], ["alpha", "beta"])
-        self.assertEqual(
-            result["pdf"]["reasons"]["beta"][0]["paths"], ["unregistered.cfg"]
-        )
-        self.assertIn(
-            "unknown build inputs", result["pdf"]["reasons"]["beta"][0]["reason"]
-        )
+        self.assertEqual(result["pdf"]["reasons"]["beta"][0]["paths"], ["unregistered.cfg"])
+        self.assertIn("unknown build inputs", result["pdf"]["reasons"]["beta"][0]["reason"])
 
     def test_unavailable_base_does_not_replace_other_valid_comparison(self) -> None:
         result = self.plan("--pdf-base", "HEAD")
@@ -152,9 +135,7 @@ class ImpactPlanTests(unittest.TestCase):
         self.assertTrue(result["source"]["comparison"]["available"])
 
     def test_release_request_forces_build_even_with_empty_diff(self) -> None:
-        result = self.plan(
-            "--source-base", "HEAD", "--pdf-base", "HEAD", "--release-book", "beta"
-        )
+        result = self.plan("--source-base", "HEAD", "--pdf-base", "HEAD", "--release-book", "beta")
         self.assertEqual(result["pdf"]["comparison"]["paths"], [])
         self.assertEqual(result["pdf"]["book"], ["beta"])
         self.assertEqual(result["release"]["requested_books"], ["beta"])
@@ -164,9 +145,7 @@ class ImpactPlanTests(unittest.TestCase):
         )
         for slug in ("absent", "disabled"):
             with self.subTest(slug=slug):
-                rejected = self.command(
-                    "cli/repository_cli.py", "plan", "--release-book", slug
-                )
+                rejected = self.command("cli/repository_cli.py", "plan", "--release-book", slug)
                 self.assertEqual(rejected.returncode, 2)
                 self.assertEqual(rejected.stdout, "")
                 self.assertIn(
@@ -190,9 +169,7 @@ class ImpactPlanTests(unittest.TestCase):
         for base in (self.snapshot, "HEAD", "missing", "0" * 40):
             with self.subTest(base=base):
                 result = self.plan("--source-base", base, "--pdf-base", base)
-                source = self.command(
-                    "ci/ci_check_scope.py", "--base", base, "--format", "github"
-                )
+                source = self.command("ci/ci_check_scope.py", "--base", base, "--format", "github")
                 self.assertEqual(source.returncode, 0, source.stderr)
                 actual = dict(line.split("=", 1) for line in source.stdout.splitlines())
                 expected = {
@@ -201,22 +178,16 @@ class ImpactPlanTests(unittest.TestCase):
                 }
                 self.assertEqual(actual, expected)
 
-                pdf = self.command(
-                    "ci/affected_books.py", "--base", base, "--format", "github"
-                )
+                pdf = self.command("ci/affected_books.py", "--base", base, "--format", "github")
                 self.assertEqual(pdf.returncode, 0, pdf.stderr)
                 fields = dict(line.split("=", 1) for line in pdf.stdout.splitlines())
-                self.assertEqual(
-                    json.loads(fields.pop("matrix")), {"book": result["pdf"]["book"]}
-                )
+                self.assertEqual(json.loads(fields.pop("matrix")), {"book": result["pdf"]["book"]})
                 self.assertEqual(
                     fields,
                     {
                         "count": str(result["pdf"]["count"]),
                         "site_changed": str(result["pdf"]["site_changed"]).lower(),
-                        "snapshot_changed": str(
-                            result["pdf"]["snapshot_changed"]
-                        ).lower(),
+                        "snapshot_changed": str(result["pdf"]["snapshot_changed"]).lower(),
                     },
                 )
 

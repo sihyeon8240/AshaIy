@@ -58,27 +58,20 @@ class CheckLogTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_undefined_reference(self) -> None:
-        self.assert_failure(
-            "LaTeX Warning: Reference `x' undefined.\n", "undefined reference"
-        )
+        self.assert_failure("LaTeX Warning: Reference `x' undefined.\n", "undefined reference")
 
     def test_undefined_citation(self) -> None:
-        self.assert_failure(
-            "LaTeX Warning: Citation `x' undefined.\n", "undefined citation"
-        )
+        self.assert_failure("LaTeX Warning: Citation `x' undefined.\n", "undefined citation")
 
     def test_multiply_defined_label(self) -> None:
-        self.assert_failure(
-            "LaTeX Warning: Label `x' multiply defined.\n", "multiply defined label"
-        )
+        self.assert_failure("LaTeX Warning: Label `x' multiply defined.\n", "multiply defined label")
 
     def test_duplicate_pdf_destination(self) -> None:
         for strict in (False, True):
             for separator in (" ", "\n"):
                 with self.subTest(strict=strict, separator=separator):
                     result = self.run_checker(
-                        "warning  (pdf backend): ignoring duplicate"
-                        f"{separator}destination with the name 'page.i'\n",
+                        f"warning  (pdf backend): ignoring duplicate{separator}destination with the name 'page.i'\n",
                         strict=strict,
                     )
                     self.assertEqual(result.returncode, 1)
@@ -90,36 +83,26 @@ class CheckLogTests(unittest.TestCase):
         self.assertEqual(result.stderr, "")
 
     def test_missing_character(self) -> None:
-        self.assert_failure(
-            "Missing character: There is no x in font nullfont!\n", "missing character"
-        )
+        self.assert_failure("Missing character: There is no x in font nullfont!\n", "missing character")
 
     def test_fatal_error(self) -> None:
         self.assert_failure("! Undefined control sequence.\n", "fatal LaTeX error")
 
     def test_rerun_warning(self) -> None:
-        self.assert_failure(
-            "LaTeX Warning: Rerun to get cross-references right.\n", "rerun required"
-        )
+        self.assert_failure("LaTeX Warning: Rerun to get cross-references right.\n", "rerun required")
 
     def test_rerunfilecheck_package_description_is_not_a_warning(self) -> None:
-        result = self.run_checker(
-            "Package: rerunfilecheck 2022-07-10 v1.10 Rerun checks\n"
-        )
+        result = self.run_checker("Package: rerunfilecheck 2022-07-10 v1.10 Rerun checks\n")
         self.assertEqual(result.returncode, 0)
         self.assertEqual(result.stderr, "")
 
     def test_overfull_box_warns_by_default(self) -> None:
-        result = self.run_checker(
-            "Overfull \\hbox (1.0pt too wide) detected at line 1\n"
-        )
+        result = self.run_checker("Overfull \\hbox (1.0pt too wide) detected at line 1\n")
         self.assertEqual(result.returncode, 0)
         self.assertIn("warning: overfull box", result.stderr)
 
     def test_overfull_box_fails_in_strict_mode(self) -> None:
-        result = self.run_checker(
-            "Overfull \\vbox (1.0pt too high) detected at line 1\n", strict=True
-        )
+        result = self.run_checker("Overfull \\vbox (1.0pt too high) detected at line 1\n", strict=True)
         self.assertEqual(result.returncode, 1)
         self.assertIn("error: overfull box", result.stderr)
 

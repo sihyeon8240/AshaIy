@@ -64,13 +64,8 @@ def inspect(book: dict, registered: dict[str, set[str]] | None = None) -> dict:
     source_lines = {path: len(text.splitlines()) for path, text in source_texts.items()}
 
     chapter_data, appendix_data = load_book_contents(directory)
-    chapter_paths = [
-        chapter_directory(directory, chapter) / "index.tex" for chapter in chapter_data
-    ]
-    appendix_paths = [
-        appendix_directory(directory, appendix) / "index.tex"
-        for appendix in appendix_data
-    ]
+    chapter_paths = [chapter_directory(directory, chapter) / "index.tex" for chapter in chapter_data]
+    appendix_paths = [appendix_directory(directory, appendix) / "index.tex" for appendix in appendix_data]
     sections: list[Path] = []
     chapter_sizes: dict[str, int] = {}
     logical_sections = 0
@@ -79,15 +74,11 @@ def inspect(book: dict, registered: dict[str, set[str]] | None = None) -> dict:
         section_data = load_sections(chapter.parent)
         logical_sections += len(section_data)
         chapter_sections = [
-            chapter.parent / filename
-            for section in section_data
-            for filename in section_filenames(section)
+            chapter.parent / filename for section in section_data for filename in section_filenames(section)
         ]
 
         sections.extend(chapter_sections)
-        chapter_sizes[chapter.parent.name] = sum(
-            source_lines.get(path, 0) for path in chapter_sections
-        )
+        chapter_sizes[chapter.parent.name] = sum(source_lines.get(path, 0) for path in chapter_sections)
 
     content = "\n".join(source_texts.get(path, "") for path in sections)
     lines = len(content.splitlines())
@@ -106,11 +97,7 @@ def inspect(book: dict, registered: dict[str, set[str]] | None = None) -> dict:
 
     if registered is None:
         registered = registered_results(ROOT)
-    results = [
-        labels
-        for text in source_texts.values()
-        for labels in theorem_label_groups(text)
-    ]
+    results = [labels for text in source_texts.values() for labels in theorem_label_groups(text)]
     lean = result_metrics(results, registered.get(book["slug"], set()))
     result = {
         "title": book.get("title", book["slug"]),
@@ -122,22 +109,11 @@ def inspect(book: dict, registered: dict[str, set[str]] | None = None) -> dict:
         "bibliography": bibliography,
         "lines": lines,
         "lean_verified": lean["verified"],
-        "lean_coverage": (
-            f"{lean['percentage']:.1f}% ({lean['verified']}/{lean['total']} results)"
-        ),
-        "largest_chapter": (
-            max(chapter_sizes.items(), key=lambda item: item[1])
-            if chapter_sizes
-            else ("none", 0)
-        ),
+        "lean_coverage": (f"{lean['percentage']:.1f}% ({lean['verified']}/{lean['total']} results)"),
+        "largest_chapter": (max(chapter_sizes.items(), key=lambda item: item[1]) if chapter_sizes else ("none", 0)),
         "largest_section": largest_section,
     }
-    result.update(
-        {
-            name: count_env(content, environments)
-            for name, environments in ENVIRONMENTS.items()
-        }
-    )
+    result.update({name: count_env(content, environments) for name, environments in ENVIRONMENTS.items()})
     return result
 
 
@@ -208,10 +184,7 @@ def main() -> int:
             "Archived books: "
             f"{sum(item['status'] == 'archived' for item in data)}"
         )
-        print(
-            "\nMetrics are lightweight source estimates. "
-            "This command never modifies files."
-        )
+        print("\nMetrics are lightweight source estimates. This command never modifies files.")
     except Exception as error:
         print(f"warning: report is incomplete: {error}")
 

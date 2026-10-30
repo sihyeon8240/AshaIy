@@ -83,9 +83,7 @@ def main() -> int:
         return 1
 
     sys.stdout.flush()
-    status = subprocess.run(
-        [str(ROOT / "scripts/toolchain/check_toolchain.sh")], cwd=ROOT, check=False
-    ).returncode
+    status = subprocess.run([str(ROOT / "scripts/toolchain/check_toolchain.sh")], cwd=ROOT, check=False).returncode
     if status:
         return status
 

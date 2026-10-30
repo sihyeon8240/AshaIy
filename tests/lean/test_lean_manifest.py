@@ -26,9 +26,7 @@ class LeanManifestTests(unittest.TestCase):
             "config/books.yml",
             manifest_document(
                 [
-                    book_record(
-                        version="0.1.0", label_prefix="sa", lean_module="Sample"
-                    ),
+                    book_record(version="0.1.0", label_prefix="sa", lean_module="Sample"),
                     book_record(
                         "empty",
                         version="0.1.0",
@@ -98,12 +96,8 @@ class LeanManifestTests(unittest.TestCase):
                 "import Textbooks.Sample.Appendices.Background.Background",
             ],
         )
-        self.assertNotIn(
-            "import ", outputs[self.root / "lean/Textbooks/Empty/All.lean"]
-        )
-        self.assertIn(
-            "import Textbooks.Empty.All", outputs[self.root / "lean/Textbooks.lean"]
-        )
+        self.assertNotIn("import ", outputs[self.root / "lean/Textbooks/Empty/All.lean"])
+        self.assertIn("import Textbooks.Empty.All", outputs[self.root / "lean/Textbooks.lean"])
 
     def test_invalid_module_lists(self) -> None:
         for modules, diagnostic in [

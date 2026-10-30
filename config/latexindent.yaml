@@ -18,7 +18,7 @@ modifyLineBreaks:
     BodyStartsOnOwnLine: 1
     EndStartsOnOwnLine: 1
   textWrapOptions:
-    columns: 88
+    columns: 120
     removeBlockLineBreaks: 0
     when: after
     # Wrap each source line independently to preserve stable manual breaks.

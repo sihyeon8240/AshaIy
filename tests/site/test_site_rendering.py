@@ -92,9 +92,7 @@ class SiteRenderingTests(unittest.TestCase):
                 "release": False,
             },
         ]
-        with mock.patch.object(
-            site_generator, "snapshot_revision", return_value=REVISION
-        ):
+        with mock.patch.object(site_generator, "snapshot_revision", return_value=REVISION):
             pages = site_generator.render_site({"books": cls.books})
         for filename, source in pages.items():
             target = cls.source / filename
@@ -115,9 +113,7 @@ class SiteRenderingTests(unittest.TestCase):
         cls.build(cls.source, cls.destination)
 
     @classmethod
-    def build(
-        cls, source: Path, destination: Path, *, preview_config: bool = True
-    ) -> None:
+    def build(cls, source: Path, destination: Path, *, preview_config: bool = True) -> None:
         assert JEKYLL is not None
         result = subprocess.run(
             [
@@ -128,11 +124,7 @@ class SiteRenderingTests(unittest.TestCase):
                 "--destination",
                 str(destination),
                 "--config",
-                (
-                    f"{source / '_config.yml'},{cls.config}"
-                    if preview_config
-                    else str(source / "_config.yml")
-                ),
+                (f"{source / '_config.yml'},{cls.config}" if preview_config else str(source / "_config.yml")),
                 "--disable-disk-cache",
             ],
             cwd=cls.workspace,
@@ -174,15 +166,9 @@ class SiteRenderingTests(unittest.TestCase):
         for page in (home, detail):
             self.assertNotIn("em", page.elements)
             self.assertNotIn("i", page.elements)
-        details = [
-            link
-            for link in home.elements["a"]
-            if link.get("href") == "/math/books/alpha.html"
-        ]
+        details = [link for link in home.elements["a"] if link.get("href") == "/math/books/alpha.html"]
         self.assertEqual(details[0]["aria-label"], f"View details for {SPECIAL_TITLE}")
-        self.assertEqual(
-            detail.elements["object"][0]["aria-label"], f"{SPECIAL_TITLE} PDF preview"
-        )
+        self.assertEqual(detail.elements["object"][0]["aria-label"], f"{SPECIAL_TITLE} PDF preview")
 
     def test_pdf_urls_are_identical_across_all_entry_points(self) -> None:
         home = self.page("index.html")
@@ -202,9 +188,7 @@ class SiteRenderingTests(unittest.TestCase):
     ) -> None:
         destination = self.workspace / "local-rendered"
         self.build(self.source, destination, preview_config=False)
-        repository = yaml.safe_load((self.source / "_config.yml").read_text())[
-            "github"
-        ]["repository_url"]
+        repository = yaml.safe_load((self.source / "_config.yml").read_text())["github"]["repository_url"]
         self.assertTrue(repository.startswith("https://github.com/"))
         home = RenderedPage((destination / "index.html").read_text())
         urls = [link.get("href") for link in home.elements["a"]]
@@ -232,9 +216,7 @@ class SiteRenderingTests(unittest.TestCase):
         data_path.write_text(json.dumps(data))
         destination = self.workspace / "exported-rendered"
         self.build(source, destination)
-        detail = RenderedPage(
-            (destination / "books/alpha.html").read_text(encoding="utf-8")
-        )
+        detail = RenderedPage((destination / "books/alpha.html").read_text(encoding="utf-8"))
         self.assertEqual(detail.elements["object"][0]["data"], "/math/pdf/alpha.pdf")
 
     def test_internal_page_links_and_assets_resolve(self) -> None:
@@ -248,9 +230,7 @@ class SiteRenderingTests(unittest.TestCase):
                     target = self.destination / url.path.removeprefix("/math/")
                     if target.is_dir():
                         target /= "index.html"
-                    self.assertTrue(
-                        target.is_file(), f"missing link target: {url.path}"
-                    )
+                    self.assertTrue(target.is_file(), f"missing link target: {url.path}")
 
     @unittest.skipUnless(BROWSER, "Chromium is required for browser tests")
     def test_browser_layout_fits_mobile_tablet_and_desktop(self) -> None:
@@ -304,29 +284,19 @@ return {
             try:
                 page = context.new_page()
                 page.emulate_media(reduced_motion="reduce")
-                scenarios = [
-                    (width, 100) for width in (320, 375, 641, 768, 832, 1024, 1440)
-                ]
+                scenarios = [(width, 100) for width in (320, 375, 641, 768, 832, 1024, 1440)]
                 scenarios.extend((width, 200) for width in (320, 768, 1440))
                 for width, font_scale in scenarios:
                     page.set_viewport_size({"width": width, "height": 1000})
                     for path in paths:
                         page.goto(f"http://127.0.0.1:{server_port}/math/{path}")
                         if font_scale != 100:
-                            page.add_style_tag(
-                                content=f"html {{ font-size: {font_scale}%; }}"
-                            )
+                            page.add_style_tag(content=f"html {{ font-size: {font_scale}%; }}")
                         page.evaluate("document.fonts.ready")
                         report = page.evaluate("() => {" + probe + "}")
-                        self.assertEqual(
-                            report["width"], width, (width, font_scale, path)
-                        )
-                        self.assertLessEqual(
-                            report["scrollWidth"], width, (width, font_scale, path)
-                        )
-                        self.assertEqual(
-                            report["overflow"], [], (width, font_scale, path)
-                        )
+                        self.assertEqual(report["width"], width, (width, font_scale, path))
+                        self.assertLessEqual(report["scrollWidth"], width, (width, font_scale, path))
+                        self.assertEqual(report["overflow"], [], (width, font_scale, path))
                         if path == "index.html" and width == 1440 and font_scale == 100:
                             link = page.locator(".project-link").first
                             for hovered in (False, True):

@@ -69,9 +69,7 @@ def _create_book(slug: str, title: str) -> None:
         print(f"Added '{slug}' to config/books.yml")
         label_prefix = require_book(slug)["label_prefix"]
         section = introduction / "first-section.tex"
-        section.write_bytes(
-            section.read_bytes().replace(b"xx:", f"{label_prefix}:".encode())
-        )
+        section.write_bytes(section.read_bytes().replace(b"xx:", f"{label_prefix}:".encode()))
         if generate("all", book=slug):
             raise ValueError("contents generation failed")
     except BaseException as error:
@@ -79,22 +77,16 @@ def _create_book(slug: str, title: str) -> None:
             replace_file(manifest, original, expected=registered, durable=True)
         except BaseException:
             recovery = retain_recovery({manifest: original})
-            raise OSError(
-                f"creation failed; scaffold retained at {target}; registry recovery at {recovery}"
-            ) from error
+            raise OSError(f"creation failed; scaffold retained at {target}; registry recovery at {recovery}") from error
         print(f"error: creation failed; removing {target}", file=sys.stderr)
         shutil.rmtree(target)
         raise
 
     print(f"Created books/{slug}")
     print(f"Registered '{slug}' in config/books.yml as draft")
-    print(
-        "Site publication and releases remain disabled; see docs/site-metadata.md to enable it"
-    )
+    print("Site publication and releases remain disabled; see docs/site-metadata.md to enable it")
     print("Next: run ashaiy config generate, then ashaiy config check")
-    print(
-        "Commit the new sources, config/books.yml, and synchronized .vscode/tasks.json together"
-    )
+    print("Commit the new sources, config/books.yml, and synchronized .vscode/tasks.json together")
 
 
 def main() -> int:

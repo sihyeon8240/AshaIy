@@ -27,21 +27,15 @@ class FrontmatterTests(unittest.TestCase):
             (chapter / "index.tex").write_text("Body.\n")
             shutil.copyfile(ROOT / "common/templates/book.tex", book / "book.tex")
             (book / "textbook.sty").write_text(
-                "\\ProvidesPackage{textbook}\n"
-                "\\newcommand{\\addbibresource}[1]{}\n"
-                "\\newcommand{\\printbibliography}{}\n"
+                "\\ProvidesPackage{textbook}\n\\newcommand{\\addbibresource}[1]{}\n\\newcommand{\\printbibliography}{}\n"
             )
             for name in ("cover", "preface"):
-                (templates / f"{name}.tex").write_text(
-                    rf"\typeout{{FRONTMATTER-{name}-shared}}" + "\n"
-                )
+                (templates / f"{name}.tex").write_text(rf"\typeout{{FRONTMATTER-{name}-shared}}" + "\n")
             for local in (False, True):
                 with self.subTest(local=local):
                     if local:
                         for name in ("cover", "preface"):
-                            (book / f"{name}.tex").write_text(
-                                rf"\typeout{{FRONTMATTER-{name}-local}}" + "\n"
-                            )
+                            (book / f"{name}.tex").write_text(rf"\typeout{{FRONTMATTER-{name}-local}}" + "\n")
                     result = subprocess.run(
                         [
                             "lualatex",
@@ -55,12 +49,8 @@ class FrontmatterTests(unittest.TestCase):
                         text=True,
                         timeout=30,
                     )
-                    self.assertEqual(
-                        result.returncode, 0, result.stdout + result.stderr
-                    )
-                    expected, absent = (
-                        ("local", "shared") if local else ("shared", "local")
-                    )
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    expected, absent = ("local", "shared") if local else ("shared", "local")
                     for name in ("cover", "preface"):
                         self.assertIn(f"FRONTMATTER-{name}-{expected}", result.stdout)
                         self.assertNotIn(f"FRONTMATTER-{name}-{absent}", result.stdout)

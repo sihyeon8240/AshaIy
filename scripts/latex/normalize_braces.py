@@ -122,9 +122,7 @@ class BraceNormalizer:
                 return None
         else:
             return None
-        if character != "{" and not any(
-            marker in prefix for marker in ("\n", "\r", "%")
-        ):
+        if character != "{" and not any(marker in prefix for marker in ("\n", "\r", "%")):
             prefix = ""
         return prefix + "{" + body + "}", next_position
 
@@ -142,16 +140,10 @@ class BraceNormalizer:
                 position += 1
         return end
 
-    def command(
-        self, match: re.Match[str], end: int, *, math: bool
-    ) -> tuple[str, int] | None:
+    def command(self, match: re.Match[str], end: int, *, math: bool) -> tuple[str, int] | None:
         name = match[1]
         spec = self.commands.get(name)
-        if (
-            spec is None
-            or (spec.context == "math" and not math)
-            or (spec.context == "text" and math)
-        ):
+        if spec is None or (spec.context == "math" and not math) or (spec.context == "text" and math):
             return None
         output = match[0]
         position = match.end()
@@ -176,9 +168,7 @@ class BraceNormalizer:
                 output += (
                     self.source[start + 1 : next_position - 1]
                     if argument_spec.mode == "opaque"
-                    else self.normalize(
-                        start + 1, next_position - 1, math=argument_spec.mode == "math"
-                    )
+                    else self.normalize(start + 1, next_position - 1, math=argument_spec.mode == "math")
                 )
                 output += "]"
                 position = next_position
@@ -225,10 +215,7 @@ class BraceNormalizer:
                     next_position = self.definition_end(next_position, end)
                 elif name in DEFINITION_COMMANDS:
                     next_position = self.declaration_end(next_position, end)
-                elif (
-                    name in {"begin", "end"}
-                    and self.source[argument_start : argument_start + 1] == "{"
-                ):
+                elif name in {"begin", "end"} and self.source[argument_start : argument_start + 1] == "{":
                     next_position = self.group_end(argument_start, end) or end
                     environment = self.source[argument_start + 1 : next_position - 1]
                     if name == "begin" and environment in MATH_ENVIRONMENTS:
@@ -282,10 +269,6 @@ class BraceNormalizer:
         return "".join(output)
 
 
-def normalize_braces(
-    source: str, commands: Mapping[str, CommandSpec] | None = None
-) -> str:
+def normalize_braces(source: str, commands: Mapping[str, CommandSpec] | None = None) -> str:
     """Normalize supported arguments in ordinary LaTeX math and text contexts."""
-    return BraceNormalizer(
-        source, BUILTIN_COMMANDS if commands is None else commands
-    ).normalize(0, len(source))
+    return BraceNormalizer(source, BUILTIN_COMMANDS if commands is None else commands).normalize(0, len(source))

@@ -26,9 +26,7 @@ class SnapshotStateTests(unittest.TestCase):
         for updated in ({}, {"beta": 10}, {"alpha": 10, "beta": 10}):
             with (
                 self.subTest(updated=updated),
-                self.assertRaisesRegex(
-                    ValueError, "artifacts differ from the build plan"
-                ),
+                self.assertRaisesRegex(ValueError, "artifacts differ from the build plan"),
             ):
                 state.plan_snapshot(
                     {"alpha": 20, "beta": 20},
@@ -64,11 +62,7 @@ class SnapshotStateTests(unittest.TestCase):
                 for slug in ("alpha", "beta"):
                     (snapshot / "pdf" / f"{slug}.pdf").write_bytes(b"old")
                     (updates / f"{slug}.pdf").write_bytes(b"new")
-                manifest = {
-                    "books": [
-                        {"slug": slug, "site": True} for slug in ("alpha", "beta")
-                    ]
-                }
+                manifest = {"books": [{"slug": slug, "site": True} for slug in ("alpha", "beta")]}
                 copyfile = shutil.copyfile
                 replace = state.os.replace
 
@@ -94,29 +88,21 @@ class SnapshotStateTests(unittest.TestCase):
                     with (
                         patch.object(state.shutil, "copyfile", side_effect=copy),
                         patch.object(state.os, "replace", side_effect=install),
-                        self.assertRaises(
-                            KeyboardInterrupt if failure == "interrupt" else OSError
-                        ),
+                        self.assertRaises(KeyboardInterrupt if failure == "interrupt" else OSError),
                     ):
                         state.prepare(snapshot, updates)
                     if failure == "restore":
                         backup = next(snapshot.glob(".pdf-staging-*/previous"))
                         for slug in ("alpha", "beta"):
-                            self.assertEqual(
-                                (backup / f"{slug}.pdf").read_bytes(), b"old"
-                            )
+                            self.assertEqual((backup / f"{slug}.pdf").read_bytes(), b"old")
                         replace(backup, snapshot / "pdf")
                         shutil.rmtree(backup.parent)
                     for slug in ("alpha", "beta"):
-                        self.assertEqual(
-                            (snapshot / "pdf" / f"{slug}.pdf").read_bytes(), b"old"
-                        )
+                        self.assertEqual((snapshot / "pdf" / f"{slug}.pdf").read_bytes(), b"old")
                     self.assertEqual(list(snapshot.glob(".pdf-staging-*")), [])
                     state.prepare(snapshot, updates)
                     for slug in ("alpha", "beta"):
-                        self.assertEqual(
-                            (snapshot / "pdf" / f"{slug}.pdf").read_bytes(), b"new"
-                        )
+                        self.assertEqual((snapshot / "pdf" / f"{slug}.pdf").read_bytes(), b"new")
 
     def test_non_file_artifact_is_rejected_before_staging(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

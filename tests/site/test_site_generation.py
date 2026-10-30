@@ -53,9 +53,7 @@ class SiteGenerationTests(unittest.TestCase):
             "total": 8,
             "percentage": 25.0,
         }
-        with mock.patch.object(
-            site_generator, "book_lean_metrics", return_value=metrics
-        ):
+        with mock.patch.object(site_generator, "book_lean_metrics", return_value=metrics):
             books = site_generator.site_books(self.manifest())
 
         self.assertEqual(books[0]["lean_verified"], 2)
@@ -66,31 +64,21 @@ class SiteGenerationTests(unittest.TestCase):
         for revision in ("a" * 40, "b" * 40):
             with (
                 self.subTest(revision=revision),
-                mock.patch.object(
-                    site_generator, "snapshot_revision", return_value=revision
-                ) as source,
+                mock.patch.object(site_generator, "snapshot_revision", return_value=revision) as source,
             ):
                 books = site_generator.site_books(self.manifest())
 
             source.assert_called_once_with()
-            self.assertEqual(
-                [book["snapshot_revision"] for book in books], [revision] * 2
-            )
+            self.assertEqual([book["snapshot_revision"] for book in books], [revision] * 2)
             self.assertEqual([book["release"] for book in books], [False, True])
 
     def test_new_snapshot_changes_pdf_urls_without_changing_source_provenance(self):
-        with mock.patch.object(
-            site_generator, "source_revision", return_value="a" * 40
-        ):
+        with mock.patch.object(site_generator, "source_revision", return_value="a" * 40):
             for snapshot in ("b" * 40, "c" * 40):
                 with mock.patch.dict(os.environ, {"SITE_SNAPSHOT_SHA": snapshot}):
                     books = site_generator.site_books(self.manifest())
-                self.assertEqual(
-                    [book["snapshot_revision"] for book in books], [snapshot] * 2
-                )
-                self.assertEqual(
-                    [book["source_revision"] for book in books], ["a" * 40] * 2
-                )
+                self.assertEqual([book["snapshot_revision"] for book in books], [snapshot] * 2)
+                self.assertEqual([book["source_revision"] for book in books], ["a" * 40] * 2)
         with (
             mock.patch.dict(os.environ, {"SITE_SNAPSHOT_SHA": "invalid"}),
             self.assertRaisesRegex(ValueError, "full snapshot commit"),
@@ -117,9 +105,7 @@ class SiteGenerationTests(unittest.TestCase):
                 ),
                 redirect_stderr(io.StringIO()),
             ):
-                self.assertEqual(
-                    site_generator.generate(check=True, site_dir=pages_dir), 1
-                )
+                self.assertEqual(site_generator.generate(check=True, site_dir=pages_dir), 1)
             self.assertFalse(pages_dir.exists())
 
     def test_check_rejects_stale_missing_and_orphaned_local_pages(self) -> None:
@@ -129,14 +115,10 @@ class SiteGenerationTests(unittest.TestCase):
             (pages_dir / "books/alpha.html").write_text("stale\n", encoding="utf-8")
             (pages_dir / "books/orphan.html").write_text("orphan\n", encoding="utf-8")
             with (
-                mock.patch.object(
-                    site_generator, "load_manifest", return_value=self.manifest()
-                ),
+                mock.patch.object(site_generator, "load_manifest", return_value=self.manifest()),
                 redirect_stderr(io.StringIO()),
             ):
-                self.assertEqual(
-                    site_generator.generate(check=True, site_dir=pages_dir), 1
-                )
+                self.assertEqual(site_generator.generate(check=True, site_dir=pages_dir), 1)
 
     def test_single_book_updates_only_selected_page(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -145,9 +127,7 @@ class SiteGenerationTests(unittest.TestCase):
             (pages_dir / "books").mkdir(parents=True)
             (pages_dir / "books/beta.html").write_text("unchanged\n", encoding="utf-8")
             with (
-                mock.patch.object(
-                    site_generator, "load_manifest", return_value=self.manifest()
-                ),
+                mock.patch.object(site_generator, "load_manifest", return_value=self.manifest()),
                 redirect_stdout(io.StringIO()),
             ):
                 self.assertEqual(
@@ -159,24 +139,16 @@ class SiteGenerationTests(unittest.TestCase):
                 )
             self.assertEqual(
                 (pages_dir / "books/alpha.html").read_text(),
-                site_generator.render_site_page(
-                    site_generator.site_books(self.manifest())[0]
-                ),
+                site_generator.render_site_page(site_generator.site_books(self.manifest())[0]),
             )
             self.assertEqual((pages_dir / "books/beta.html").read_text(), "unchanged\n")
             data = json.loads((pages_dir / "_data/books.json").read_text())
-            self.assertEqual(
-                [item["slug"] for item in data["books"]], ["alpha", "beta"]
-            )
-            self.assertNotIn(
-                "lean_coverage", (pages_dir / "books/alpha.html").read_text()
-            )
+            self.assertEqual([item["slug"] for item in data["books"]], ["alpha", "beta"])
+            self.assertNotIn("lean_coverage", (pages_dir / "books/alpha.html").read_text())
 
     def test_single_hidden_book_fails(self) -> None:
         with (
-            mock.patch.object(
-                site_generator, "load_manifest", return_value=self.manifest()
-            ),
+            mock.patch.object(site_generator, "load_manifest", return_value=self.manifest()),
             self.assertRaisesRegex(ValueError, "not enabled for site"),
         ):
             site_generator.generate(book="hidden")
@@ -184,9 +156,7 @@ class SiteGenerationTests(unittest.TestCase):
     def test_combined_generation_skips_hidden_book_without_touching_pages(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             pages = Path(temporary) / "pages"
-            with mock.patch.object(
-                site_generator, "load_manifest", return_value=self.manifest()
-            ):
+            with mock.patch.object(site_generator, "load_manifest", return_value=self.manifest()):
                 for check in (False, True):
                     self.assertEqual(
                         site_generator.generate(

@@ -50,23 +50,16 @@ class SectionSource:
     slug: str
 
 
-def parse_section_sources(
-    paths: list[Path], chapter_name: str, out: Findings
-) -> list[SectionSource]:
+def parse_section_sources(paths: list[Path], chapter_name: str, out: Findings) -> list[SectionSource]:
     """Parse the single source file for each logical section."""
     sources: list[SectionSource] = []
     for path in sorted(paths):
         match = SECTION_FILENAME.fullmatch(path.name)
         if match is None:
-            out.error(
-                f"chapter {chapter_name}: section filename {path.name} must "
-                "match lowercase-hyphenated-name.tex"
-            )
+            out.error(f"chapter {chapter_name}: section filename {path.name} must match lowercase-hyphenated-name.tex")
             continue
         slug = match.group("slug")
-        if slug in GENERIC_SECTION_SLUGS or re.fullmatch(
-            r"(?:section-)?part-[0-9]+", slug
-        ):
+        if slug in GENERIC_SECTION_SLUGS or re.fullmatch(r"(?:section-)?part-[0-9]+", slug):
             out.error(
                 f"chapter {chapter_name}: section filename {path.name} uses "
                 "a context-dependent name; use the logical section slug"
@@ -120,9 +113,7 @@ def bibliography_checks(book_dir: Path, text: str, out: Findings) -> None:
         out.warn(f"{book_dir / 'book.tex'}: \\nocite{{*}} is absent")
 
 
-def check_chapter_index(
-    chapter: Path, book_dir: Path, expected_sources: list[Path], out: Findings
-) -> None:
+def check_chapter_index(chapter: Path, book_dir: Path, expected_sources: list[Path], out: Findings) -> None:
     text = read_text(chapter)
     if len(extract_chapter_titles(text)) != 1:
         out.error(f"{chapter}: expected one chapter declaration")
@@ -130,11 +121,7 @@ def check_chapter_index(
     referenced: set[Path] = set()
     ordered_paths: list[Path] = []
     for section in includes(text, chapter, out):
-        base = (
-            book_dir
-            if section.startswith(("chapters/", "appendices/"))
-            else chapter.parent
-        )
+        base = book_dir if section.startswith(("chapters/", "appendices/")) else chapter.parent
         path = tex_path(base, section)
         ordered_paths.append(path)
         referenced.add(path)
@@ -144,21 +131,15 @@ def check_chapter_index(
     resolved_order = [path.resolve() for path in ordered_paths]
     expected_order = [path.resolve() for path in expected_sources]
     if resolved_order != expected_order:
-        out.error(
-            f"{chapter}: section inputs do not match the canonical sections.yml order"
-        )
+        out.error(f"{chapter}: section inputs do not match the canonical sections.yml order")
 
-    section_files = {
-        path for path in chapter.parent.glob("*.tex") if path.name != "index.tex"
-    }
+    section_files = {path for path in chapter.parent.glob("*.tex") if path.name != "index.tex"}
     parse_section_sources(list(section_files), chapter.parent.name, out)
     for orphan in sorted(section_files - referenced):
         out.error(f"{orphan}: orphan section file")
 
 
-def check_content_targets(
-    entry: Path, book_dir: Path, kind: str, targets: list[str], out: Findings
-) -> set[Path]:
+def check_content_targets(entry: Path, book_dir: Path, kind: str, targets: list[str], out: Findings) -> set[Path]:
     label = "chapter" if kind == "chapters" else "appendix"
     referenced_dirs: set[Path] = set()
     for target in targets:
@@ -171,9 +152,7 @@ def check_content_targets(
         try:
             sections = load_sections(index.parent)
             expected_sources = [
-                index.parent / filename
-                for section in sections
-                for filename in section_filenames(section)
+                index.parent / filename for section in sections for filename in section_filenames(section)
             ]
         except ValueError:
             # Manifest errors are reported before inspecting generated indexes.
@@ -183,25 +162,17 @@ def check_content_targets(
     return referenced_dirs
 
 
-def check_content_directories(
-    book_dir: Path, kind: str, referenced_dirs: set[Path], out: Findings
-) -> None:
+def check_content_directories(book_dir: Path, kind: str, referenced_dirs: set[Path], out: Findings) -> None:
     label = "chapter" if kind == "chapters" else "appendix"
     content_root = book_dir / kind
-    directories = (
-        sorted(path for path in content_root.iterdir() if path.is_dir())
-        if content_root.is_dir()
-        else []
-    )
+    directories = sorted(path for path in content_root.iterdir() if path.is_dir()) if content_root.is_dir() else []
     for directory in directories:
         if not (directory / "index.tex").is_file():
             out.error(f"{directory}: index.tex is missing")
         if directory not in referenced_dirs:
             out.error(f"{directory}: orphan {label} directory")
         if not CHAPTER_DIRECTORY.fullmatch(directory.name):
-            out.error(
-                f"{directory}: chapter directory name must match lowercase-hyphenated-name"
-            )
+            out.error(f"{directory}: chapter directory name must match lowercase-hyphenated-name")
 
 
 def check_book(book: dict, root: Path, out: Findings) -> None:
@@ -231,28 +202,16 @@ def check_book(book: dict, root: Path, out: Findings) -> None:
         if not tex_path(book_dir, target).is_file():
             out.error(f"{entry}: target does not exist: {target}")
 
-    chapter_targets = [
-        target for target in entry_targets if target.startswith("chapters/")
-    ]
-    appendix_targets = [
-        target for target in entry_targets if target.startswith("appendices/")
-    ]
-    expected_chapter_targets = [
-        f"chapters/{item['slug']}/index" for item in canonical_chapters
-    ]
-    expected_appendix_targets = [
-        f"appendices/{item['slug']}/index" for item in canonical_appendices
-    ]
+    chapter_targets = [target for target in entry_targets if target.startswith("chapters/")]
+    appendix_targets = [target for target in entry_targets if target.startswith("appendices/")]
+    expected_chapter_targets = [f"chapters/{item['slug']}/index" for item in canonical_chapters]
+    expected_appendix_targets = [f"appendices/{item['slug']}/index" for item in canonical_appendices]
     if chapter_targets != expected_chapter_targets:
         out.error(f"{entry}: chapter includes do not match canonical chapters.yml")
     if appendix_targets != expected_appendix_targets:
         out.error(f"{entry}: appendix includes do not match canonical chapters.yml")
-    referenced_dirs = check_content_targets(
-        entry, book_dir, "chapters", chapter_targets, out
-    )
-    referenced_dirs.update(
-        check_content_targets(entry, book_dir, "appendices", appendix_targets, out)
-    )
+    referenced_dirs = check_content_targets(entry, book_dir, "chapters", chapter_targets, out)
+    referenced_dirs.update(check_content_targets(entry, book_dir, "appendices", appendix_targets, out))
     for kind, targets in (
         ("chapters", chapter_targets),
         ("appendices", appendix_targets),
@@ -275,11 +234,7 @@ def validate_repository(root: Path = ROOT) -> Findings:
     books = manifest["books"]
     registered = {book["slug"] for book in books}
     books_root = root / "books"
-    actual = (
-        {path.name for path in books_root.iterdir() if path.is_dir()}
-        if books_root.is_dir()
-        else set()
-    )
+    actual = {path.name for path in books_root.iterdir() if path.is_dir()} if books_root.is_dir() else set()
     for slug in sorted(actual - registered):
         out.error(f"books/{slug}: orphan book directory")
     for slug in sorted(registered - actual):

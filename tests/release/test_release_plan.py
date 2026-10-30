@@ -42,18 +42,14 @@ class ReleasePlanTests(unittest.TestCase):
         ):
             copy_file(ROOT / "scripts" / name, scripts / name)
 
-    def run_plan(
-        self, tag: str, **environment: str
-    ) -> subprocess.CompletedProcess[str]:
+    def run_plan(self, tag: str, **environment: str) -> subprocess.CompletedProcess[str]:
         slugs = environment.get("RELEASABLE", "alpha").split()
         version = environment.get("VERSION", "1.2.3")
         records = []
         for number, slug in enumerate(slugs):
             (self.root / "books" / slug).mkdir(parents=True, exist_ok=True)
             (self.root / "books" / slug / "book.tex").write_text("")
-            records.append(
-                book_record(slug, version=version, release=True, order=number)
-            )
+            records.append(book_record(slug, version=version, release=True, order=number))
         write_yaml(self.root / "config/books.yml", manifest_document(records))
         return subprocess.run(
             [str(self.root / "scripts/release/release_plan.sh"), tag],

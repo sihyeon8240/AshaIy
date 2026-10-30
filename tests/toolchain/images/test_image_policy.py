@@ -92,9 +92,7 @@ class ImagePolicyTests(unittest.TestCase):
         self.config["platforms"].reverse()
         self.config["policy_version"] = "native-multiarch-v2"
         self.save()
-        self.assertEqual(
-            json.loads(self.output("matrix")), {"include": self.config["platforms"]}
-        )
+        self.assertEqual(json.loads(self.output("matrix")), {"include": self.config["platforms"]})
         self.assertEqual(self.output("architectures"), "arm64 amd64")
         self.assertNotEqual(self.output("hash"), original)
 
@@ -139,19 +137,11 @@ class ImagePolicyTests(unittest.TestCase):
         (recipe.parent / "Dockerfile.dockerignore").write_text("build/\n")
         self.save()
         self.assertEqual(self.command("hash").returncode, 0)
-        recipe.write_text(
-            recipe.read_text().replace("FROM scratch", "FROM debian:latest")
-        )
+        recipe.write_text(recipe.read_text().replace("FROM scratch", "FROM debian:latest"))
         self.assertIn("immutable digest", self.command("hash").stderr)
-        recipe.write_text(
-            recipe.read_text().replace("FROM debian:latest", "FROM scratch")
-        )
-        recipe.write_text(
-            recipe.read_text() + "COPY --from=other:latest /file /other\n"
-        )
+        recipe.write_text(recipe.read_text().replace("FROM debian:latest", "FROM scratch"))
+        recipe.write_text(recipe.read_text() + "COPY --from=other:latest /file /other\n")
         self.assertIn("immutable digest", self.command("hash").stderr)
         recipe.write_text("FROM scratch\nCOPY --chmod=0644 input.bin /input\n")
-        recipe.write_text(
-            recipe.read_text() + 'COPY --chmod=0644 ["unknown.bin", "/other"]\n'
-        )
+        recipe.write_text(recipe.read_text() + 'COPY --chmod=0644 ["unknown.bin", "/other"]\n')
         self.assertIn("unknown.bin", self.command("hash").stderr)

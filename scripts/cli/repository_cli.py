@@ -102,10 +102,7 @@ ACTION_HELP = {
         "list": "List registered textbooks, label prefixes, and enabled operations.",
         "build": "Build one textbook or all build-enabled textbooks into build/<slug>/book.pdf.",
         "new": "Create a textbook scaffold and register it in config/books.yml.",
-        "release": (
-            "Prepare a release version and generated assembly for review; "
-            "publication follows merge and CI."
-        ),
+        "release": ("Prepare a release version and generated assembly for review; publication follows merge and CI."),
     },
     "contents": {
         "generate": "Generate book.tex and chapter/appendix index.tex from contents manifests.",
@@ -116,20 +113,13 @@ ACTION_HELP = {
             "Generate macro packages, Lean aggregation, LaTeX assembly, and site pages; "
             "site-disabled books skip the site step."
         ),
-        "check": (
-            "Check macro packages, Lean aggregation, LaTeX assembly, and site pages "
-            "without writing files."
-        ),
+        "check": ("Check macro packages, Lean aggregation, LaTeX assembly, and site pages without writing files."),
     },
     "config": {
         "generate": (
-            "Synchronize editor settings, toolchain configuration, exclusions, "
-            "and publication version macros."
+            "Synchronize editor settings, toolchain configuration, exclusions, and publication version macros."
         ),
-        "check": (
-            "Report shared configuration that differs from its generated "
-            "consumers without writing files."
-        ),
+        "check": ("Report shared configuration that differs from its generated consumers without writing files."),
     },
     "lean": {
         "build": "Check generated Lean aggregation and build the pinned Lean project.",
@@ -141,22 +131,10 @@ ACTION_HELP = {
     },
     "site": {
         "generate": "Generate metadata pages for site-enabled books under site/books/.",
-        "check": (
-            "Validate generated site pages without writing; run site generate "
-            "first in a clean checkout."
-        ),
-        "build": (
-            "Generate site pages, render Jekyll, and copy existing PDFs into "
-            "build/site-preview/."
-        ),
-        "serve": (
-            "Build the local website and serve it until interrupted; build "
-            "textbook PDFs first."
-        ),
-        "test": (
-            "Run rendered website and responsive browser tests; requires Jekyll, "
-            "Chromium, and Playwright."
-        ),
+        "check": ("Validate generated site pages without writing; run site generate first in a clean checkout."),
+        "build": ("Generate site pages, render Jekyll, and copy existing PDFs into build/site-preview/."),
+        "serve": ("Build the local website and serve it until interrupted; build textbook PDFs first."),
+        "test": ("Run rendered website and responsive browser tests; requires Jekyll, Chromium, and Playwright."),
     },
     "image": {
         "build": "Build the development Docker image from this checkout.",
@@ -164,18 +142,11 @@ ACTION_HELP = {
         "pin": "Synchronize the reviewed container image digest; use after testing the image.",
     },
     "clean": {
-        "build": (
-            "Remove disposable output under build/ and vscode-build/ while "
-            "preserving tool caches."
-        ),
+        "build": ("Remove disposable output under build/ and vscode-build/ while preserving tool caches."),
         "source": (
-            "Remove source-tree auxiliary files and editor/patch backups while "
-            "preserving build output and caches."
+            "Remove source-tree auxiliary files and editor/patch backups while preserving build output and caches."
         ),
-        "cache": (
-            "Remove the selected tool caches; lake includes downloaded Lean "
-            "dependencies and build results."
-        ),
+        "cache": ("Remove the selected tool caches; lake includes downloaded Lean dependencies and build results."),
     },
 }
 
@@ -198,9 +169,7 @@ def run_contents(arguments: argparse.Namespace) -> int:
 
 def contents_main() -> int:
     """Preserve the standalone contents command's grammar and diagnostics."""
-    parser = argparse.ArgumentParser(
-        description="Generate LaTeX textbook assembly from chapters.yml and sections.yml."
-    )
+    parser = argparse.ArgumentParser(description="Generate LaTeX textbook assembly from chapters.yml and sections.yml.")
     contents_arguments(parser)
     return run_contents(parser.parse_args())
 
@@ -220,11 +189,7 @@ def resolve_book(value: str) -> str:
     except ValueError as error:
         raise argparse.ArgumentTypeError(str(error)) from error
     exact = [book for book in books if book["slug"] == value]
-    matches = exact or [
-        book
-        for book in books
-        if book["label_prefix"] == value or book["slug"].startswith(value)
-    ]
+    matches = exact or [book for book in books if book["label_prefix"] == value or book["slug"].startswith(value)]
     if len(matches) == 1:
         return matches[0]["slug"]
     if not matches:
@@ -237,15 +202,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ashaiy",
         usage="%(prog)s COMMAND [ARGS] [OPTIONS]",
-        description="Build, validate, and maintain the AshaIy textbooks.\n\n"
-        + OVERVIEW,
+        description="Build, validate, and maintain the AshaIy textbooks.\n\n" + OVERVIEW,
         epilog="Use ashaiy COMMAND --help or ashaiy COMMAND ACTION --help for details.\n"
         "See docs/developer-workflow.md for the complete workflow.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument(
-        "--version", action="version", version="ashaiy (repository CLI)"
-    )
+    parser.add_argument("--version", action="version", version="ashaiy (repository CLI)")
     commands = parser.add_subparsers(
         dest="command",
         required=True,
@@ -258,33 +220,23 @@ def build_parser() -> argparse.ArgumentParser:
     def command(name: str, help: str) -> argparse.ArgumentParser: ...
 
     @overload
-    def command(
-        name: str, help: str, actions: tuple[str, ...]
-    ) -> dict[str, argparse.ArgumentParser]: ...
+    def command(name: str, help: str, actions: tuple[str, ...]) -> dict[str, argparse.ArgumentParser]: ...
 
     def command(name: str, help: str, actions: tuple[str, ...] = ()):
-        group = commands.add_parser(
-            name, help=help, description=help[0].upper() + help[1:] + "."
-        )
+        group = commands.add_parser(name, help=help, description=help[0].upper() + help[1:] + ".")
         if not actions:
             group.set_defaults(run=run_task)
             return group
-        children = group.add_subparsers(
-            dest="action", required=True, title="actions", metavar="ACTION"
-        )
+        children = group.add_subparsers(dest="action", required=True, title="actions", metavar="ACTION")
         result = {}
         for action in actions:
             description = ACTION_HELP[name][action]
-            child = children.add_parser(
-                action, help=description, description=description
-            )
+            child = children.add_parser(action, help=description, description=description)
             child.set_defaults(run=run_task)
             result[action] = child
         return result
 
-    def book_option(
-        target, *, required: bool = False, selection: str = "all registered textbooks"
-    ):
+    def book_option(target, *, required: bool = False, selection: str = "all registered textbooks"):
         help = "registered slug, label prefix (e.g. la), or unique slug prefix"
         if not required:
             help += f"; omit to select {selection}"
@@ -327,16 +279,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="enable TeX shell escape for this build",
     )
     build.set_defaults(run=run_book)
-    books["new"].add_argument(
-        "--slug", required=True, help="new textbook directory and registry slug"
-    )
-    books["new"].add_argument(
-        "--title", required=True, help="textbook title; quote titles containing spaces"
-    )
+    books["new"].add_argument("--slug", required=True, help="new textbook directory and registry slug")
+    books["new"].add_argument("--title", required=True, help="textbook title; quote titles containing spaces")
     book_option(books["release"], required=True)
-    books["release"].add_argument(
-        "--version", required=True, help="release version to prepare for review"
-    )
+    books["release"].add_argument("--version", required=True, help="release version to prepare for review")
 
     for name in ("macros", "contents", "generated", "config"):
         actions = command(name, f"generate or check {name}", ("generate", "check"))
@@ -349,10 +295,7 @@ def build_parser() -> argparse.ArgumentParser:
                     "--scope",
                     choices=("chapters", "sections", "all"),
                     default="all",
-                    help=(
-                        "chapters: book.tex; sections: chapter/appendix indexes; all: both "
-                        "(default)"
-                    ),
+                    help=("chapters: book.tex; sections: chapter/appendix indexes; all: both (default)"),
                 )
                 target.set_defaults(run=run_contents_task)
             elif name == "generated":
@@ -432,9 +375,7 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="tested image digest: 64 lowercase hexadecimal characters, without sha256:",
     )
-    clean = command(
-        "clean", "remove build outputs or caches", ("build", "source", "cache")
-    )
+    clean = command("clean", "remove build outputs or caches", ("build", "source", "cache"))
     clean["cache"].add_argument(
         "--scope",
         required=True,
@@ -451,19 +392,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="cache to remove; all selects every supported tool cache",
     )
     tests = command("test", "run the repository test suite")
-    tests.add_argument(
-        "--coverage", action="store_true", help="measure Python branch coverage"
-    )
+    tests.add_argument("--coverage", action="store_true", help="measure Python branch coverage")
     command("report", "print a repository report")
     command("tree", "write build/tree.txt")
 
     plan = commands.add_parser(
         "plan",
         help="explain CI source and PDF checks",
-        description=(
-            "Print source and PDF validation selection as JSON using independent "
-            "Git baselines."
-        ),
+        description=("Print source and PDF validation selection as JSON using independent Git baselines."),
     )
     plan.add_argument(
         "--source-base",
@@ -488,10 +424,7 @@ def build_parser() -> argparse.ArgumentParser:
     ci_source = commands.add_parser(
         "ci-source",
         help="run paired CI source and proof checks",
-        description=(
-            "Run the selected Lean or proof-links stage, then deferred repository"
-            " source checks."
-        ),
+        description=("Run the selected Lean or proof-links stage, then deferred repository source checks."),
     )
     ci_source.add_argument(
         "--lean-mode",
@@ -529,9 +462,7 @@ def run_macros(arguments: argparse.Namespace) -> int:
 
 
 def run_contents_task(arguments: argparse.Namespace) -> int:
-    arguments.scope = {"chapters": "chap", "sections": "sec", "all": "all"}[
-        arguments.scope
-    ]
+    arguments.scope = {"chapters": "chap", "sections": "sec", "all": "all"}[arguments.scope]
     return run_contents(arguments)
 
 
@@ -546,8 +477,7 @@ def run_book(arguments: argparse.Namespace) -> int:
 
     if arguments.strict and not arguments.check:
         print(
-            "error: strict requires check for a book build\n"
-            "usage: ashaiy book build [--book BOOK] --check --strict",
+            "error: strict requires check for a book build\nusage: ashaiy book build [--book BOOK] --check --strict",
             file=sys.stderr,
         )
         return 2
@@ -611,9 +541,7 @@ def run_format(arguments: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
-    return format_sources(
-        arguments.scope, check=arguments.check, file=arguments.file
-    ).returncode
+    return format_sources(arguments.scope, check=arguments.check, file=arguments.file).returncode
 
 
 if __name__ == "__main__":

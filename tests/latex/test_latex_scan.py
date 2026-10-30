@@ -22,11 +22,7 @@ class LatexScanTests(unittest.TestCase):
                 for name in ("lean", "verbatim", "Verbatim", "minted", "lstlisting")
             ],
         ]
-        text = (
-            "\n".join(literals)
-            + "\n"
-            + (r"\begin{theorem}\label{real}\label{alias}x\end{theorem}")
-        )
+        text = "\n".join(literals) + "\n" + (r"\begin{theorem}\label{real}\label{alias}x\end{theorem}")
         self.assertEqual(theorem_label_groups(text), [{"real", "alias"}])
         self.assertEqual(
             [item.argument for item in command_arguments(text, {"label"})],

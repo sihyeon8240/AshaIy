@@ -86,9 +86,7 @@ class ImageCandidateTests(unittest.TestCase):
                     check=False,
                     timeout=10,
                 )
-                self.assertEqual(
-                    result.returncode == 0, image_result in ("success", "skipped")
-                )
+                self.assertEqual(result.returncode == 0, image_result in ("success", "skipped"))
 
     def test_rejects_unsuccessful_foreign_or_unrelated_runs(self):
         self.assertTrue(CANDIDATE.eligible_run(self.workflow_run, "owner/repo", "head"))
@@ -101,19 +99,13 @@ class ImageCandidateTests(unittest.TestCase):
             ("path", ".github/workflows/build-image.yml"),
         ):
             with self.subTest(key=key):
-                self.assertFalse(
-                    CANDIDATE.eligible_run(
-                        {**self.workflow_run, key: value}, "owner/repo", "head"
-                    )
-                )
+                self.assertFalse(CANDIDATE.eligible_run({**self.workflow_run, key: value}, "owner/repo", "head"))
 
     def test_manifest_binds_tree_architecture_policy_and_run_attempt(self):
         CANDIDATE.validate_manifest(self.manifest, self.expected, self.workflow_run)
         for key in (*self.expected, "run_id", "run_attempt", "image_id"):
             with self.subTest(key=key), self.assertRaises(ValueError):
-                CANDIDATE.validate_manifest(
-                    {**self.manifest, key: "wrong"}, self.expected, self.workflow_run
-                )
+                CANDIDATE.validate_manifest({**self.manifest, key: "wrong"}, self.expected, self.workflow_run)
 
     def restore(self, *, pull=None, tree="tree", run=None, artifacts=None):
         responses = [
@@ -123,9 +115,7 @@ class ImageCandidateTests(unittest.TestCase):
             {"artifacts": self.artifacts if artifacts is None else artifacts},
         ]
         with (
-            patch.dict(
-                os.environ, {"GITHUB_REPOSITORY": "owner/repo", "GITHUB_SHA": "merge"}
-            ),
+            patch.dict(os.environ, {"GITHUB_REPOSITORY": "owner/repo", "GITHUB_SHA": "merge"}),
             patch.object(CANDIDATE, "identity", return_value=self.expected),
             patch.object(CANDIDATE, "api", side_effect=responses),
             patch.object(CANDIDATE, "load_candidate") as load,
@@ -149,9 +139,7 @@ class ImageCandidateTests(unittest.TestCase):
         self.assertEqual(self.restore(tree="other"), (False, 0))
 
     def test_failed_run_or_missing_expired_architecture_rebuilds(self):
-        self.assertEqual(
-            self.restore(run={**self.workflow_run, "conclusion": "failure"}), (False, 0)
-        )
+        self.assertEqual(self.restore(run={**self.workflow_run, "conclusion": "failure"}), (False, 0))
         self.assertEqual(self.restore(artifacts=self.artifacts[:1]), (False, 0))
         expired = [self.artifacts[0], {**self.artifacts[1], "expired": True}]
         self.assertEqual(self.restore(artifacts=expired), (False, 0))
@@ -163,9 +151,7 @@ class ImageCandidateTests(unittest.TestCase):
             with (
                 patch.object(CANDIDATE, "MAX_IMAGE_BYTES", 10),
                 patch.object(CANDIDATE, "command") as command,
-                self.assertRaisesRegex(
-                    ValueError, "expanded Docker image is too large"
-                ),
+                self.assertRaisesRegex(ValueError, "expanded Docker image is too large"),
             ):
                 CANDIDATE.check_archive(archive)
             command.assert_not_called()
@@ -254,14 +240,9 @@ class ImageCandidateTests(unittest.TestCase):
                             self.workflow_run,
                             "target",
                         )
-                    loaded = any(
-                        call.args[0][0] == "docker" for call in run.call_args_list
-                    )
+                    loaded = any(call.args[0][0] == "docker" for call in run.call_args_list)
                     self.assertEqual(loaded, failure in (None, "architecture"))
-                    tagged = any(
-                        call.args[:2] == ("docker", "tag")
-                        for call in command.call_args_list
-                    )
+                    tagged = any(call.args[:2] == ("docker", "tag") for call in command.call_args_list)
                     self.assertEqual(tagged, failure is None)
 
 

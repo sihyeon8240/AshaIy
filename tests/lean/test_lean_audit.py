@@ -30,16 +30,13 @@ class LeanSourceTests(unittest.TestCase):
         self.assertEqual(escape_hatch_lines("def f' := 0\naxiom hidden : False\n"), [2])
 
     def test_quoted_imports_are_normalized_without_losing_line_numbers(self) -> None:
-        source = (
-            "-- import Fake\npublic import /- note -/ «Textbooks».«LinearAlgebra».All\n"
-        )
+        source = "-- import Fake\npublic import /- note -/ «Textbooks».«LinearAlgebra».All\n"
         self.assertEqual(imports(source), [("Textbooks.LinearAlgebra.All", 2)])
 
     def test_nested_comments_strings_and_quoted_identifiers_are_ignored(self) -> None:
         self.assertEqual(
             escape_hatch_lines(
-                "/- outer /- sorry -/ axiom -/\n-- admit\n"
-                'def note := "sorry admit axiom"\ndef «sorry» := 0\n'
+                '/- outer /- sorry -/ axiom -/\n-- admit\ndef note := "sorry admit axiom"\ndef «sorry» := 0\n'
             ),
             [],
         )
@@ -77,9 +74,7 @@ class LeanAuditTests(unittest.TestCase):
             module.parent.mkdir()
             module.write_text("" if case.in_root else case.body)
             entry = root / "Textbooks.lean"
-            entry.write_text(
-                "import «Textbooks».«Fixture»\n" + (case.body if case.in_root else "")
-            )
+            entry.write_text("import «Textbooks».«Fixture»\n" + (case.body if case.in_root else ""))
             sources = [module, entry]
             if case.external is not None:
                 dependency = root / "External.lean"

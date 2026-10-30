@@ -60,9 +60,7 @@ class SnapshotLifecycleTests(unittest.TestCase):
                 "repository/source_reads.py",
             ):
                 copy_file(ROOT / "scripts" / name, work / "scripts" / name)
-            write_yaml(
-                work / "config/books.yml", manifest_document([book_record(site=True)])
-            )
+            write_yaml(work / "config/books.yml", manifest_document([book_record(site=True)]))
             (work / "books/sample").mkdir(parents=True)
             (work / "books/sample/book.tex").write_text("test book\n")
             (work / ".github").mkdir()
@@ -100,9 +98,7 @@ class SnapshotLifecycleTests(unittest.TestCase):
                 rejected = publish(source, rejected_output)
                 self.assertNotEqual(rejected.returncode, 0)
                 self.assertFalse(rejected_output.exists())
-                self.assertEqual(
-                    git("worktree", "list", "--porcelain").count("worktree "), 1
-                )
+                self.assertEqual(git("worktree", "list", "--porcelain").count("worktree "), 1)
                 self.assertEqual(list((root / "tmp").iterdir()), [])
                 self.assertEqual(
                     git(
@@ -113,16 +109,12 @@ class SnapshotLifecycleTests(unittest.TestCase):
                     "",
                 )
                 if snapshots:
-                    self.assertEqual(
-                        git("rev-parse", "origin/generated-pdfs"), snapshots[-1]
-                    )
+                    self.assertEqual(git("rev-parse", "origin/generated-pdfs"), snapshots[-1])
                 hook.unlink()
                 output = root / f"publish-{index}"
                 result = publish(source, output)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                fields = dict(
-                    line.split("=", 1) for line in output.read_text().splitlines()
-                )
+                fields = dict(line.split("=", 1) for line in output.read_text().splitlines())
                 snapshot = fields["snapshot_sha"]
                 self.assertEqual(fields["current"], "true")
                 self.assertEqual(git("show", f"{snapshot}:.source-sha"), source)
@@ -133,9 +125,7 @@ class SnapshotLifecycleTests(unittest.TestCase):
                 retry = publish(source, retry_output)
                 self.assertEqual(retry.returncode, 0, retry.stderr)
                 self.assertIn(f"snapshot_sha={snapshot}\n", retry_output.read_text())
-                self.assertEqual(
-                    git("worktree", "list", "--porcelain").count("worktree "), 1
-                )
+                self.assertEqual(git("worktree", "list", "--porcelain").count("worktree "), 1)
                 self.assertEqual(list((root / "tmp").iterdir()), [])
             self.assertNotEqual(*snapshots)
             self.assertEqual(git("show", f"{snapshots[0]}:.source-sha"), sources[0])
@@ -151,6 +141,4 @@ class SnapshotLifecycleTests(unittest.TestCase):
                     timeout=15,
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual(
-                    output.read_text(), f"current={str(index == 1).lower()}\n"
-                )
+                self.assertEqual(output.read_text(), f"current={str(index == 1).lower()}\n")

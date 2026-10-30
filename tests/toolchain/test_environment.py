@@ -30,9 +30,7 @@ class ContainerEnvironmentTests(unittest.TestCase):
                 errors = ENVIRONMENT.native_environment_errors(root)
                 self.assertEqual(ENVIRONMENT.main(), 1)
                 execute.assert_not_called()
-            self.assertTrue(
-                any("targets amd64, host is arm64" in error for error in errors), errors
-            )
+            self.assertTrue(any("targets amd64, host is arm64" in error for error in errors), errors)
             self.assertTrue(any(str(cache) in error for error in errors), errors)
             self.assertEqual(cache.read_bytes(), header)
             header[18:20] = (183).to_bytes(2, "little")

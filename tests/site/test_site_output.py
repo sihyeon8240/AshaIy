@@ -24,9 +24,7 @@ class SiteOutputTests(unittest.TestCase):
             (self.site / path).mkdir(parents=True)
         (self.snapshot / "pdf").mkdir(parents=True)
         self.book_data = self.root / "books.json"
-        self.book_data.write_text(
-            json.dumps({"schema_version": 1, "books": [{"slug": "sample"}]})
-        )
+        self.book_data.write_text(json.dumps({"schema_version": 1, "books": [{"slug": "sample"}]}))
         (self.site / "index.html").write_text(
             '<article data-book-slug="sample"></article><link href="/math/assets/site.css" rel="stylesheet">'
             '<a href="/math/books/sample.html#reading">Read</a>'
@@ -36,9 +34,7 @@ class SiteOutputTests(unittest.TestCase):
         (self.site / "books/sample.html").write_text(
             '<h1 id="reading">Read</h1><object data="../pdf/sample.pdf?v=abc"></object>'
         )
-        (self.site / "assets/site.css").write_text(
-            'body { background: url("icon.svg"); }'
-        )
+        (self.site / "assets/site.css").write_text('body { background: url("icon.svg"); }')
         (self.site / "assets/icon.svg").write_text("<svg></svg>")
         for directory in (self.site, self.snapshot):
             (directory / "pdf/sample.pdf").write_bytes(b"%PDF-1.7\nchecked PDF")
@@ -95,29 +91,20 @@ class SiteOutputTests(unittest.TestCase):
                 index = destination / "index.html"
                 detail = destination / "books/sample.html"
                 if failure == "cards":
-                    index.write_text(
-                        index.read_text().replace(
-                            'data-book-slug="sample"', 'data-other="sample"'
-                        )
-                    )
+                    index.write_text(index.read_text().replace('data-book-slug="sample"', 'data-other="sample"'))
                 elif failure == "books":
                     detail.unlink()
                     index.write_text(
-                        '<article data-book-slug="sample"></article><a '
-                        'href="/math/pdf/sample.pdf">PDF</a>'
+                        '<article data-book-slug="sample"></article><a href="/math/pdf/sample.pdf">PDF</a>'
                     )
                 elif failure == "pdf":
                     (destination / "pdf/sample.pdf").unlink()
                     index.write_text(
-                        '<article data-book-slug="sample"></article><a '
-                        'href="/math/books/sample.html">Details</a>'
+                        '<article data-book-slug="sample"></article><a href="/math/books/sample.html">Details</a>'
                     )
                     detail.write_text("<h1>Details</h1>")
                 elif failure == "duplicate":
-                    index.write_text(
-                        index.read_text()
-                        + '<article data-book-slug="sample"></article>'
-                    )
+                    index.write_text(index.read_text() + '<article data-book-slug="sample"></article>')
                 else:
                     detail.write_text('<h1 id="reading">Details</h1>')
                 with self.assertRaisesRegex(ValueError, "differ|missing detail page"):

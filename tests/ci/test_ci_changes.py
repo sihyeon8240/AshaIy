@@ -36,9 +36,7 @@ class CiChangeTests(unittest.TestCase):
 
     def test_site_snapshot_and_workflow_changes_are_distinct(self):
         self.assertTrue(CI.classify(["site/index.html"])["site_changed"])
-        self.assertTrue(
-            CI.classify(["scripts/release/publish_snapshot.sh"])["snapshot_changed"]
-        )
+        self.assertTrue(CI.classify(["scripts/release/publish_snapshot.sh"])["snapshot_changed"])
         result = CI.classify([".github/workflows/release-retry.yml"])
         self.assertTrue(result["structured"])
         self.assertFalse(result["site_changed"])

@@ -112,9 +112,7 @@ def save_manifest(manifest: dict[str, Any]) -> None:
 
 def validate_new_book_input(slug: str, title: str) -> None:
     if not SLUG_PATTERN.fullmatch(slug):
-        raise ValueError(
-            "slug must contain lowercase letters/numbers separated by single hyphens"
-        )
+        raise ValueError("slug must contain lowercase letters/numbers separated by single hyphens")
 
     if not title.strip() or "\n" in title or "\r" in title:
         raise ValueError("title must be a non-empty single line")
@@ -125,16 +123,12 @@ def suggested_label_prefix(slug: str) -> str:
     return "".join(part[0] for part in slug.split("-"))
 
 
-def add_book(
-    slug: str, title: str, *, release: bool | None = None, site: bool | None = None
-) -> None:
+def add_book(slug: str, title: str, *, release: bool | None = None, site: bool | None = None) -> None:
     with source_updates(REPO_ROOT):
         _add_book(slug, title, release=release, site=site)
 
 
-def _add_book(
-    slug: str, title: str, *, release: bool | None, site: bool | None
-) -> None:
+def _add_book(slug: str, title: str, *, release: bool | None, site: bool | None) -> None:
     validate_new_book_input(slug, title)
     title = title.strip()
 
@@ -196,10 +190,7 @@ def _validate_defaults(defaults: object) -> dict[str, Any]:
 
     unknown_default_fields = set(defaults) - DEFAULT_FIELDS
     if unknown_default_fields:
-        raise ValueError(
-            "defaults has unknown field(s): "
-            + ", ".join(sorted(unknown_default_fields))
-        )
+        raise ValueError("defaults has unknown field(s): " + ", ".join(sorted(unknown_default_fields)))
 
     for flag, value in defaults.items():
         if flag == "version":
@@ -212,12 +203,7 @@ def _validate_defaults(defaults: object) -> dict[str, Any]:
                 raise ValueError(f"defaults field 'status' is invalid: {value!r}")
             continue
         if flag == "author":
-            if (
-                not isinstance(value, str)
-                or not value.strip()
-                or "\n" in value
-                or "\r" in value
-            ):
+            if not isinstance(value, str) or not value.strip() or "\n" in value or "\r" in value:
                 raise ValueError("defaults field 'author' must be a non-empty line")
             continue
         if not isinstance(value, bool):
@@ -232,20 +218,10 @@ def _validate_book_description(book: dict[str, Any]) -> None:
     author = book.get("author")
     version = book.get("version")
 
-    if (
-        not isinstance(title, str)
-        or not title.strip()
-        or "\n" in title
-        or "\r" in title
-    ):
+    if not isinstance(title, str) or not title.strip() or "\n" in title or "\r" in title:
         raise ValueError(f"book '{slug}' must have a non-empty single-line title")
 
-    if (
-        not isinstance(author, str)
-        or not author.strip()
-        or "\n" in author
-        or "\r" in author
-    ):
+    if not isinstance(author, str) or not author.strip() or "\n" in author or "\r" in author:
         raise ValueError(f"book '{slug}' must have a non-empty single-line author")
 
     if not isinstance(version, str):
@@ -286,10 +262,7 @@ def _normalize_books(books: list, defaults: dict[str, Any]) -> list[BookMetadata
 
         unknown_book_fields = set(raw_book) - BOOK_FIELDS
         if unknown_book_fields:
-            raise ValueError(
-                f"books[{index}] has unknown field(s): "
-                + ", ".join(sorted(unknown_book_fields))
-            )
+            raise ValueError(f"books[{index}] has unknown field(s): " + ", ".join(sorted(unknown_book_fields)))
 
         book = {**defaults, **raw_book}
 
@@ -305,12 +278,8 @@ def _normalize_books(books: list, defaults: dict[str, Any]) -> list[BookMetadata
         _validate_book_description(book)
 
         label_prefix = book.get("label_prefix", suggested_label_prefix(slug))
-        if not isinstance(label_prefix, str) or not LABEL_PREFIX_PATTERN.fullmatch(
-            label_prefix
-        ):
-            raise ValueError(
-                f"book '{slug}' must have a lowercase alphanumeric label_prefix"
-            )
+        if not isinstance(label_prefix, str) or not LABEL_PREFIX_PATTERN.fullmatch(label_prefix):
+            raise ValueError(f"book '{slug}' must have a lowercase alphanumeric label_prefix")
         if label_prefix in seen_label_prefixes:
             raise ValueError(f"duplicate label_prefix: {label_prefix}")
         seen_label_prefixes.add(label_prefix)
@@ -318,9 +287,7 @@ def _normalize_books(books: list, defaults: dict[str, Any]) -> list[BookMetadata
 
         lean_module = book.get("lean_module")
         if lean_module is not None:
-            if not isinstance(lean_module, str) or not LEAN_MODULE_PATTERN.fullmatch(
-                lean_module
-            ):
+            if not isinstance(lean_module, str) or not LEAN_MODULE_PATTERN.fullmatch(lean_module):
                 raise ValueError(f"book '{slug}' has an invalid lean_module")
             if lean_module in seen_lean_modules:
                 raise ValueError(f"duplicate lean_module: {lean_module}")
@@ -342,9 +309,7 @@ def normalize_manifest(data: object) -> dict[str, Any]:
 
     unknown_root_fields = set(data) - ROOT_FIELDS
     if unknown_root_fields:
-        raise ValueError(
-            "manifest has unknown field(s): " + ", ".join(sorted(unknown_root_fields))
-        )
+        raise ValueError("manifest has unknown field(s): " + ", ".join(sorted(unknown_root_fields)))
 
     if type(data.get("schema_version")) is not int or data["schema_version"] != 1:
         raise ValueError("unsupported or missing schema_version")
@@ -371,8 +336,7 @@ def manifest_warnings(manifest: dict[str, Any]) -> list[str]:
             )
         if book["status"] == "archived" and book["site"]:
             warnings.append(
-                f"book '{book['slug']}' is archived but site=true; "
-                "confirm that it should remain published on the site"
+                f"book '{book['slug']}' is archived but site=true; confirm that it should remain published on the site"
             )
         if book["status"] == "draft" and book["release"]:
             warnings.append(
@@ -382,8 +346,7 @@ def manifest_warnings(manifest: dict[str, Any]) -> list[str]:
     for order, slugs in sorted(orders.items()):
         if len(slugs) > 1:
             warnings.append(
-                f"duplicate order {order} is used by {', '.join(slugs)}; "
-                "display order will fall back to slug ordering"
+                f"duplicate order {order} is used by {', '.join(slugs)}; display order will fall back to slug ordering"
             )
     return warnings
 

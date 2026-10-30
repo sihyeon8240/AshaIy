@@ -11,9 +11,7 @@ from scripts.repository.path_policy import IMAGE_PIPELINE, SITE_FILES, SNAPSHOT_
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def changed_paths(
-    base: str | None, head: str = "HEAD", *, root: Path | None = None
-) -> list[str] | None:
+def changed_paths(base: str | None, head: str = "HEAD", *, root: Path | None = None) -> list[str] | None:
     if not base or set(base) == {"0"}:
         return None
     try:
@@ -51,15 +49,10 @@ def is_documentation(path: str) -> bool:
 
 
 def classify(paths: list[str] | None, *, root: Path = ROOT) -> dict[str, bool]:
-    return {
-        name: selection["selected"]
-        for name, selection in consumer_selections(paths, root=root).items()
-    }
+    return {name: selection["selected"] for name, selection in consumer_selections(paths, root=root).items()}
 
 
-def consumer_selections(
-    paths: list[str] | None, *, root: Path = ROOT
-) -> dict[str, dict]:
+def consumer_selections(paths: list[str] | None, *, root: Path = ROOT) -> dict[str, dict]:
     names = ("image_changed", "structured", "site_changed", "snapshot_changed")
     if paths is None:
         return {
@@ -77,8 +70,7 @@ def consumer_selections(
             path
             for path in paths
             if (path.startswith(".github/") and path.endswith(".yml"))
-            or path
-            in {"config/books.yml", "CITATION.cff", ".devcontainer/devcontainer.json"}
+            or path in {"config/books.yml", "CITATION.cff", ".devcontainer/devcontainer.json"}
         ),
         "site_changed": sorted(
             path
@@ -97,9 +89,7 @@ def consumer_selections(
     return {
         name: {
             "selected": bool(matched),
-            "reason": "matching consumer inputs"
-            if matched
-            else "no matching consumer inputs",
+            "reason": "matching consumer inputs" if matched else "no matching consumer inputs",
             "paths": matched,
         }
         for name, matched in matches.items()

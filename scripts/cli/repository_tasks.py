@@ -16,9 +16,7 @@ from scripts.repository.source_reads import reuse_source_reads
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def source_check_stages(
-    command: Callable[..., int], *, compile_lean: bool
-) -> tuple[Stage, Stage]:
+def source_check_stages(command: Callable[..., int], *, compile_lean: bool) -> tuple[Stage, Stage]:
     sources = Stage(
         "repository-sources",
         lambda: command("repository/checks/check_repository.sh", "--defer-lean"),
@@ -34,9 +32,7 @@ def source_check_stages(
 def check_ci_sources(*, compile_lean: bool, root: Path = ROOT) -> StageResult:
     def command(script: str, *arguments: str) -> int:
         prefix = [sys.executable] if script.endswith(".py") else []
-        status = subprocess.run(
-            [*prefix, str(root / "scripts" / script), *arguments], cwd=root, check=False
-        ).returncode
+        status = subprocess.run([*prefix, str(root / "scripts" / script), *arguments], cwd=root, check=False).returncode
         return 128 - status if status < 0 else status
 
     sources, proofs = source_check_stages(command, compile_lean=compile_lean)
@@ -60,16 +56,12 @@ def build_books(
         environment["CHECK_LOG_STRICT"] = "1"
 
     def command(*arguments: str) -> int:
-        status = subprocess.run(
-            arguments, cwd=ROOT, env=environment, check=False
-        ).returncode
+        status = subprocess.run(arguments, cwd=ROOT, env=environment, check=False).returncode
         return 128 - status if status < 0 else status
 
     if not book:
         arguments = ("check",) if check else ()
-        return command(
-            sys.executable, str(ROOT / "scripts/latex/build_all.py"), *arguments
-        )
+        return command(sys.executable, str(ROOT / "scripts/latex/build_all.py"), *arguments)
 
     status = command(str(ROOT / "scripts/latex/build_book.sh"), book)
     if status or not check:
@@ -92,9 +84,7 @@ def generate(*, book: str | None = None, check: bool = False) -> StageResult:
 
     stages = (
         Stage("macros", lambda: macro_generation.generate(book=book, check=check)),
-        Stage(
-            "lean-assembly", lambda: lean_generation.generate(book=book, check=check)
-        ),
+        Stage("lean-assembly", lambda: lean_generation.generate(book=book, check=check)),
         Stage(
             "contents",
             lambda: contents_generation.generate("all", book=book, check=check),
@@ -133,15 +123,11 @@ def check_all(*, strict: bool = False, root: Path = ROOT) -> StageResult:
             sources,
             Stage(
                 "python-format",
-                lambda: command(
-                    "repository/formatting/format_code.py", "py", "--check"
-                ),
+                lambda: command("repository/formatting/format_code.py", "py", "--check"),
             ),
             Stage(
                 "shell-format",
-                lambda: command(
-                    "repository/formatting/format_code.py", "sh", "--check"
-                ),
+                lambda: command("repository/formatting/format_code.py", "sh", "--check"),
             ),
             Stage("tex-format", lambda: command("latex/format_tex.py", "--check")),
             Stage(
@@ -178,9 +164,7 @@ def check_repository(scope: str, *, strict: bool = False) -> int:
     return 128 - status if status < 0 else status
 
 
-def format_sources(
-    scope: str, *, check: bool = False, file: str | None = None
-) -> StageResult:
+def format_sources(scope: str, *, check: bool = False, file: str | None = None) -> StageResult:
     options = ["--check"] if check else []
     if file:
         options.extend(("--file", file))
@@ -200,6 +184,4 @@ def format_sources(
         "newlines": ("repository/formatting/normalize_eof.py",),
     }
     selected = tuple(commands) if scope == "all" else (scope,)
-    return run_stages(
-        Stage(name, lambda name=name: command(*commands[name])) for name in selected
-    )
+    return run_stages(Stage(name, lambda name=name: command(*commands[name])) for name in selected)

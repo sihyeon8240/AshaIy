@@ -29,8 +29,7 @@ def require_tool(*names: str) -> str:
         if executable:
             return executable
     raise ValueError(
-        f"required tool not found: {' or '.join(names)}; "
-        "use the development image with the site tools installed"
+        f"required tool not found: {' or '.join(names)}; use the development image with the site tools installed"
     )
 
 
@@ -38,11 +37,7 @@ def build() -> Path:
     jekyll = require_tool("jekyll")
     books = [book for book in load_manifest()["books"] if book["site"]]
     pdfs = {book["slug"]: ROOT / "build" / book["slug"] / "book.pdf" for book in books}
-    missing = [
-        slug
-        for slug, pdf in pdfs.items()
-        if not pdf.is_file() or pdf.stat().st_size == 0
-    ]
+    missing = [slug for slug, pdf in pdfs.items() if not pdf.is_file() or pdf.stat().st_size == 0]
     if missing:
         commands = "; ".join(f"ashaiy book build --book {slug}" for slug in missing)
         raise ValueError(f"missing or empty local PDFs; build them first: {commands}")
@@ -133,9 +128,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("build", "serve", "test"))
     parser.add_argument("--port", type=int, default=4000)
-    parser.add_argument(
-        "--host", default=os.environ.get("ASHAIY_SITE_HOST") or "127.0.0.1"
-    )
+    parser.add_argument("--host", default=os.environ.get("ASHAIY_SITE_HOST") or "127.0.0.1")
     args = parser.parse_args()
     if not 1 <= args.port <= 65535:
         parser.error("port must be between 1 and 65535")

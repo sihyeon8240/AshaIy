@@ -40,9 +40,7 @@ class BuildMetricsTests(unittest.TestCase):
             )
             self.assertIsNone(result["stages"]["image"]["seconds"])
             self.assertEqual(result["stages"]["compile"]["exit_code"], 17)
-            self.assertEqual(
-                json.loads((directory / "result.json").read_text()), result
-            )
+            self.assertEqual(json.loads((directory / "result.json").read_text()), result)
             self.assertIn("incomplete", summary.read_text())
 
     def records(self, count=20, overhead=35):

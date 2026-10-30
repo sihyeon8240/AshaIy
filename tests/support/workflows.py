@@ -12,9 +12,7 @@ import yaml
 
 def build_workflow() -> dict:
     root = Path(__file__).resolve().parents[2]
-    return yaml.safe_load(
-        (root / ".github/workflows/build.yml").read_text(encoding="utf-8")
-    )
+    return yaml.safe_load((root / ".github/workflows/build.yml").read_text(encoding="utf-8"))
 
 
 def condition_allows(condition: str, context: Mapping[str, str | bool]) -> bool:
@@ -55,6 +53,4 @@ def condition_allows(condition: str, context: Mapping[str, str | bool]) -> bool:
     )
     if any(not isinstance(node, allowed) for node in ast.walk(tree)):
         raise ValueError("unsupported workflow condition")
-    return bool(
-        eval(compile(tree, "<workflow condition>", "eval"), {"__builtins__": {}})
-    )
+    return bool(eval(compile(tree, "<workflow condition>", "eval"), {"__builtins__": {}}))

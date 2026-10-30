@@ -22,9 +22,7 @@ def parse_json(text: str) -> Any:
     def reject_constant(value: str):
         raise ValueError(f"invalid JSON constant: {value}")
 
-    return json.loads(
-        text, object_pairs_hook=unique_mapping, parse_constant=reject_constant
-    )
+    return json.loads(text, object_pairs_hook=unique_mapping, parse_constant=reject_constant)
 
 
 def read_json(path: Path):

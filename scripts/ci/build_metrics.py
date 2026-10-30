@@ -34,8 +34,7 @@ POLICY = "book-metrics-v1"
 def start(directory: Path, stage: str) -> None:
     directory.mkdir(parents=True, exist_ok=True)
     (directory / f"{stage}.start.json").write_text(
-        json.dumps({"monotonic_ns": time.monotonic_ns(), "unix_ns": time.time_ns()})
-        + "\n",
+        json.dumps({"monotonic_ns": time.monotonic_ns(), "unix_ns": time.time_ns()}) + "\n",
         encoding="utf-8",
     )
     (directory / f"{stage}.json").unlink(missing_ok=True)
@@ -56,9 +55,7 @@ def measure(directory: Path, stage: str, command: list[str]) -> int:
     status = 127
     try:
         result = subprocess.run(command, check=False)
-        status = (
-            result.returncode if result.returncode >= 0 else 128 - result.returncode
-        )
+        status = result.returncode if result.returncode >= 0 else 128 - result.returncode
     except KeyboardInterrupt:
         status = 130
     finally:
@@ -93,9 +90,7 @@ def report(directory: Path, book: str, environ: dict[str, str]) -> dict:
         "stages": stages,
     }
     directory.mkdir(parents=True, exist_ok=True)
-    (directory / "result.json").write_text(
-        json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    (directory / "result.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     summary = environ.get("GITHUB_STEP_SUMMARY")
     if summary:
         lines = [
@@ -133,11 +128,7 @@ def assess(records: list[dict]) -> dict:
         raise ValueError("supply every selected book from that run")
     total = setup = 0.0
     for record in records:
-        if (
-            record["policy"] != POLICY
-            or record["job_status"] != "success"
-            or record["verified_reuse"]
-        ):
+        if record["policy"] != POLICY or record["job_status"] != "success" or record["verified_reuse"]:
             raise ValueError("only successful, freshly built jobs can be compared")
         for stage in ("job", "pre-build", "image", "compile", "log", "publication"):
             measurement = record["stages"].get(stage, {})
@@ -149,9 +140,7 @@ def assess(records: list[dict]) -> dict:
             ):
                 raise ValueError(f"missing or unsuccessful phase: {stage}")
         job = record["stages"]["job"]["seconds"]
-        overhead = sum(
-            record["stages"][name]["seconds"] for name in ("pre-build", "image")
-        )
+        overhead = sum(record["stages"][name]["seconds"] for name in ("pre-build", "image"))
         if job <= 0 or overhead > job:
             raise ValueError("invalid phase durations")
         total += job
@@ -183,11 +172,7 @@ def main() -> None:
     args = parser.parse_args()
     try:
         if args.mode == "assess":
-            print(
-                json.dumps(
-                    assess([json.loads(path.read_text()) for path in args.records])
-                )
-            )
+            print(json.dumps(assess([json.loads(path.read_text()) for path in args.records])))
             return
         # Book identifiers are also directory names; do not accept arbitrary paths.
         if not re.fullmatch(validation_pattern("book_slug"), args.book):

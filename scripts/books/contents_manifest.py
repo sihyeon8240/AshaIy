@@ -37,10 +37,7 @@ def _mapping(path: Path) -> dict:
     except (OSError, UnicodeError, yaml.YAMLError) as error:
         raise ValueError(f"{path}: cannot read YAML: {error}") from error
     value = field_mapping(value, f"{path}: root")
-    if (
-        type(value.get("schema_version")) is not int
-        or value["schema_version"] != SCHEMA_VERSION
-    ):
+    if type(value.get("schema_version")) is not int or value["schema_version"] != SCHEMA_VERSION:
         raise ValueError(f"{path}: schema_version must be {SCHEMA_VERSION}")
     return value
 
@@ -57,34 +54,26 @@ def _entries(path: Path, field: str, allowed: set[str]) -> list[dict]:
     return values
 
 
-def _validate_entries(
-    path: Path, field: str, values: list[dict], allowed: set[str]
-) -> None:
+def _validate_entries(path: Path, field: str, values: list[dict], allowed: set[str]) -> None:
     seen: set[str] = set()
     for number, item in enumerate(values, 1):
         prefix = f"{path}: {field}[{number}]"
         item = field_mapping(item, prefix)
         unknown = set(item) - allowed
         if unknown:
-            raise ValueError(
-                f"{prefix}: unknown field(s): {', '.join(sorted(unknown))}"
-            )
+            raise ValueError(f"{prefix}: unknown field(s): {', '.join(sorted(unknown))}")
         slug = item.get("slug")
         title = item.get("title")
         pattern = SECTION_SLUG if field == "sections" else SLUG
         if not isinstance(slug, str) or not pattern.fullmatch(slug):
             raise ValueError(f"{prefix}.slug must be lowercase hyphenated text")
         if field == "sections" and slug == "index":
-            raise ValueError(
-                f"{prefix}.slug 'index' is reserved for generated assembly"
-            )
+            raise ValueError(f"{prefix}.slug 'index' is reserved for generated assembly")
         if slug in seen:
             raise ValueError(f"{path}: duplicate {field[:-1]} slug {slug!r}")
         seen.add(slug)
         if isinstance(title, str) and without_comments(title) != title:
-            raise ValueError(
-                f"{prefix}.title contains an unescaped percent sign; use \\%"
-            )
+            raise ValueError(f"{prefix}.title contains an unescaped percent sign; use \\%")
         if (
             not isinstance(title, str)
             or not title.strip()
@@ -92,9 +81,7 @@ def _validate_entries(
             or "\r" in title
             or not has_balanced_braces(title)
         ):
-            raise ValueError(
-                f"{prefix}.title must be a non-empty, balanced single-line string"
-            )
+            raise ValueError(f"{prefix}.title must be a non-empty, balanced single-line string")
 
 
 def load_book_contents(book_dir: Path) -> tuple[list[dict], list[dict]]:
@@ -102,9 +89,7 @@ def load_book_contents(book_dir: Path) -> tuple[list[dict], list[dict]]:
     data = _mapping(path)
     unknown_root = set(data) - {"schema_version", "chapters", "appendices"}
     if unknown_root:
-        raise ValueError(
-            f"{path}: unknown field(s): " + ", ".join(sorted(unknown_root))
-        )
+        raise ValueError(f"{path}: unknown field(s): " + ", ".join(sorted(unknown_root)))
 
     chapters = data.get("chapters")
     appendices = data.get("appendices", [])
@@ -115,9 +100,7 @@ def load_book_contents(book_dir: Path) -> tuple[list[dict], list[dict]]:
         if not isinstance(values, list) or (required and not values):
             raise ValueError(f"{path}: {field} must be a non-empty list")
         if not required and "appendices" in data and not values:
-            raise ValueError(
-                f"{path}: appendices must be a non-empty list when present"
-            )
+            raise ValueError(f"{path}: appendices must be a non-empty list when present")
         _validate_entries(path, field, values, {"slug", "title", "lean_namespace"})
         namespaces: set[str] = set()
         for item in values:
@@ -128,9 +111,7 @@ def load_book_contents(book_dir: Path) -> tuple[list[dict], list[dict]]:
                 not isinstance(namespace, str)
                 or not LEAN_NAMESPACE.fullmatch(namespace)
                 or namespace in {"All", "Appendices"}
-                or re.fullmatch(
-                    validation_pattern("reserved_lean_namespace"), namespace
-                )
+                or re.fullmatch(validation_pattern("reserved_lean_namespace"), namespace)
             ):
                 raise ValueError(f"{path}: invalid lean_namespace: {namespace!r}")
             if namespace in namespaces:
@@ -174,11 +155,7 @@ def section_filenames(section: dict) -> list[str]:
 
 
 def render_include_block(entries: list[dict], kind: str) -> str:
-    begin, end = (
-        (BEGIN_CHAPTERS, END_CHAPTERS)
-        if kind == "chapters"
-        else (BEGIN_APPENDICES, END_APPENDICES)
-    )
+    begin, end = (BEGIN_CHAPTERS, END_CHAPTERS) if kind == "chapters" else (BEGIN_APPENDICES, END_APPENDICES)
     lines = [begin]
     if kind == "appendices" and entries:
         lines.append(r"\appendix")
@@ -203,9 +180,7 @@ def render_metadata(book: dict) -> str:
     )
 
 
-def replace_generated_block(
-    text: str, rendered: str, path: Path, begin: str, end: str
-) -> str:
+def replace_generated_block(text: str, rendered: str, path: Path, begin: str, end: str) -> str:
     if text.count(begin) != 1 or text.count(end) != 1:
         raise ValueError(f"{path}: expected exactly one {begin!r} and {end!r}")
     start = text.index(begin)
@@ -213,34 +188,25 @@ def replace_generated_block(
     return text[:start] + rendered + text[finish:]
 
 
-def render_contents_index(
-    book_dir: Path, directory: Path, entry: dict, sections: list[dict] | None = None
-) -> str:
+def render_contents_index(book_dir: Path, directory: Path, entry: dict, sections: list[dict] | None = None) -> str:
     if sections is None:
         sections = load_sections(directory)
     lines = [GENERATED_NOTICE, "", f"\\chapter{{{entry['title']}}}"]
     relative = directory.relative_to(book_dir).as_posix()
     for section in sections:
         lines.extend(("", f"\\section{{{section['title']}}}"))
-        lines.extend(
-            f"\\input{{{relative}/{filename}}}"
-            for filename in section_filenames(section)
-        )
+        lines.extend(f"\\input{{{relative}/{filename}}}" for filename in section_filenames(section))
     return "\n".join(lines) + "\n"
 
 
-def expected_files(
-    book_dir: Path, scope: str = "all", book: dict | None = None
-) -> dict[Path, str]:
+def expected_files(book_dir: Path, scope: str = "all", book: dict | None = None) -> dict[Path, str]:
     chapters, appendices = load_book_contents(book_dir)
     expected: dict[Path, str] = {}
     if scope in {"chap", "all"}:
         path = book_dir / "book.tex"
         if book is None:
             raise ValueError(f"{path}: book manifest record is required")
-        template_path = (
-            Path(__file__).resolve().parents[2] / "common/templates/book.tex"
-        )
+        template_path = Path(__file__).resolve().parents[2] / "common/templates/book.tex"
         original = read_text(template_path)
         original = replace_generated_block(
             original,
@@ -249,12 +215,8 @@ def expected_files(
             BEGIN_METADATA,
             END_METADATA,
         )
-        if original.count(r"\backmatter") != 1 or original.index(
-            END_APPENDICES
-        ) > original.index(r"\backmatter"):
-            raise ValueError(
-                f"{template_path}: generated appendices block must precede exactly one \\backmatter"
-            )
+        if original.count(r"\backmatter") != 1 or original.index(END_APPENDICES) > original.index(r"\backmatter"):
+            raise ValueError(f"{template_path}: generated appendices block must precede exactly one \\backmatter")
         text = replace_generated_block(
             original,
             render_include_block(chapters, "chapters"),
@@ -275,23 +237,15 @@ def expected_files(
             for entry in entries:
                 directory = directory_for(book_dir, entry)
                 sections = load_sections(directory)
-                expected[directory / "index.tex"] = render_contents_index(
-                    book_dir, directory, entry, sections
-                )
+                expected[directory / "index.tex"] = render_contents_index(book_dir, directory, entry, sections)
                 expected_sources = {
-                    directory / filename
-                    for section in sections
-                    for filename in section_filenames(section)
+                    directory / filename for section in sections for filename in section_filenames(section)
                 }
-                actual_sources = {
-                    path for path in directory.glob("*.tex") if path.name != "index.tex"
-                }
+                actual_sources = {path for path in directory.glob("*.tex") if path.name != "index.tex"}
                 missing = sorted(expected_sources - actual_sources)
                 orphaned = sorted(actual_sources - expected_sources)
                 if missing:
-                    raise ValueError(
-                        f"{missing[0]}: declared section source is missing"
-                    )
+                    raise ValueError(f"{missing[0]}: declared section source is missing")
                 if orphaned:
                     raise ValueError(f"{orphaned[0]}: orphan section source")
                 for source in sorted(expected_sources):
@@ -299,19 +253,13 @@ def expected_files(
                     declaration = next(
                         (
                             match
-                            for match in re.finditer(
-                                r"\\(chapter|section)(?![A-Za-z@])", clean
-                            )
+                            for match in re.finditer(r"\\(chapter|section)(?![A-Za-z@])", clean)
                             if not is_escaped(clean, match.start())
                         ),
                         None,
                     )
                     if declaration:
                         command = declaration.group(1)
-                        manifest = (
-                            "chapters.yml" if command == "chapter" else "sections.yml"
-                        )
-                        raise ValueError(
-                            f"{source}: {command} declarations belong in {manifest}"
-                        )
+                        manifest = "chapters.yml" if command == "chapter" else "sections.yml"
+                        raise ValueError(f"{source}: {command} declarations belong in {manifest}")
     return expected

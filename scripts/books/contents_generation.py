@@ -38,9 +38,7 @@ def _generate(scope: str, *, book: str | None, check: bool) -> int:
             for path in proof_index_paths(book_dir):
                 if not path.exists():
                     if proof_template is None:
-                        proof_template = (
-                            ROOT / "common/templates/proofs.yml"
-                        ).read_text(encoding="utf-8")
+                        proof_template = (ROOT / "common/templates/proofs.yml").read_text(encoding="utf-8")
                     updates[path] = proof_template
 
     stale = changed_files(updates) if check else write_updates(updates)

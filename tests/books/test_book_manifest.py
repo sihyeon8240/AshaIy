@@ -46,21 +46,13 @@ class ManifestWarningTests(unittest.TestCase):
 
         self.assertEqual(len(warnings), 4)
         self.assertTrue(any("duplicate order 10" in warning for warning in warnings))
-        self.assertTrue(
-            any("archived but release=true" in warning for warning in warnings)
-        )
-        self.assertTrue(
-            any("archived but site=true" in warning for warning in warnings)
-        )
-        self.assertTrue(
-            any("draft but release=true" in warning for warning in warnings)
-        )
+        self.assertTrue(any("archived but release=true" in warning for warning in warnings))
+        self.assertTrue(any("archived but site=true" in warning for warning in warnings))
+        self.assertTrue(any("draft but release=true" in warning for warning in warnings))
 
 
 class ManifestModuleTests(unittest.TestCase):
-    def fixture(
-        self, book: dict[str, object], defaults: dict[str, object] | None = None
-    ):
+    def fixture(self, book: dict[str, object], defaults: dict[str, object] | None = None):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         root = Path(temporary.name)
@@ -157,9 +149,7 @@ class ManifestModuleTests(unittest.TestCase):
                         "version": version,
                     }
                 )
-                self.assertEqual(
-                    load_manifest(path, root)["books"][0]["version"], version
-                )
+                self.assertEqual(load_manifest(path, root)["books"][0]["version"], version)
 
     def test_load_manifest_rejects_invalid_fields(self) -> None:
         for override, diagnostic in (
@@ -248,9 +238,7 @@ class ManifestRecordTests(ManifestFixture):
         root, path = self.make_repository([self.base("alpha", status="unknown")])
         output, errors = io.StringIO(), io.StringIO()
         with (
-            patch.object(
-                sys, "argv", ["books/books.py", "list", "--for", "build", "--warnings"]
-            ),
+            patch.object(sys, "argv", ["books/books.py", "list", "--for", "build", "--warnings"]),
             patch.object(
                 books_cli,
                 "load_manifest",
@@ -285,9 +273,7 @@ class ManifestRecordTests(ManifestFixture):
         ]
         root, path = self.make_repository(records)
         manifest = self.load(root, path)
-        self.assertEqual(
-            [book["slug"] for book in manifest["books"]], ["alpha", "beta", "zeta"]
-        )
+        self.assertEqual([book["slug"] for book in manifest["books"]], ["alpha", "beta", "zeta"])
 
     def test_unknown_status_is_rejected(self) -> None:
         root, path = self.make_repository([self.base("alpha", status="unknown")])
@@ -337,9 +323,7 @@ class SiteManifestValidationTests(unittest.TestCase):
         self.load(build=False, site=False)
 
     def test_site_true_and_build_false_fails(self):
-        with self.assertRaisesRegex(
-            ValueError, "book 'alpha' cannot have site=true when build=false"
-        ):
+        with self.assertRaisesRegex(ValueError, "book 'alpha' cannot have site=true when build=false"):
             self.load(build=False, site=True)
 
     def test_default_build_false_and_site_true_fails(self):

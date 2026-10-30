@@ -20,9 +20,7 @@ class LeanCoverageTests(unittest.TestCase):
                 "% \\begin{theorem}\n\\begin{lemma}Real.\\end{lemma}\n",
                 encoding="utf-8",
             )
-            with mock.patch.object(
-                lean_coverage, "load_proof_index", return_value=([], [])
-            ):
+            with mock.patch.object(lean_coverage, "load_proof_index", return_value=([], [])):
                 metrics = lean_coverage.book_lean_metrics("sample", root)
             self.assertEqual(metrics["total"], 1)
 
@@ -59,13 +57,9 @@ class LeanCoverageTests(unittest.TestCase):
                     ]
                 )
             ]
-            proofs.append(
-                {"book": "other", "id": "s:cor:other", "declaration": "Other.proof"}
-            )
+            proofs.append({"book": "other", "id": "s:cor:other", "declaration": "Other.proof"})
             proofs.append({"book": "sample", "id": "s:prop:unlinked"})
-            with mock.patch.object(
-                lean_coverage, "load_proof_index", return_value=([], proofs)
-            ):
+            with mock.patch.object(lean_coverage, "load_proof_index", return_value=([], proofs)):
                 metrics = lean_coverage.book_lean_metrics("sample", root)
             self.assertEqual(metrics, {"verified": 1, "total": 4, "percentage": 25.0})
 
@@ -76,8 +70,7 @@ class LeanCoverageTests(unittest.TestCase):
                 source = root / "books" / slug / "chapter.tex"
                 source.parent.mkdir(parents=True)
                 source.write_text(
-                    f"\\begin{{theorem}}\\label{{{slug}:thm:result}}"
-                    "Result.\\end{theorem}\n",
+                    f"\\begin{{theorem}}\\label{{{slug}:thm:result}}Result.\\end{{theorem}}\n",
                     encoding="utf-8",
                 )
             proofs = [
@@ -87,25 +80,15 @@ class LeanCoverageTests(unittest.TestCase):
                     "declaration": "Alpha.result",
                 }
             ]
-            with mock.patch.object(
-                lean_coverage, "load_proof_index", return_value=([], proofs)
-            ) as load:
+            with mock.patch.object(lean_coverage, "load_proof_index", return_value=([], proofs)) as load:
                 registered = lean_coverage.registered_results(root)
-                alpha = lean_coverage.book_lean_metrics(
-                    "alpha", root, registered=registered
-                )
-                beta = lean_coverage.book_lean_metrics(
-                    "beta", root, registered=registered
-                )
+                alpha = lean_coverage.book_lean_metrics("alpha", root, registered=registered)
+                beta = lean_coverage.book_lean_metrics("beta", root, registered=registered)
                 load.assert_called_once_with(root)
             self.assertEqual(alpha, {"verified": 1, "total": 1, "percentage": 100.0})
             self.assertEqual(beta, {"verified": 0, "total": 1, "percentage": 0.0})
-            with mock.patch.object(
-                lean_coverage, "load_proof_index", return_value=([], [])
-            ):
-                self.assertEqual(
-                    lean_coverage.book_lean_metrics("alpha", root)["verified"], 0
-                )
+            with mock.patch.object(lean_coverage, "load_proof_index", return_value=([], [])):
+                self.assertEqual(lean_coverage.book_lean_metrics("alpha", root)["verified"], 0)
 
     def test_invalid_index_is_not_hidden_by_batch_loading(self) -> None:
         with (
@@ -123,9 +106,7 @@ class LeanCoverageTests(unittest.TestCase):
             root = Path(temporary)
             (root / "books/sample").mkdir(parents=True)
             proofs = [{"book": "sample"}]
-            with mock.patch.object(
-                lean_coverage, "load_proof_index", return_value=([], proofs)
-            ):
+            with mock.patch.object(lean_coverage, "load_proof_index", return_value=([], proofs)):
                 metrics = lean_coverage.book_lean_metrics("sample", root)
             self.assertEqual(metrics, {"verified": 0, "total": 0, "percentage": 0.0})
 

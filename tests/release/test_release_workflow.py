@@ -23,9 +23,7 @@ class ReleaseWorkflowTests(unittest.TestCase):
             results,
             results,
         ):
-            with self.subTest(
-                event=event, branch=branch, count=count, source=source, books=books
-            ):
+            with self.subTest(event=event, branch=branch, count=count, source=source, books=books):
                 context = {
                     "github.event_name": event,
                     "github.ref": branch,
@@ -34,10 +32,7 @@ class ReleaseWorkflowTests(unittest.TestCase):
                     "needs.build-check.result": books,
                 }
                 expected = (
-                    event == "push"
-                    and branch == "refs/heads/main"
-                    and count != "0"
-                    and source == books == "success"
+                    event == "push" and branch == "refs/heads/main" and count != "0" and source == books == "success"
                 )
                 self.assertEqual(condition_allows(condition, context), expected)
 

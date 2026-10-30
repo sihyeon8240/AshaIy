@@ -70,7 +70,7 @@
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.rulers": [
-      88
+      120
     ],
     "editor.formatOnSave": true,
     "editor.formatOnSaveMode": "file",
@@ -82,7 +82,7 @@
   "[latex]": {
     "editor.defaultFormatter": "James-Yu.latex-workshop",
     "editor.rulers": [
-      88
+      120
     ],
     "editor.formatOnSave": true,
     "editor.formatOnSaveMode": "file"

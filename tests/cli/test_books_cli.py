@@ -16,9 +16,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class BooksCliTests(unittest.TestCase):
-    def run_validate_new(
-        self, slug: str, title: str
-    ) -> subprocess.CompletedProcess[str]:
+    def run_validate_new(self, slug: str, title: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [
                 sys.executable,
@@ -114,9 +112,7 @@ class ExportFixtureTests(unittest.TestCase):
         payload = self.run_export(defaults, books)
 
         self.assertEqual(payload["schema_version"], 1)
-        self.assertEqual(
-            [book["slug"] for book in payload["books"]], ["alpha", "bravo"]
-        )
+        self.assertEqual([book["slug"] for book in payload["books"]], ["alpha", "bravo"])
         self.assertEqual(
             payload["books"][0],
             {

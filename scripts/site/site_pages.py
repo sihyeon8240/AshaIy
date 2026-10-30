@@ -88,20 +88,13 @@ def render_site_page(book: dict) -> str:
         "edit_path": "site/_layouts/book.html",
         "book_slug": book["slug"],
     }
-    return (
-        "---\n"
-        + yaml.safe_dump(front_matter, allow_unicode=True, sort_keys=False)
-        + "---\n"
-    )
+    return "---\n" + yaml.safe_dump(front_matter, allow_unicode=True, sort_keys=False) + "---\n"
 
 
 def render_site(manifest: dict) -> dict[str, str]:
     books = site_books(manifest)
     return {
-        "_data/books.json": json.dumps(
-            {"schema_version": 1, "books": books}, ensure_ascii=False, indent=2
-        )
-        + "\n",
+        "_data/books.json": json.dumps({"schema_version": 1, "books": books}, ensure_ascii=False, indent=2) + "\n",
         **{f"books/{book['slug']}.html": render_site_page(book) for book in books},
     }
 
@@ -141,15 +134,11 @@ def _generate(
             if skip_disabled:
                 print(f"Skipped site generation for disabled book: {book}")
                 return 0
-            raise ValueError(
-                f"book is not enabled for site in config/books.yml: {book}"
-            )
+            raise ValueError(f"book is not enabled for site in config/books.yml: {book}")
     outputs = render_site(manifest)
     if book:
         outputs = {
-            name: content
-            for name, content in outputs.items()
-            if name in {"_data/books.json", f"books/{book}.html"}
+            name: content for name, content in outputs.items() if name in {"_data/books.json", f"books/{book}.html"}
         }
     if check:
         return validate_site(outputs, site_dir, book=book)
@@ -170,20 +159,15 @@ def _generate(
     return 0
 
 
-def validate_site(
-    outputs: dict[str, str], site_dir: Path, *, book: str | None = None
-) -> int:
+def validate_site(outputs: dict[str, str], site_dir: Path, *, book: str | None = None) -> int:
     pages_dir = site_dir / "books"
     actual_names = (
-        {path.relative_to(site_dir).as_posix() for path in pages_dir.iterdir()}
-        if pages_dir.is_dir()
-        else set()
+        {path.relative_to(site_dir).as_posix() for path in pages_dir.iterdir()} if pages_dir.is_dir() else set()
     )
     stale = [
         name
         for name, expected in outputs.items()
-        if not (site_dir / name).is_file()
-        or (site_dir / name).read_text(encoding="utf-8") != expected
+        if not (site_dir / name).is_file() or (site_dir / name).read_text(encoding="utf-8") != expected
     ]
     orphaned = sorted(actual_names - outputs.keys()) if not book else []
     if stale or orphaned:
@@ -199,12 +183,8 @@ def validate_site(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--skip-disabled", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument(
-        "--check", action="store_true", help="fail instead of updating stale output"
-    )
-    parser.add_argument(
-        "--book", metavar="SLUG", help="limit page generation to one site-enabled book"
-    )
+    parser.add_argument("--check", action="store_true", help="fail instead of updating stale output")
+    parser.add_argument("--book", metavar="SLUG", help="limit page generation to one site-enabled book")
     parser.add_argument(
         "--output-dir",
         type=Path,

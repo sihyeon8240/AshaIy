@@ -23,9 +23,7 @@ from scripts.repository.config.validation_patterns import validation_pattern
 from scripts.repository.source_reads import read_text, reuse_source_reads
 
 ROOT = Path(__file__).resolve().parents[2]
-LABEL_RE = re.compile(
-    r"^[a-z0-9]+:(?:thm|lem|prop|cor):[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$"
-)
+LABEL_RE = re.compile(r"^[a-z0-9]+:(?:thm|lem|prop|cor):[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$")
 DECLARATION_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_']*(?:\.[A-Za-z_][A-Za-z0-9_']*)+$")
 ALLOWED_FIELDS = {"id", "declaration"}
 
@@ -44,11 +42,7 @@ def index_latex_labels(
     result_labels: dict[Path, set[str]] = {}
     for slug in sorted(books):
         book = root / "books" / slug
-        paths = sorted(
-            path
-            for kind in ("chapters", "appendices")
-            for path in (book / kind).rglob("*.tex")
-        )
+        paths = sorted(path for kind in ("chapters", "appendices") for path in (book / kind).rglob("*.tex"))
         for path in paths:
             if path.name == "index.tex":
                 continue
@@ -66,9 +60,7 @@ def index_latex_labels(
     return errors, sources, result_labels
 
 
-def proof_namespaces(
-    root: Path, proofs: list[dict[str, Any]]
-) -> dict[tuple[str, str, str], str | None]:
+def proof_namespaces(root: Path, proofs: list[dict[str, Any]]) -> dict[tuple[str, str, str], str | None]:
     namespaces: dict[tuple[str, str, str], str | None] = {}
     for slug in {entry["book"] for entry in proofs}:
         chapters, appendices = load_book_contents(root / "books" / slug)
@@ -94,16 +86,9 @@ def proof_ownership_errors(
         return [f"{prefix} names an unregistered book: {book!r}"]
 
     label_prefix = book_data.get("label_prefix")
-    owns_label = (
-        isinstance(proof_id, str)
-        and isinstance(label_prefix, str)
-        and proof_id.startswith(f"{label_prefix}:")
-    )
+    owns_label = isinstance(proof_id, str) and isinstance(label_prefix, str) and proof_id.startswith(f"{label_prefix}:")
     if not owns_label:
-        errors.append(
-            f"{prefix} theorem label does not use book prefix "
-            f"{label_prefix!r}: {proof_id!r}"
-        )
+        errors.append(f"{prefix} theorem label does not use book prefix {label_prefix!r}: {proof_id!r}")
 
     lean_module = book_data.get("lean_module")
     prefix_namespace = "Appendices." if kind == "appendices" else ""
@@ -116,8 +101,7 @@ def proof_ownership_errors(
     )
     if not owns_declaration:
         errors.append(
-            f"{prefix} Lean declaration is outside the book namespace "
-            f"{expected_namespace!r}: {declaration!r}"
+            f"{prefix} Lean declaration is outside the book namespace {expected_namespace!r}: {declaration!r}"
         )
     return errors
 
@@ -137,10 +121,7 @@ def proof_label_errors(
 
     expected_tex_root = root / "books" / str(book) / kind / str(chapter)
     if not tex_path.is_relative_to(expected_tex_root):
-        errors.append(
-            f"{prefix} label belongs outside shard chapter {chapter!r}: "
-            f"{tex_path.relative_to(root)}"
-        )
+        errors.append(f"{prefix} label belongs outside shard chapter {chapter!r}: {tex_path.relative_to(root)}")
     if proof_id not in result_labels:
         errors.append(f"{prefix} label is not owned by a supported theorem environment")
     return errors
@@ -171,17 +152,11 @@ def validate_index(root: Path = ROOT) -> tuple[list[str], list[dict[str, Any]]]:
         chapter = record["chapter"]
         kind = record["kind"]
         book = record["book"]
-        entry = {
-            key: value
-            for key, value in record.items()
-            if key not in {"source", "chapter", "kind", "book"}
-        }
+        entry = {key: value for key, value in record.items() if key not in {"source", "chapter", "kind", "book"}}
         prefix = f"{source} proof entry {number}"
         unknown = set(entry) - ALLOWED_FIELDS
         if unknown:
-            errors.append(
-                f"{prefix} contains unknown fields: {', '.join(sorted(unknown))}"
-            )
+            errors.append(f"{prefix} contains unknown fields: {', '.join(sorted(unknown))}")
         missing = {"id", "declaration"} - set(entry)
         if missing:
             errors.append(f"{prefix} is missing fields: {', '.join(sorted(missing))}")
@@ -196,15 +171,9 @@ def validate_index(root: Path = ROOT) -> tuple[list[str], list[dict[str, Any]]]:
         else:
             seen_ids.add(proof_id)
 
-        errors.extend(
-            proof_ownership_errors(
-                prefix, record, books.get(book), namespaces.get((book, kind, chapter))
-            )
-        )
+        errors.extend(proof_ownership_errors(prefix, record, books.get(book), namespaces.get((book, kind, chapter))))
 
-        if not isinstance(declaration, str) or not DECLARATION_RE.fullmatch(
-            declaration
-        ):
+        if not isinstance(declaration, str) or not DECLARATION_RE.fullmatch(declaration):
             errors.append(f"{prefix} has invalid Lean declaration: {declaration!r}")
         elif declaration in seen_declarations:
             errors.append(f"duplicate Lean declaration: {declaration}")
@@ -215,9 +184,7 @@ def validate_index(root: Path = ROOT) -> tuple[list[str], list[dict[str, Any]]]:
         if tex_path is None:
             errors.append(f"{prefix} label is absent from textbook sources")
             continue
-        errors.extend(
-            proof_label_errors(root, prefix, record, tex_path, result_labels[tex_path])
-        )
+        errors.extend(proof_label_errors(root, prefix, record, tex_path, result_labels[tex_path]))
         valid.append(dict(entry, book=book))
 
     return errors, valid
@@ -240,15 +207,11 @@ def check_declarations(root: Path, proofs: list[dict[str, Any]]) -> list[str]:
     )
     if result.returncode == 0:
         return []
-    diagnostic = "\n".join(
-        part for part in (result.stdout, result.stderr) if part
-    ).strip()
+    diagnostic = "\n".join(part for part in (result.stdout, result.stderr) if part).strip()
     return [f"Lean declaration check failed:\n{diagnostic}"]
 
 
-def check_root_imports(
-    root: Path, modules: set[str], source_texts: dict[Path, str]
-) -> list[str]:
+def check_root_imports(root: Path, modules: set[str], source_texts: dict[Path, str]) -> list[str]:
     errors: list[str] = []
     root_module = root / "lean/Textbooks.lean"
     if root_module.is_file():
@@ -261,51 +224,34 @@ def check_root_imports(
         for module in sorted(modules - imported):
             errors.append(f"lean/Textbooks.lean does not import Textbooks.{module}.All")
         for module in sorted(imported - modules):
-            errors.append(
-                f"lean/Textbooks.lean imports unregistered textbook module: {module}"
-            )
+            errors.append(f"lean/Textbooks.lean imports unregistered textbook module: {module}")
     else:
         errors.append("missing Lean root module: lean/Textbooks.lean")
 
     return errors
 
 
-def check_book_sources(
-    root: Path, modules: set[str], sources: dict[Path, str]
-) -> list[str]:
+def check_book_sources(root: Path, modules: set[str], sources: dict[Path, str]) -> list[str]:
     errors: list[str] = []
     textbooks = root / "lean/Textbooks"
     for source in sorted(sources):
         relative = source.relative_to(textbooks)
         owner = relative.parts[0] if len(relative.parts) > 1 else source.stem
         if owner not in modules:
-            errors.append(
-                f"{source.relative_to(root)} is outside a registered textbook namespace"
-            )
+            errors.append(f"{source.relative_to(root)} is outside a registered textbook namespace")
 
     for owner in sorted(modules):
         directory = textbooks / owner
         if not directory.is_dir():
-            errors.append(
-                f"missing Lean textbook module: {directory.relative_to(root)}"
-            )
+            errors.append(f"missing Lean textbook module: {directory.relative_to(root)}")
             continue
-        for source in sorted(
-            path for path in sources if path.is_relative_to(directory)
-        ):
+        for source in sorted(path for path in sources if path.is_relative_to(directory)):
             relative = source.relative_to(directory)
             if relative.as_posix() != "All.lean" and not (
-                (
-                    len(relative.parts) == 2
-                    or (len(relative.parts) == 3 and relative.parts[0] == "Appendices")
-                )
+                (len(relative.parts) == 2 or (len(relative.parts) == 3 and relative.parts[0] == "Appendices"))
                 and re.fullmatch(validation_pattern("lean_name"), relative.parts[-2])
-                and not re.fullmatch(
-                    validation_pattern("reserved_lean_namespace"), relative.parts[-2]
-                )
-                and re.fullmatch(
-                    validation_pattern("lean_name") + r"\.lean", relative.name
-                )
+                and not re.fullmatch(validation_pattern("reserved_lean_namespace"), relative.parts[-2])
+                and re.fullmatch(validation_pattern("lean_name") + r"\.lean", relative.name)
                 and relative.name != "All.lean"
             ):
                 errors.append(
@@ -317,8 +263,7 @@ def check_book_sources(
                 parts = imported.split(".")
                 if len(parts) > 1 and parts[0] == "Textbooks" and parts[1] != owner:
                     errors.append(
-                        f"{source.relative_to(root)}:{number}: direct cross-book import "
-                        f"is forbidden: {imported}"
+                        f"{source.relative_to(root)}:{number}: direct cross-book import is forbidden: {imported}"
                     )
 
     return errors
@@ -330,17 +275,11 @@ def check_source_proofs(root: Path, sources: dict[Path, str]) -> list[str]:
 
     for source in sources:
         for number in escape_hatch_lines(sources[source]):
-            errors.append(
-                f"{source.relative_to(root)}:{number}: unchecked Lean proof escape hatch"
-            )
+            errors.append(f"{source.relative_to(root)}:{number}: unchecked Lean proof escape hatch")
 
-    source_by_module = {
-        ".".join(source.relative_to(lean_root).with_suffix("").parts): source
-        for source in sources
-    }
+    source_by_module = {".".join(source.relative_to(lean_root).with_suffix("").parts): source for source in sources}
     imports = {
-        module: {name for name, _ in module_imports(sources[source])}
-        for module, source in source_by_module.items()
+        module: {name for name, _ in module_imports(sources[source])} for module, source in source_by_module.items()
     }
 
     reachable: set[str] = set()
@@ -357,10 +296,7 @@ def check_source_proofs(root: Path, sources: dict[Path, str]) -> list[str]:
         )
 
     for module in sorted(set(source_by_module) - reachable):
-        errors.append(
-            f"Lean source is not reachable from Textbooks: "
-            f"{source_by_module[module].relative_to(root)}"
-        )
+        errors.append(f"Lean source is not reachable from Textbooks: {source_by_module[module].relative_to(root)}")
     return errors
 
 

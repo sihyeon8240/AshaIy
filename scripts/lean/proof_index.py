@@ -59,9 +59,7 @@ def load_proof_index(
             continue
         unknown = set(shard) - SHARD_FIELDS
         if unknown:
-            errors.append(
-                f"{relative} contains unknown fields: {', '.join(sorted(unknown))}"
-            )
+            errors.append(f"{relative} contains unknown fields: {', '.join(sorted(unknown))}")
         entries = shard.get("proofs")
         if not isinstance(entries, list):
             errors.append(f"{relative} 'proofs' must be a list")
@@ -75,8 +73,7 @@ def load_proof_index(
             shard_owned = {"book", "chapter", "source", "kind"} & set(entry)
             if shard_owned:
                 errors.append(
-                    f"{relative} proof entry {number} contains shard-owned fields: "
-                    f"{', '.join(sorted(shard_owned))}"
+                    f"{relative} proof entry {number} contains shard-owned fields: {', '.join(sorted(shard_owned))}"
                 )
             enriched = dict(entry)
             enriched["book"] = expected_book

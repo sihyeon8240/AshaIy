@@ -39,15 +39,9 @@ def api(endpoint: str):
 def identity(book: str, image: str, *, candidate: bool = False) -> dict:
     if not re.fullmatch(validation_pattern("book_slug"), book):
         raise ValueError("invalid book slug")
-    pattern = (
-        validation_pattern("image_digest")
-        if candidate
-        else validation_pattern("verified_image")
-    )
+    pattern = validation_pattern("image_digest") if candidate else validation_pattern("verified_image")
     if not re.fullmatch(pattern, image):
-        raise ValueError(
-            "a candidate image ID or immutable registry digest is required"
-        )
+        raise ValueError("a candidate image ID or immutable registry digest is required")
     return {
         "policy": "strict-candidate-pdf-v2" if candidate else POLICY,
         "book": book,
@@ -62,9 +56,7 @@ def record(expected: dict, directory: Path) -> None:
     environment = json.loads((directory / FILENAME).read_text(encoding="utf-8"))
     if environment != expected["environment"]:
         raise ValueError("build environment differs from the canonical environment")
-    command(
-        "python3", "scripts/latex/check_log.py", "--strict", str(directory / "book.log")
-    )
+    command("python3", "scripts/latex/check_log.py", "--strict", str(directory / "book.log"))
     files = {name: (directory / name).read_bytes() for name in FILES}
     if not files["book.pdf"].startswith(b"%PDF-"):
         raise ValueError("build did not produce a PDF")
@@ -76,14 +68,10 @@ def record(expected: dict, directory: Path) -> None:
     }
     if os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch":
         validated = os.environ.get("VALIDATION_SHA", "")
-        if not re.fullmatch(
-            validation_pattern("git_commit"), validated
-        ) or validated != os.environ.get("GITHUB_SHA"):
+        if not re.fullmatch(validation_pattern("git_commit"), validated) or validated != os.environ.get("GITHUB_SHA"):
             raise ValueError("dispatch must validate an explicit, matching commit")
         manifest["validation_sha"] = validated
-    (directory / "verified-build.json").write_text(
-        json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    (directory / "verified-build.json").write_text(json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def verify_archive(data: bytes, expected: dict, run: dict) -> dict[str, bytes]:
@@ -100,18 +88,14 @@ def verify_archive(data: bytes, expected: dict, run: dict) -> dict[str, bytes]:
             raise ValueError("invalid build manifest")
         github_artifacts.validate_identity(manifest, expected, run, label="build")
         files = {name: archive.read(name) for name in FILES}
-        if manifest.get("checksums") != {
-            name: checksum(content) for name, content in files.items()
-        }:
+        if manifest.get("checksums") != {name: checksum(content) for name, content in files.items()}:
             raise ValueError("artifact checksum mismatch")
         if not files["book.pdf"].startswith(b"%PDF-") or not files["book.log"]:
             raise ValueError("missing PDF or build log")
         return files
 
 
-def restore_artifact(
-    repository: str, artifact: dict, expected: dict, run: dict, directory: Path
-) -> None:
+def restore_artifact(repository: str, artifact: dict, expected: dict, run: dict, directory: Path) -> None:
     with tempfile.TemporaryDirectory(prefix="verified-build-") as temporary:
         archive = Path(temporary) / "build.zip"
         github_artifacts.download(repository, artifact, archive, max_bytes=MAX_BYTES)
@@ -152,9 +136,7 @@ def restore_candidate(expected: dict, directory: Path, archive: Path) -> bool:
     return True
 
 
-def restore(
-    expected: dict, directory: Path, *, diagnostics: list[str] | None = None
-) -> bool:
+def restore(expected: dict, directory: Path, *, diagnostics: list[str] | None = None) -> bool:
     repository = os.environ["GITHUB_REPOSITORY"]
     commit = os.environ["GITHUB_SHA"]
     pulls = api(f"repos/{repository}/commits/{commit}/pulls?per_page=100")
@@ -167,17 +149,13 @@ def restore(
         ):
             continue
         head = pull["head"]["sha"]
-        if (
-            api(f"repos/{repository}/git/commits/{head}")["tree"]["sha"]
-            != expected["tree"]
-        ):
+        if api(f"repos/{repository}/git/commits/{head}")["tree"]["sha"] != expected["tree"]:
             if diagnostics is not None:
                 diagnostics.append("source-tree-mismatch")
             continue
-        runs = api(
-            f"repos/{repository}/actions/workflows/build.yml/runs"
-            f"?status=success&head_sha={head}&per_page=30"
-        )["workflow_runs"]
+        runs = api(f"repos/{repository}/actions/workflows/build.yml/runs?status=success&head_sha={head}&per_page=30")[
+            "workflow_runs"
+        ]
         for run in runs:
             event = run.get("event")
             if event not in {"pull_request", "workflow_dispatch"} or not eligible_run(
@@ -190,9 +168,7 @@ def restore(
                 if not branch or run.get("head_branch") != branch:
                     continue
                 run_expected = {**expected, "validation_sha": head}
-            artifacts = api(
-                f"repos/{repository}/actions/runs/{run['id']}/artifacts?per_page=100"
-            )["artifacts"]
+            artifacts = api(f"repos/{repository}/actions/runs/{run['id']}/artifacts?per_page=100")["artifacts"]
             for artifact in artifacts:
                 if (
                     artifact["name"] != f"{expected['book']}-verified-build"
@@ -202,9 +178,7 @@ def restore(
                     continue
                 try:
                     restore_artifact(repository, artifact, run_expected, run, directory)
-                    print(
-                        f"Reused verified PDF from PR #{pull['number']}, run {run['id']}"
-                    )
+                    print(f"Reused verified PDF from PR #{pull['number']}, run {run['id']}")
                     return True
                 except (
                     ValueError,
@@ -221,21 +195,13 @@ def restore(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "mode", choices=("record", "restore", "record-candidate", "restore-candidate")
-    )
+    parser.add_argument("mode", choices=("record", "restore", "record-candidate", "restore-candidate"))
     parser.add_argument("--book", required=True)
     parser.add_argument("--image", required=True)
-    parser.add_argument(
-        "--candidate-directory", type=Path, default=ROOT / "build/candidate-pdfs"
-    )
+    parser.add_argument("--candidate-directory", type=Path, default=ROOT / "build/candidate-pdfs")
     args = parser.parse_args()
     candidate = args.mode.endswith("-candidate")
-    expected = (
-        identity(args.book, args.image, candidate=True)
-        if candidate
-        else identity(args.book, args.image)
-    )
+    expected = identity(args.book, args.image, candidate=True) if candidate else identity(args.book, args.image)
     directory = ROOT / "build" / args.book
     archive = args.candidate_directory / f"{args.book}.zip"
     if args.mode == "record-candidate":
@@ -261,11 +227,7 @@ def main() -> None:
     ) as error:
         diagnostics.append("artifact-unavailable")
         print(f"Verified artifact unavailable; rebuilding: {error}")
-    reason = (
-        "verified-artifact"
-        if reused
-        else next(reversed(diagnostics), "no-eligible-artifact")
-    )
+    reason = "verified-artifact" if reused else next(reversed(diagnostics), "no-eligible-artifact")
     with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
         output.write(f"reused={str(reused).lower()}\n")
         output.write(f"reuse_reason={reason}\n")

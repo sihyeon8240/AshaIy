@@ -32,9 +32,7 @@ class SnapshotLayoutTests(unittest.TestCase):
                 redirect_stdout(io.StringIO()),
             ):
                 site_pdf_staging.stage(root / "snapshot", destination)
-            self.assertEqual(
-                [path.name for path in destination.iterdir()], ["alpha.pdf"]
-            )
+            self.assertEqual([path.name for path in destination.iterdir()], ["alpha.pdf"])
 
     def test_snapshot_rejects_unknown_empty_and_non_pdf_entries(self):
         cases = (
@@ -77,9 +75,7 @@ class SnapshotLayoutTests(unittest.TestCase):
                 redirect_stdout(io.StringIO()),
             ):
                 site_pdf_staging.stage(root / "snapshot", destination)
-            self.assertEqual(
-                [path.name for path in destination.iterdir()], ["alpha.pdf"]
-            )
+            self.assertEqual([path.name for path in destination.iterdir()], ["alpha.pdf"])
 
     def test_overlapping_paths_preserve_input_and_existing_output(self):
         for target in ("snapshot", "snapshot/pdf", ".", "alias"):
@@ -139,9 +135,7 @@ class ArtifactLayoutTests(unittest.TestCase):
         registered = set(site_slugs) if registered is None else set(registered)
         selection = (registered, set(site_slugs))
         with (
-            mock.patch.object(
-                site_pdf_staging, "registered_and_site_slugs", return_value=selection
-            ),
+            mock.patch.object(site_pdf_staging, "registered_and_site_slugs", return_value=selection),
             redirect_stdout(io.StringIO()),
         ):
             site_pdf_staging.stage(downloaded, destination)

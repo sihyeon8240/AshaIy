@@ -50,9 +50,7 @@ class ContentsManifestTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             book = self.fixture(Path(temporary))
             path = book / "chapters/start/sections.yml"
-            path.write_text(
-                "schema_version: 1\nsections:\n- slug: first\n  title: 100% complete\n"
-            )
+            path.write_text("schema_version: 1\nsections:\n- slug: first\n  title: 100% complete\n")
             with self.assertRaisesRegex(ValueError, "unescaped percent"):
                 load_sections(path.parent)
             path.write_text(path.read_text().replace("100%", r"100\%"))
@@ -102,17 +100,13 @@ class ContentsManifestTests(unittest.TestCase):
             with patch.object(Path, "read_text", tracked):
                 rendered = expected_files(book, book=self.RECORD)
             self.assertEqual(reads, [book / "chapters/start/sections.yml"])
-            self.assertIn(
-                "\\section{First}", rendered[book / "chapters/start/index.tex"]
-            )
+            self.assertIn("\\section{First}", rendered[book / "chapters/start/index.tex"])
 
     def test_render_uses_manifest_titles_and_single_source(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             book = self.fixture(Path(temporary))
             rendered = expected_files(book, book=self.RECORD)
-            self.assertIn(
-                r"\include{chapters/start/index}", rendered[book / "book.tex"]
-            )
+            self.assertIn(r"\include{chapters/start/index}", rendered[book / "book.tex"])
             self.assertNotIn(r"\appendix", rendered[book / "book.tex"])
             index = rendered[book / "chapters/start/index.tex"]
             self.assertIn(r"\chapter{Start}", index)
@@ -130,10 +124,7 @@ class ContentsManifestTests(unittest.TestCase):
             (root / "books").mkdir()
             book = book.rename(root / "books/sample")
             manifest = book / "chapters.yml"
-            manifest.write_text(
-                manifest.read_text()
-                + "appendices:\n  - slug: tables\n    title: Tables\n"
-            )
+            manifest.write_text(manifest.read_text() + "appendices:\n  - slug: tables\n    title: Tables\n")
             appendix = book / "appendices/tables"
             appendix.mkdir(parents=True)
             (appendix / "sections.yml").write_text(
@@ -146,9 +137,7 @@ class ContentsManifestTests(unittest.TestCase):
             indexes = [book / "chapters/start/proofs.yml", appendix / "proofs.yml"]
             with (
                 patch.object(generator, "ROOT", root),
-                patch.object(
-                    generator, "load_manifest", return_value={"books": [self.RECORD]}
-                ),
+                patch.object(generator, "load_manifest", return_value={"books": [self.RECORD]}),
             ):
                 self.assertEqual(generator.generate("all", check=True), 1)
                 self.assertTrue(all(not path.exists() for path in indexes))
@@ -177,8 +166,7 @@ class ContentsManifestTests(unittest.TestCase):
             appendix = book / "appendices/tables"
             appendix.mkdir(parents=True)
             (book / "chapters.yml").write_text(
-                (book / "chapters.yml").read_text()
-                + "appendices:\n  - slug: tables\n    title: Tables\n"
+                (book / "chapters.yml").read_text() + "appendices:\n  - slug: tables\n    title: Tables\n"
             )
             (appendix / "sections.yml").write_text(
                 "schema_version: 1\nsections:\n  - slug: values\n    title: Values\n"
@@ -188,9 +176,7 @@ class ContentsManifestTests(unittest.TestCase):
             rendered = expected_files(book, book=self.RECORD)
             entry = rendered[book / "book.tex"]
             self.assertLess(entry.index(r"\appendix"), entry.index("appendices/tables"))
-            self.assertLess(
-                entry.index("appendices/tables"), entry.index(r"\backmatter")
-            )
+            self.assertLess(entry.index("appendices/tables"), entry.index(r"\backmatter"))
             index = rendered[appendix / "index.tex"]
             self.assertIn("chapter{Tables}", index)
             self.assertIn("appendices/tables/values.tex", index)
@@ -227,9 +213,7 @@ class ContentsManifestTests(unittest.TestCase):
             rendered = expected_files(book, book=self.RECORD)
             for path, text in rendered.items():
                 path.write_text(text)
-                (output / path.parent.relative_to(book)).mkdir(
-                    parents=True, exist_ok=True
-                )
+                (output / path.parent.relative_to(book)).mkdir(parents=True, exist_ok=True)
             entry = rendered[book / "book.tex"]
             # Exercise the generated assembly with the actual shared style.
             assembly = entry[entry.index(r"\mainmatter") : entry.index(r"\nocite")]
@@ -321,9 +305,7 @@ class ContentsManifestTests(unittest.TestCase):
                 "schema_version: 1\nsections:\n- slug: first\n  title: First\n  7: wrong\n",
             ):
                 manifest.write_text(source)
-                with self.assertRaisesRegex(
-                    ValueError, "sections.yml.*field names must be strings"
-                ):
+                with self.assertRaisesRegex(ValueError, "sections.yml.*field names must be strings"):
                     load_sections(manifest.parent)
 
     def test_orphan_section_source_fails(self) -> None:
@@ -345,9 +327,7 @@ class ContentsManifestTests(unittest.TestCase):
                 for suffix in ("{Wrong}", "*{Wrong}", "[Short]{Wrong}"):
                     with self.subTest(command=command, suffix=suffix):
                         source.write_text(f"\\{command}{suffix}\n", encoding="utf-8")
-                        with self.assertRaisesRegex(
-                            ValueError, rf"{command} declarations belong in {manifest}"
-                        ):
+                        with self.assertRaisesRegex(ValueError, rf"{command} declarations belong in {manifest}"):
                             expected_files(book, book=self.RECORD)
 
     def test_literal_and_escaped_sectioning_commands_are_allowed(self) -> None:
@@ -355,9 +335,7 @@ class ContentsManifestTests(unittest.TestCase):
             r"\verb|\section{sample}|",
             r"\verb*+\chapter{sample}+",
             "\n".join((r"\begin{verbatim}", r"\chapter{sample}", r"\end{verbatim}")),
-            "\n".join(
-                (r"\begin{lean}", r'def note := "\\section{sample}"', r"\end{lean}")
-            ),
+            "\n".join((r"\begin{lean}", r'def note := "\\section{sample}"', r"\end{lean}")),
             r"First\\section{sample}",
         ]
         with tempfile.TemporaryDirectory() as temporary:

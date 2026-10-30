@@ -31,9 +31,7 @@ class SourceReadTests(unittest.TestCase):
             "label: 한글\nitems: [one, two]\n",
         ):
             with self.subTest(text=text):
-                self.assertEqual(
-                    parse_yaml(text), yaml.load(text, Loader=PythonStrictLoader)
-                )
+                self.assertEqual(parse_yaml(text), yaml.load(text, Loader=PythonStrictLoader))
         for text in (
             "key: true\nkey: false\n",
             "base: &base {key: true}\nmerged: {<<: *base}\n",
@@ -89,9 +87,7 @@ class SourceReadTests(unittest.TestCase):
             path = Path(temporary) / "manifest.yml"
             path.write_text("value: first\n")
             original = Path.read_text
-            with patch.object(
-                Path, "read_text", autospec=True, side_effect=original
-            ) as reader:
+            with patch.object(Path, "read_text", autospec=True, side_effect=original) as reader:
                 with reuse_source_reads():
                     self.assertEqual(read_text(path), "value: first\n")
                     self.assertEqual(read_yaml(path), {"value": "first"})

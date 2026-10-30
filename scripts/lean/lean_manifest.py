@@ -32,11 +32,7 @@ def load_modules(directory: Path) -> list[str]:
         raise ValueError(f"{path}: modules must be a list")
     seen: set[str] = set()
     for module in modules:
-        if (
-            not isinstance(module, str)
-            or not TOPIC.fullmatch(module)
-            or module == "All"
-        ):
+        if not isinstance(module, str) or not TOPIC.fullmatch(module) or module == "All":
             raise ValueError(f"{path}: invalid topic name: {module!r}")
         if module in seen:
             raise ValueError(f"{path}: duplicate module: {module}")
@@ -67,8 +63,7 @@ def book_assembly(root: Path, book: dict) -> str:
             if modules:
                 groups.append(
                     "\n".join(
-                        f"import Textbooks.{book['lean_module']}."
-                        f"{relative.replace('/', '.')}.{name}"
+                        f"import Textbooks.{book['lean_module']}.{relative.replace('/', '.')}.{name}"
                         for name in modules
                     )
                 )
@@ -104,8 +99,4 @@ def expected_files(root: Path = ROOT, book: str | None = None) -> dict[Path, str
 
 
 def stale_files(expected: dict[Path, str]) -> list[Path]:
-    return [
-        path
-        for path, text in expected.items()
-        if not path.is_file() or read_text(path) != text
-    ]
+    return [path for path, text in expected.items() if not path.is_file() or read_text(path) != text]

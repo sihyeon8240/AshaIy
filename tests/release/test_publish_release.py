@@ -53,9 +53,7 @@ class PublishReleaseTests(unittest.TestCase):
         self.pdf = self.package / f"{self.tag}.pdf"
         self.pdf.write_bytes(b"%PDF-test")
         self.checksum = self.package / "SHA256SUMS"
-        self.checksum.write_text(
-            f"{hashlib.sha256(self.pdf.read_bytes()).hexdigest()}  {self.pdf.name}\n"
-        )
+        self.checksum.write_text(f"{hashlib.sha256(self.pdf.read_bytes()).hexdigest()}  {self.pdf.name}\n")
         self.bin = self.root / "bin"
         self.bin.mkdir()
         self.state = self.root / "state.json"
@@ -281,12 +279,7 @@ path.write_text(json.dumps(s))
         self.assertIn("different content", result.stderr)
         state = json.loads(self.state.read_text())
         self.assertTrue(state["draft"])
-        self.assertFalse(
-            any(
-                c[:2] in [["release", "edit"], ["release", "upload"]]
-                for c in state["calls"]
-            )
-        )
+        self.assertFalse(any(c[:2] in [["release", "edit"], ["release", "upload"]] for c in state["calls"]))
 
     def test_non_main_and_wrong_checkout_fail_before_remote_writes(self):
         for env in [

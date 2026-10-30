@@ -54,10 +54,7 @@ def builtin_commands() -> dict[str, CommandSpec]:
         "ldots cdots vdots ddots dots sin cos tan cot sec csc log ln exp det dim "
         "gcd hom ker lim sup inf max min sum prod coprod int iint iiint oint".split()
     )
-    starred = set(
-        "operatorname chapter section subsection subsubsection part paragraph "
-        "subparagraph caption".split()
-    )
+    starred = set("operatorname chapter section subsection subsubsection part paragraph subparagraph caption".split())
     optional = set(
         "sqrt cfrac chapter section subsection subsubsection part paragraph "
         "subparagraph caption footnote footnotetext".split()
@@ -71,9 +68,7 @@ def builtin_commands() -> dict[str, CommandSpec]:
         if name in optional:
             optional_mode = mode if name == "sqrt" or mode == "text" else "opaque"
             arguments.append(ArgumentSpec("optional", optional_mode))
-        arguments.extend(
-            ArgumentSpec(mode=mode, field=name == "sqrt") for _ in range(count)
-        )
+        arguments.extend(ArgumentSpec(mode=mode, field=name == "sqrt") for _ in range(count))
         context = "any" if name in text_arguments or name == "ensuremath" else "math"
         commands[name] = CommandSpec(tuple(arguments), context, script_atom=True)
     return commands

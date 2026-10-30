@@ -24,9 +24,7 @@ from scripts.repository.config.validation_patterns import validation_pattern
 from scripts.toolchain.images.image_policy import input_hash
 
 
-def command(
-    *args: str, data: str | None = None, env: dict | None = None, stream: bool = False
-) -> str:
+def command(*args: str, data: str | None = None, env: dict | None = None, stream: bool = False) -> str:
     result = subprocess.run(
         args,
         cwd=ROOT,
@@ -78,9 +76,7 @@ def select_pull(repository: str, run: dict) -> dict | None:
     head = run["head_sha"]
     if not github_artifacts.eligible_run(run, repository, head):
         return None
-    pulls = github_artifacts.api(
-        f"repos/{repository}/commits/{head}/pulls?per_page=100"
-    )
+    pulls = github_artifacts.api(f"repos/{repository}/commits/{head}/pulls?per_page=100")
     for candidate in pulls:
         pull = github_artifacts.api(f"repos/{repository}/pulls/{candidate['number']}")
         if (
@@ -137,9 +133,7 @@ def append_pin(repository: str, pull: dict, image: str) -> bool:
         or current["head"]["ref"] != pull["head"]["ref"]
         or (current["head"]["repo"] or {}).get("full_name") != repository
     ):
-        summary(
-            "PR changed or closed during publication; leaving its branch untouched."
-        )
+        summary("PR changed or closed during publication; leaving its branch untouched.")
         return False
 
     pin_path = "config/container-image.txt"
@@ -173,9 +167,7 @@ def append_pin(repository: str, pull: dict, image: str) -> bool:
             if not entry.startswith("100644 blob "):
                 raise ValueError(f"expected a regular file: {path}")
             blob = command("git", "hash-object", "-w", "--stdin", data=content)
-            command(
-                "git", "update-index", "--cacheinfo", f"100644,{blob},{path}", env=env
-            )
+            command("git", "update-index", "--cacheinfo", f"100644,{blob},{path}", env=env)
         tree = command("git", "write-tree", env=env)
         commit = command(
             "git",
@@ -190,9 +182,7 @@ def append_pin(repository: str, pull: dict, image: str) -> bool:
     # The commit extends the inspected head; the lease rejects any concurrent
     # author update, branch deletion, or rewind without overwriting their work.
     ref = f"refs/heads/{pull['head']['ref']}"
-    command(
-        "git", "push", f"--force-with-lease={ref}:{head}", "origin", f"{commit}:{ref}"
-    )
+    command("git", "push", f"--force-with-lease={ref}:{head}", "origin", f"{commit}:{ref}")
     summary(f"Appended image pin to PR #{pull['number']}: `{commit}`.")
     dispatch_validation(repository, pull["head"]["ref"], commit)
     return True
@@ -242,9 +232,7 @@ def publish(load_candidate: Callable, *, policy: str, max_bytes: int) -> None:
     revision = command("git", "rev-parse", "FETCH_HEAD")
     parents = command("git", "show", "-s", "--format=%P", revision).split()
     if parents != [pull["base"]["sha"], pull["head"]["sha"]]:
-        summary(
-            "PR merge changed; rerun PR CI to validate the current revision before publication."
-        )
+        summary("PR merge changed; rerun PR CI to validate the current revision before publication.")
         return
     config, tag = source_policy(revision)
     paths = changed_paths(pull["base"]["sha"], pull["head"]["sha"])
@@ -262,14 +250,13 @@ def publish(load_candidate: Callable, *, policy: str, max_bytes: int) -> None:
     release = f"{name}:{tag}"
     image = published_image(name, tag)
     if image is None:
-        artifacts = github_artifacts.api(
-            f"repos/{repository}/actions/runs/{run_id}/artifacts?per_page=100"
-        )["artifacts"]
+        artifacts = github_artifacts.api(f"repos/{repository}/actions/runs/{run_id}/artifacts?per_page=100")[
+            "artifacts"
+        ]
         candidates = {
             artifact["name"]: artifact
             for artifact in artifacts
-            if not artifact.get("expired", True)
-            and artifact.get("size_in_bytes", max_bytes + 1) <= max_bytes
+            if not artifact.get("expired", True) and artifact.get("size_in_bytes", max_bytes + 1) <= max_bytes
         }
         architectures = [item["arch"] for item in config["platforms"]]
         if not all(f"toolchain-image-{arch}" in candidates for arch in architectures):
@@ -279,9 +266,7 @@ def publish(load_candidate: Callable, *, policy: str, max_bytes: int) -> None:
         for arch in architectures:
             image = f"{name}:pr-{pull['number']}-{run_id}-{run['run_attempt']}-{arch}"
             expected = {"policy": policy, "tree": tree, "arch": arch, "image_tag": tag}
-            load_candidate(
-                repository, candidates[f"toolchain-image-{arch}"], expected, run, image
-            )
+            load_candidate(repository, candidates[f"toolchain-image-{arch}"], expected, run, image)
             # Loading and inspecting an image never executes its contents.
             print(f"Publishing {arch} image to GHCR: {image}", flush=True)
             command("docker", "push", image, stream=True)

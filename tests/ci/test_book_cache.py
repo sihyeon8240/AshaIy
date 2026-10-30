@@ -23,9 +23,7 @@ class BookCacheTests(unittest.TestCase):
             root = Path(temporary)
 
             def git(*arguments: str) -> None:
-                subprocess.run(
-                    ["git", *arguments], cwd=root, check=True, capture_output=True
-                )
+                subprocess.run(["git", *arguments], cwd=root, check=True, capture_output=True)
 
             def commit(path: str, text: str) -> str:
                 source = root / path
@@ -80,9 +78,7 @@ class BookCacheTests(unittest.TestCase):
             def commit() -> dict[str, str]:
                 git("add", ".")
                 git("commit", "-qm", "fixture")
-                return {
-                    slug: fingerprint(slug, root=root) for slug in ("alpha", "beta")
-                }
+                return {slug: fingerprint(slug, root=root) for slug in ("alpha", "beta")}
 
             git("init", "-q")
             for slug in ("alpha", "beta"):
@@ -91,9 +87,7 @@ class BookCacheTests(unittest.TestCase):
                 entry.write_text(f"Publication metadata for {slug}\n")
             registry = root / "config/books.yml"
             registry.parent.mkdir()
-            document = manifest_document(
-                [book_record("alpha"), book_record("beta", order=20)]
-            )
+            document = manifest_document([book_record("alpha"), book_record("beta", order=20)])
             write_yaml(registry, document)
             before = commit()
             document["books"][0]["order"] = 30
@@ -101,9 +95,7 @@ class BookCacheTests(unittest.TestCase):
             self.assertEqual(commit(), before)
             document["books"][0]["title"] = "Revised Alpha"
             write_yaml(registry, document)
-            (root / "books/alpha/book.tex").write_text(
-                "Revised alpha publication metadata\n"
-            )
+            (root / "books/alpha/book.tex").write_text("Revised alpha publication metadata\n")
             after = commit()
             self.assertNotEqual(before["alpha"], after["alpha"])
             self.assertEqual(before["beta"], after["beta"])

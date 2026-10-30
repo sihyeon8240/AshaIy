@@ -87,9 +87,7 @@ class ImagePrSelectionTests(unittest.TestCase):
                 target[field[-1]] = value
             with (
                 self.subTest(field=field),
-                patch.object(
-                    image_pr.github_artifacts, "api", side_effect=[[pull], pull]
-                ),
+                patch.object(image_pr.github_artifacts, "api", side_effect=[[pull], pull]),
             ):
                 result = image_pr.select_pull("owner/repo", self.workflow_run)
                 self.assertEqual(result, pull if field is None else None)
@@ -105,11 +103,7 @@ class ImagePrSelectionTests(unittest.TestCase):
                 self.subTest(key=key),
                 patch.object(image_pr.github_artifacts, "api") as api,
             ):
-                self.assertIsNone(
-                    image_pr.select_pull(
-                        "owner/repo", {**self.workflow_run, key: value}
-                    )
-                )
+                self.assertIsNone(image_pr.select_pull("owner/repo", {**self.workflow_run, key: value}))
                 api.assert_not_called()
 
     def publish(
@@ -158,9 +152,7 @@ class ImagePrSelectionTests(unittest.TestCase):
 
         load = Mock(side_effect=load_error)
         with (
-            patch.dict(
-                os.environ, {"GITHUB_REPOSITORY": "owner/repo", "SOURCE_RUN_ID": "123"}
-            ),
+            patch.dict(os.environ, {"GITHUB_REPOSITORY": "owner/repo", "SOURCE_RUN_ID": "123"}),
             patch.object(
                 image_pr.github_artifacts,
                 "api",
@@ -181,9 +173,7 @@ class ImagePrSelectionTests(unittest.TestCase):
             patch.object(
                 image_pr,
                 "changed_paths",
-                return_value=paths
-                if paths is not None
-                else [".devcontainer/Dockerfile"],
+                return_value=paths if paths is not None else [".devcontainer/Dockerfile"],
             ),
             patch.object(image_pr, "source_text", return_value=IMAGE + "\n"),
             patch.object(image_pr, "load_image", return_value=IMAGE),
@@ -210,22 +200,12 @@ class ImagePrSelectionTests(unittest.TestCase):
                 "image_tag": "texlive-0123456789ab",
             },
         )
+        self.assertEqual(len([call for call in calls if call[:2] == ("docker", "push")]), 2)
         self.assertEqual(
-            len([call for call in calls if call[:2] == ("docker", "push")]), 2
-        )
-        self.assertEqual(
-            len(
-                [
-                    call
-                    for call in calls
-                    if call[:4] == ("docker", "buildx", "imagetools", "create")
-                ]
-            ),
+            len([call for call in calls if call[:4] == ("docker", "buildx", "imagetools", "create")]),
             1,
         )
-        self.assertFalse(
-            any(call[:2] in (("docker", "run"), ("git", "checkout")) for call in calls)
-        )
+        self.assertFalse(any(call[:2] in (("docker", "run"), ("git", "checkout")) for call in calls))
         pin.assert_called_once_with("owner/repo", pull_request(), IMAGE)
 
         for artifacts in (
@@ -286,9 +266,7 @@ class ImagePrCommitTests(unittest.TestCase):
         (self.work / "config").mkdir()
         (self.work / ".devcontainer").mkdir()
         (self.work / "config/container-image.txt").write_text("old\n")
-        (self.work / ".devcontainer/devcontainer.json").write_text(
-            '{"image": "old", "name": "preserve"}\n'
-        )
+        (self.work / ".devcontainer/devcontainer.json").write_text('{"image": "old", "name": "preserve"}\n')
         (self.work / "keep.txt").write_text("author content\n")
         self.git("add", ".")
         self.git("commit", "-m", "initial")
@@ -331,9 +309,7 @@ class ImagePrCommitTests(unittest.TestCase):
         current = pull_request(tip)
         with patch.object(image_pr.github_artifacts, "api", return_value=current):
             self.assertFalse(image_pr.append_pin("owner/repo", current, IMAGE))
-        self.assertEqual(
-            self.git("ls-remote", "origin", "refs/heads/topic").split()[0], tip
-        )
+        self.assertEqual(self.git("ls-remote", "origin", "refs/heads/topic").split()[0], tip)
 
         self.dispatch.assert_called_once_with("owner/repo", "topic", tip)
 
@@ -341,9 +317,7 @@ class ImagePrCommitTests(unittest.TestCase):
         for current in ({**self.pull, "state": "closed"}, pull_request("new")):
             with patch.object(image_pr.github_artifacts, "api", return_value=current):
                 self.assertFalse(image_pr.append_pin("owner/repo", self.pull, IMAGE))
-        self.assertEqual(
-            self.git("ls-remote", "origin", "refs/heads/topic").split()[0], self.head
-        )
+        self.assertEqual(self.git("ls-remote", "origin", "refs/heads/topic").split()[0], self.head)
 
     def test_push_lease_preserves_concurrent_author_commit(self):
         (self.work / "keep.txt").write_text("new author content\n")
@@ -355,9 +329,7 @@ class ImagePrCommitTests(unittest.TestCase):
             self.assertRaises(subprocess.CalledProcessError),
         ):
             image_pr.append_pin("owner/repo", self.pull, IMAGE)
-        self.assertEqual(
-            self.git("ls-remote", "origin", "refs/heads/topic").split()[0], new_head
-        )
+        self.assertEqual(self.git("ls-remote", "origin", "refs/heads/topic").split()[0], new_head)
 
 
 class ImageDispatchTests(unittest.TestCase):
