@@ -103,7 +103,7 @@ jobs:
             ${{ steps.lean-cache.outputs.build-prefix }}
       - name: Set up the pinned Lean toolchain
         if: steps.changes.outputs.lean == 'true'
-        uses: leanprover/lean-action@24581d74d674803a25a81b10b059c5c0cdd344c6 # v1
+        uses: leanprover/lean-action@fe408643ea7367d8c0404a8be3975bb145f5fb64 # v1
         with:
           auto-config: false
           lake-package-directory: lean
@@ -298,7 +298,7 @@ jobs:
         if: >-
           needs.image-validation.result == 'skipped' && needs.main-image.result == 'skipped' &&
           (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
