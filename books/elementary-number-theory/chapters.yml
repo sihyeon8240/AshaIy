@@ -24,12 +24,6 @@ chapters:
 - slug: the-quadratic-reciprocity-law
   lean_namespace: TheQuadraticReciprocityLaw
   title: The Quadratic Reciprocity Law
-- slug: introduction-to-cryptography
-  lean_namespace: IntroductionToCryptography
-  title: Introduction to Cryptography
-- slug: numbers-of-special-form
-  lean_namespace: NumbersOfSpecialForm
-  title: Numbers of Special Form
 - slug: certain-nonlinear-diophantine-equations
   lean_namespace: CertainNonlinearDiophantineEquations
   title: Certain Nonlinear Diophantine Equations
