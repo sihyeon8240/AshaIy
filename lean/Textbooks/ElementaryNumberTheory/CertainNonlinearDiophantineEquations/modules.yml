@@ -1,0 +1,13 @@
+schema_version: 1
+
+modules:
+  - CoprimePowers
+  - PythagoreanTriples
+  - Parametrization
+  - PythagoreanProperties
+  - FourthPowerNormalization
+  - FourthPowerSums
+  - ExponentReduction
+  - FourthPowerDifferences
+  - SquareAreas
+  - FermatNumbers
