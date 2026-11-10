@@ -5,7 +5,7 @@
   "appPort": [
     "127.0.0.1:${localEnv:ASHAIY_PREVIEW_PORT:4000}:4000"
   ],
-  "image": "ghcr.io/sihyeon8240/ashaiy@sha256:83807d5ebe7d8c9be65a4c68f8157b5cea47ee968cb20f82669ee5c55c3abece",
+  "image": "ghcr.io/sihyeon8240/ashaiy@sha256:eebf078f18a1f06157f0e7ed47c43eacc8bb29c751d54878d610c24d7724061b",
   "containerEnv": {
     "PYTHONPYCACHEPREFIX": "${containerWorkspaceFolder}/.cache/python",
     "MATHLIB_CACHE_DIR": "${containerWorkspaceFolder}/.cache/mathlib",
