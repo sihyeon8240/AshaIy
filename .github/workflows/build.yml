@@ -103,7 +103,7 @@ jobs:
             ${{ steps.lean-cache.outputs.build-prefix }}
       - name: Set up the pinned Lean toolchain
         if: steps.changes.outputs.lean == 'true'
-        uses: leanprover/lean-action@fe408643ea7367d8c0404a8be3975bb145f5fb64 # v1
+        uses: leanprover/lean-action@ba3fdfe5c4476c925da13bf11a005ddb47e47aee # v1
         with:
           auto-config: false
           lake-package-directory: lean
