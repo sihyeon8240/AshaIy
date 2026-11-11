@@ -236,6 +236,19 @@
       }
     },
     {
+      "label": "ashaiy lean prepare",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/scripts/ashaiy",
+        "lean",
+        "prepare"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
       "label": "ashaiy lean check",
       "type": "process",
       "command": "${command:python.interpreterPath}",

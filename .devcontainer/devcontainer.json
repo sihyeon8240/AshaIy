@@ -5,7 +5,7 @@
   "appPort": [
     "127.0.0.1:${localEnv:ASHAIY_PREVIEW_PORT:4000}:4000"
   ],
-  "image": "ghcr.io/sihyeon8240/ashaiy@sha256:eebf078f18a1f06157f0e7ed47c43eacc8bb29c751d54878d610c24d7724061b",
+  "image": "ghcr.io/sihyeon8240/ashaiy@sha256:b5571c25d6c9e5a74ed38ae5e2598a936afad43b66ca99368b21513950335eb7",
   "containerEnv": {
     "PYTHONPYCACHEPREFIX": "${containerWorkspaceFolder}/.cache/python",
     "MATHLIB_CACHE_DIR": "${containerWorkspaceFolder}/.cache/mathlib",
@@ -52,5 +52,10 @@
       "label": "Site preview",
       "onAutoForward": "notify"
     }
-  }
+  },
+  "mounts": [
+    "source=ashaiy-${devcontainerId}-lake-v4.35.0,target=${containerWorkspaceFolder}/lean/.lake,type=volume,volume-nocopy",
+    "source=ashaiy-${devcontainerId}-cache-v1,target=${containerWorkspaceFolder}/.cache,type=volume,volume-nocopy",
+    "source=ashaiy-${devcontainerId}-hypothesis-v1,target=${containerWorkspaceFolder}/.hypothesis,type=volume,volume-nocopy"
+  ]
 }

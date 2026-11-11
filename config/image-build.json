@@ -11,7 +11,8 @@
     ".devcontainer/generated/tools.env",
     ".devcontainer/generated/texlive.env",
     ".devcontainer/generated/lean.env",
-    ".devcontainer/generated/python.env"
+    ".devcontainer/generated/python.env",
+    ".devcontainer/generated/ruby.env"
   ],
   "platforms": [
     {

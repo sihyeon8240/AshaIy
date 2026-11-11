@@ -29,6 +29,7 @@ from scripts.repository.config.validation_patterns import validation_pattern
 from scripts.repository.config.validation_sync import rendered_validation_consumers
 from scripts.repository.file_updates import changed_files, source_updates, write_updates
 from scripts.repository.source_reads import read_text, read_yaml
+from scripts.toolchain.container_mounts import synchronize_cache_mounts
 
 SHA256 = re.compile(validation_pattern("sha256"))
 
@@ -84,6 +85,7 @@ def rendered_toolchain_groups(root: Path, toolchain: dict[str, str]) -> dict[Pat
             "DJLINT_",
             "CHECK_JSONSCHEMA_",
         ),
+        "ruby": ("JEKYLL_", "BUNDLER_"),
     }
     return {
         root / ".devcontainer/generated" / f"{group}.env": (
@@ -131,6 +133,7 @@ def rendered_consumers(root: Path = ROOT, *, image: str | None = None) -> dict[P
         devcontainer,
     )
     dev_data = parse_json(dev_text)
+    synchronize_cache_mounts(dev_data, toolchain["LEAN_VERSION"])
     recommendations = read_json(root / ".vscode/extensions.json")["recommendations"]
     if not isinstance(recommendations, list) or not all(isinstance(extension, str) for extension in recommendations):
         raise ValueError("VS Code recommendations must be a list of extension IDs")

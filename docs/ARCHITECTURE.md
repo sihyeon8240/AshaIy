@@ -138,7 +138,7 @@ glob exclusions belong in `config/ignore-patterns.yml`.
 |---|---|
 | Runtime readers | Shell/Python tools and image jobs read canonical configuration directly when execution can supply the value. |
 | Complete generated files | Toolchain pins, CI requirements, exclusion lists, and publication version macros remain committed outputs for tools that consume those file formats directly. |
-| Mixed editor/container files | Synchronization owns the image, extension lists, book choices, and configured editor fields; remaining user-maintained settings are preserved. |
+| Mixed editor/container files | Synchronization owns the image, cache volume mounts, extension lists, book choices, and configured editor fields; remaining user-maintained settings and unrelated mounts are preserved. |
 | Mixed TOML files | Synchronization owns the Lean dependency revision and Ruff target version; package metadata, Lean options, and lint policy remain hand-maintained. |
 
 Preserve hand-maintained fields in mixed consumers; do not replace these files
@@ -197,12 +197,28 @@ Ignored site pages derive from the registry and proof coverage.
 | `site/_data/books.json` and `site/books/*.html` | `ashaiy site generate`, from the registry and proof coverage; JSON owns projected data and HTML files own routing | Ignored; regenerate before local site builds |
 | PDFs, LaTeX logs, proof-link probes, verified-build metadata | `build/` | Ignored; never commit |
 | LaTeX Workshop output | `vscode-build/` | Ignored; never commit |
-| Python, Ruff, LaTeX formatter, Mathlib, Coverage, and Hypothesis caches | `.cache/{python,ruff,latexindent,mathlib,coverage}/` and `.hypothesis/` by default | Ignored; never commit |
+| Python, Ruff, LaTeX formatter, Mathlib, Coverage, and Hypothesis caches | `.cache/{python,ruff,latexindent,mathlib,coverage,hypothesis}/` and `.hypothesis/` by default | Ignored; never commit |
 | Lake dependencies, configuration cache, and build results | `lean/.lake/` | Ignored; never commit |
 | Development container home | Container writable layer, currently `/root` | Preserved across stops; save unmounted changes before rebuilding |
 | Terminal runner profiles and preparation lock | Host `${XDG_CACHE_HOME:-$HOME/.cache}/ashaiy-devcontainers/<repository-id>` | Outside the checkout; preserved by cache cleanup |
 | Legacy terminal home | Host `${XDG_CACHE_HOME:-$HOME/.cache}/ashaiy-container/<repository-id>` | Retained for selective migration; no longer mounted automatically |
 | Release staging and source-check site rendering | Automatically cleaned temporary directories | Never commit |
+
+In Dev Containers, `lean/.lake/`, `.cache/`, and `.hypothesis/` retain those
+workspace paths but each mounts a Docker named volume. The Dev Container ID
+separates checkouts and image profiles and remains stable across container
+rebuilds. The Lake volume also includes the pinned Lean version, synchronized
+from `config/toolchain.env`. Unrelated custom mounts are preserved.
+`volume-nocopy` starts new volumes empty instead of importing host cache contents.
+Existing host caches remain hidden beneath the mounts until explicitly removed
+from the host. Cache cleanup empties mounted roots without removing the mount.
+
+Source files, committed generated files, `build/`, and `vscode-build/` remain on
+the host bind mount. Ordinary temporary files use the container's temporary
+directory and disappear when the container is recreated. Source-replacement
+temporary files stay beside their targets so atomic replacement stays on one
+filesystem. The container home and installed Elan directory belong to the image
+and container writable layer, not workspace cache volumes.
 
 Intentionally absent local-only assets remain absent; preserve their fallback
 behavior. The `generated-pdfs` publication branch is maintained by CI and owns

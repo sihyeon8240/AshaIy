@@ -373,9 +373,22 @@ using the rebuilt development image.
 
 The image includes local site/browser and PDF inspection tools. Their system
 packages follow the Debian Trixie base in `.devcontainer/Dockerfile`; Jekyll and
-Bundler upstream versions are checked against `config/toolchain.env`, and
+Bundler are installed from their pinned RubyGems releases through the generated
+`ruby.env` installation group. Native Ruby extensions are compiled in a separate
+stage, with only gems and their launchers copied into the runtime image.
+Their versions are checked against `config/toolchain.env`, and
 Playwright uses installed Chromium. The reviewed image digest pins the installed
 set; rebuilding can pick up newer Debian package revisions.
+
+The development Python remains on the 3.14 series and uses its latest reviewed
+patch release. Check wheel availability before changing that series; Python
+dependencies retain the binary-wheel requirement, without runtime build tools.
+
+After changing Lean, configuration generation rotates its Dev Container cache
+volume name. Initialize the new volume with `ashaiy lean prepare`, then verify
+the environment and run the complete suites. The reviewed image pin follows
+the publication procedure above; local builds use `IMAGE=ashaiy-toolchain:local`
+without changing the registry pin before publication.
 
 For package updates, change `config/toolchain.env` first and regenerate
 `.github/requirements-ci.txt` with `ashaiy config generate`; update tool binary checksums

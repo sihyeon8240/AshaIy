@@ -356,10 +356,16 @@ them in its generated aggregation and reuse earlier results within that book.
 
 ```sh
 ashaiy check proof-links
+ashaiy lean prepare
 ashaiy lean build
 ashaiy lean check
 ashaiy check all --strict
 ```
+
+Run `ashaiy lean prepare` when initializing or refreshing dependency caches. It
+downloads the Mathlib import closure of `Textbooks` at the pinned revisions and
+rebuilds supported cached executables for the current architecture. It does not
+run `lake update`, change the manifest, or modify textbook sources.
 
 `ashaiy check proof-links` checks ownership, theorem environments, unique labels
 and declarations, namespace/module paths, import reachability, and source-level

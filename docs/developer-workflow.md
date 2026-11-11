@@ -19,6 +19,19 @@ repository files, and native executable architectures. It takes no profile optio
 See [architecture troubleshooting](#switching-container-architectures) when moving
 a checkout between AMD64 and ARM64.
 
+Before the first Lean check in a new cache volume:
+
+```sh
+ashaiy lean prepare
+ashaiy doctor env
+ashaiy lean check
+```
+
+Preparation follows `Textbooks` imports and downloads only their direct Mathlib
+imports and transitive dependencies. It uses the pinned Lake manifest without
+updating dependency versions, then rebuilds supported native cache tools for the
+current architecture. Rerun it after dependency updates or cache cleanup.
+
 After editing canonical configuration, run `ashaiy config generate` and
 `ashaiy config check`, then commit the synchronized consumers.
 
@@ -151,12 +164,27 @@ The workspace normally mounts at `/workspaces/<checkout-name>`; consumers use
 root ownership of newly created files; a future non-root configuration must apply
 to both entry points.
 
+`lean/.lake/`, `.cache/`, and `.hypothesis/` each use a persistent named volume.
+Their Dev Container ID separates checkouts and image profiles; rebuilding the
+same configuration reuses its volumes. The Lake volume additionally follows the
+pinned Lean version. Git branches in one checkout reuse the same caches.
+Sources, PDFs, CLI build output, and Workshop output remain visible on the host.
+Normal temporary files stay inside the container; source-replacement temporary
+files stay beside their targets for atomic writes.
+
+New volumes start empty. Existing host caches are preserved beneath the mounts
+and are not copied automatically. After validating the new environment, remove
+old host caches separately if their disk space is needed. Removing a container
+does not remove its named cache volumes.
+
 Existing VS Code containers for this checkout and configuration are reused,
 including stopped containers. New containers run `ashaiy doctor env` before the
 shell opens. Exiting a shell leaves the container available to other sessions;
 use the printed `docker stop <id>` command when it is unused. Settings that affect
 container creation require **Dev Containers: Rebuild Container** after preserving
-home changes. Ambiguous containers and stale images fail without deleting data.
+home changes. Ambiguous containers, stale images, and outdated cache mounts fail
+without deleting data. If an older container still uses host caches, rebuild it
+after saving needed home changes, or use `IMAGE` for an isolated profile.
 
 Set `CMD` to execute a command with Bash and return its status; quote the value to
 prevent host-shell expansion. Preparation logs go to stderr, leaving command
@@ -216,10 +244,16 @@ Run `ashaiy doctor env` after moving a checkout between AMD64 and ARM64. It read
 the ELF architecture of Python, the selected Lean toolchain, and cached Lake
 executables, and leaves caches unchanged.
 
+Downloaded dependency artifacts can also restore a foreign native executable in
+an otherwise fresh volume. Run `ashaiy lean prepare` to repair the supported
+Mathlib `cache`, Batteries `runLinter`, and ImportGraph `graph` targets. It keeps
+downloaded archives and unrelated artifacts. Unknown foreign executables and
+external symlinks are preserved and require manual rebuilding.
+
 Rebuild a reported Lake executable inside `lean/` with
 `lake --no-cache build @<package>/<executable>`. For example, dependency tools use
-`@batteries/runLinter` and `@importGraph/graph`; for Mathlib's `cache`, run
-`lake exe cache --help`. If a stale trace prevents rebuilding, remove only the
+`@batteries/runLinter` and `@importGraph/graph`; for Mathlib's `cache`, use
+`lake --no-cache build @mathlib/cache`. If a stale trace prevents rebuilding, remove only the
 reported executable and its adjacent `.trace` file, then retry.
 
 If Elan selected a downloaded toolchain for the previous architecture, reinstall
@@ -265,13 +299,16 @@ Container after changing its synchronized configuration.
 | `mathlib` | `.cache/mathlib/` |
 | `lake` | `lean/.lake/` |
 | `coverage` | `.cache/coverage/` |
-| `hypothesis` | `.hypothesis/` |
+| `hypothesis` | `.cache/hypothesis/` and `.hypothesis/` |
 | `all` | All seven categories |
 
 Source cleanup includes interrupted LaTeX Workshop temporary sources and reports
 traversal or removal failures. It preserves build output and caches. Cache cleanup preserves unknown
 `.cache/` directories, override paths, shared user caches, and the persistent
 container home. It rejects symlinks at cache roots or their immediate parents.
+Mounted cache roots are retained after their contents are removed; ordinary
+cache directories are removed. Cleanup does not delete Docker volumes or old
+host caches hidden underneath their mounts.
 Avoid cleanup while tools are running.
 
 The CLI and containers set Python and Mathlib cache paths. For direct commands

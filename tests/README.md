@@ -26,11 +26,15 @@ the existing source checks and actionlint.
 
 `test_properties.py` uses Hypothesis to exercise TeX parsing, source positions,
 semantic versions, and manifest normalization. Minimized failures live under
-`.cache/hypothesis/`. Keep fixed examples for known regressions.
+`.cache/hypothesis/`; Hypothesis also stores framework data under `.hypothesis/`.
+Keep fixed examples for known regressions.
 
 Use `ashaiy test --coverage` to measure Python statement and branch coverage,
 including Python subprocesses. Reports and data live under `.cache/coverage/`;
-open `.cache/coverage/html/index.html` for missing branches. Each run clears old
+open `.cache/coverage/html/index.html` inside the container for missing branches.
+In Dev Containers this directory is on the cache volume. Use `docker cp` to
+export its HTML directory into host `build/reports/coverage/` when needed.
+Each run clears old
 measurements and preserves test failures in its exit status. Only the checkout's
 `scripts/` sources are measured: scripts copied into isolated test repositories,
 shell, Lean, and TeX are outside this report. Use it to locate gaps, without a

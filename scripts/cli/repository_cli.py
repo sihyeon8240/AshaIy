@@ -28,8 +28,8 @@ Validation and formatting:
       Run a focused source, registry, proof-index, or documentation check.
   check all [--strict]
       Check sources, formatting, Lean, and PDFs for check-enabled textbooks.
-  lean {build|check}
-      Build Lean; check also verifies proof indexes and their declarations.
+  lean {prepare|build|check}
+      Prepare dependencies or build Lean; check also verifies proof declarations.
   format {tex|py|sh|all} [--check] [--file PATH]
       Format sources, or report drift with --check. --file selects one file.
   test
@@ -122,6 +122,7 @@ ACTION_HELP = {
         "check": ("Report shared configuration that differs from its generated consumers without writing files."),
     },
     "lean": {
+        "prepare": "Download the project's Mathlib cache and rebuild foreign native cache tools.",
         "build": "Check generated Lean aggregation and build the pinned Lean project.",
         "check": "Build Lean and verify proof indexes, textbook links, and declaration coverage.",
     },
@@ -335,7 +336,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     formatting.set_defaults(run=run_format)
 
-    command("lean", "build or verify Lean", ("build", "check"))
+    command("lean", "prepare dependencies, build, or verify Lean", ("prepare", "build", "check"))
     doctor = command("doctor", "diagnose environment or textbooks", ("env", "book"))
     book_option(doctor["book"])
     site = command(
