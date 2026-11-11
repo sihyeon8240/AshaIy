@@ -84,6 +84,7 @@ def rendered_toolchain_groups(root: Path, toolchain: dict[str, str]) -> dict[Pat
             "DJLINT_",
             "CHECK_JSONSCHEMA_",
         ),
+        "ruby": ("JEKYLL_", "BUNDLER_"),
     }
     return {
         root / ".devcontainer/generated" / f"{group}.env": (

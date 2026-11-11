@@ -105,7 +105,7 @@ check_version lean "Lean (version ${LEAN_VERSION}" "Lean ${LEAN_VERSION}"
 check_version gh "gh version ${GH_VERSION}" "GitHub CLI ${GH_VERSION}"
 
 check_version jekyll "jekyll ${JEKYLL_VERSION}" "Jekyll ${JEKYLL_VERSION}"
-check_version bundle "Bundler version ${BUNDLER_VERSION}" "Bundler ${BUNDLER_VERSION}"
+check_version bundle "${BUNDLER_VERSION}" "Bundler ${BUNDLER_VERSION}"
 
 for package in playwright hypothesis coverage basedpyright yamllint djlint check-jsonschema; do
   normalized_package="${package//-/_}"

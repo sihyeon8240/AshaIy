@@ -60,7 +60,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
 
 FROM debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2 AS texlive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl perl xz-utils \
+    ca-certificates curl libfontconfig1 perl xz-utils \
   && rm -rf /var/lib/apt/lists/*
 COPY --chmod=0644 .devcontainer/generated/texlive.env /tmp/texlive.env
 RUN set -a && . /tmp/texlive.env && set +a \
@@ -77,7 +77,16 @@ RUN set -a && . /tmp/texlive.env && set +a \
     perl /tmp/install-tl/install-tl -profile /tmp/install-tl/profile -repository "$repository" \
   && rm -rf /tmp/install-tl /tmp/install-tl.tgz "/usr/local/texlive/${TEXLIVE_YEAR}"/*.log
 
-FROM python:3.14.8-slim-trixie@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170
+FROM debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2 AS ruby-tools
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates g++ make ruby ruby-dev \
+  && rm -rf /var/lib/apt/lists/*
+COPY --chmod=0644 .devcontainer/generated/ruby.env /tmp/ruby.env
+RUN set -a && . /tmp/ruby.env && set +a \
+  && gem install --no-document "bundler:${BUNDLER_VERSION}" "jekyll:${JEKYLL_VERSION}"
+
+FROM python:3.14.10-slim-trixie@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f
 LABEL org.opencontainers.image.description="Development and CI toolchain for AshaIy mathematics textbooks, including TeX Live, Lean, and Python."
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ELAN_HOME=/usr/local/elan
@@ -86,8 +95,8 @@ ENV PATH="/usr/local/elan/bin:/usr/local/bin:/usr/local/texlive/2026/bin/x86_64-
 WORKDIR /workspace
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash ca-certificates chromium curl ghostscript \
-    git git-man jekyll jq less locales man-db nano openssh-client perl \
-    poppler-utils ripgrep ruby ruby-bundler tree tzdata xz-utils zsh \
+    git git-man jq less locales man-db nano openssh-client perl \
+    poppler-utils ripgrep ruby tree tzdata xz-utils zsh \
   && echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen \
   && locale-gen \
   && rm -rf /var/lib/apt/lists/*
@@ -96,14 +105,16 @@ ENV LC_ALL=en_US.UTF-8
 ENV SHELL=/bin/zsh
 ENV EDITOR=nano
 ENV TZ=Etc/UTC
-ARG BASEDEVCONTAINER_SHELL_COMMIT=eed51b33f4fc5bcb6be2ee566402afeb7be47375
-ARG OH_MY_ZSH_COMMIT=146461f7c6d95f4ba1220559d66eb113418b40a8
-ARG POWERLEVEL10K_COMMIT=8a676a9157d2b0e00e88d06456ac7317f11c0317
+ARG BASEDEVCONTAINER_SHELL_COMMIT=08ecc2ae6dcda53eb59a7edd8246682f3e0a4238
+ARG OH_MY_ZSH_COMMIT=6010fb6260f359e71d99ba25f05f9215809b3ed2
+ARG POWERLEVEL10K_COMMIT=433bb250037d1baf479adf06ce78b3a338c574a4
 RUN curl -fsSL -o /root/.zshrc \
       "https://raw.githubusercontent.com/qdm12/basedevcontainer/${BASEDEVCONTAINER_SHELL_COMMIT}/shell/.zshrc" \
-  && echo 'fd04e2d7c6d9367b2b34d023a335dec44f2fe7b25d0997bbc8bfd0345f26c191  /root/.zshrc' \
+  && echo '2dc482cee05c94bc7c63afd8a75e260637a0db73df76f667d196e2f1c08ef30f  /root/.zshrc' \
     | sha256sum --check - \
-  && sed -i -e '10,35d' -e 's|source ~/.zshrc-specific$|source ~/.zshrc-specific.sh|' /root/.zshrc \
+  && sed -i \
+    -e '/^# SSH directory check$/,/^# Enable Powerlevel10k instant prompt\./{ /^# Enable Powerlevel10k instant prompt\./!d; }' \
+    -e 's|source ~/.zshrc-specific$|source ~/.zshrc-specific.sh|' /root/.zshrc \
   && curl -fsSL -o /root/.p10k.zsh \
       "https://raw.githubusercontent.com/qdm12/basedevcontainer/${BASEDEVCONTAINER_SHELL_COMMIT}/shell/.p10k.zsh" \
   && echo 'ba3e6c86226936f49a08f395fa585f54015958c3fa730fd7a79434b52c2bb724  /root/.p10k.zsh' \
@@ -126,6 +137,8 @@ RUN set -a && . /tmp/lean.env && set +a \
   && rm /usr/local/bin/elan-init \
   && elan toolchain install "$LEAN_TOOLCHAIN" \
   && elan default "$LEAN_TOOLCHAIN"
+COPY --from=ruby-tools /var/lib/gems /var/lib/gems
+COPY --from=ruby-tools /usr/local/bin/ /usr/local/bin/
 COPY --chmod=0644 .devcontainer/generated/python.env /tmp/python.env
 RUN set -a && . /tmp/python.env && set +a \
   && python3 -m pip install \
