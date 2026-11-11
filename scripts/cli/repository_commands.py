@@ -58,6 +58,8 @@ def lean_command(arguments: argparse.Namespace) -> int:
     status = run("lean/lean_generation.py", "--check")
     if status:
         return status
+    if action == "prepare":
+        return run("lean/prepare_cache.py")
     return subprocess.run(["lake", "build"], cwd=ROOT / "lean", check=False).returncode
 
 

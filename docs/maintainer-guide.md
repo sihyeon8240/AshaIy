@@ -384,6 +384,12 @@ The development Python remains on the 3.14 series and uses its latest reviewed
 patch release. Check wheel availability before changing that series; Python
 dependencies retain the binary-wheel requirement, without runtime build tools.
 
+After changing Lean, configuration generation rotates its Dev Container cache
+volume name. Initialize the new volume with `ashaiy lean prepare`, then verify
+the environment and run the complete suites. The reviewed image pin follows
+the publication procedure above; local builds use `IMAGE=ashaiy-toolchain:local`
+without changing the registry pin before publication.
+
 For package updates, change `config/toolchain.env` first and regenerate
 `.github/requirements-ci.txt` with `ashaiy config generate`; update tool binary checksums
 for both architectures when their versions change. Validate dependency updates

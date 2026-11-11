@@ -19,6 +19,19 @@ repository files, and native executable architectures. It takes no profile optio
 See [architecture troubleshooting](#switching-container-architectures) when moving
 a checkout between AMD64 and ARM64.
 
+Before the first Lean check in a new cache volume:
+
+```sh
+ashaiy lean prepare
+ashaiy doctor env
+ashaiy lean check
+```
+
+Preparation follows `Textbooks` imports and downloads only their direct Mathlib
+imports and transitive dependencies. It uses the pinned Lake manifest without
+updating dependency versions, then rebuilds supported native cache tools for the
+current architecture. Rerun it after dependency updates or cache cleanup.
+
 After editing canonical configuration, run `ashaiy config generate` and
 `ashaiy config check`, then commit the synchronized consumers.
 
@@ -230,6 +243,12 @@ and rebuild it when needed. A different port selects a separate image profile.
 Run `ashaiy doctor env` after moving a checkout between AMD64 and ARM64. It reads
 the ELF architecture of Python, the selected Lean toolchain, and cached Lake
 executables, and leaves caches unchanged.
+
+Downloaded dependency artifacts can also restore a foreign native executable in
+an otherwise fresh volume. Run `ashaiy lean prepare` to repair the supported
+Mathlib `cache`, Batteries `runLinter`, and ImportGraph `graph` targets. It keeps
+downloaded archives and unrelated artifacts. Unknown foreign executables and
+external symlinks are preserved and require manual rebuilding.
 
 Rebuild a reported Lake executable inside `lean/` with
 `lake --no-cache build @<package>/<executable>`. For example, dependency tools use

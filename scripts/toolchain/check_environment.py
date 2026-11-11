@@ -17,6 +17,24 @@ ELF_MACHINES = {3: "x86", 40: "arm", 62: "amd64", 183: "arm64"}
 HOST_ARCHITECTURES = {"x86_64": "amd64", "aarch64": "arm64", "arm64": "arm64"}
 
 
+def host_architecture() -> str:
+    machine = platform.machine()
+    return HOST_ARCHITECTURES.get(machine, machine)
+
+
+def cached_lake_executables(root: Path) -> dict[Path, str]:
+    patterns = {
+        "cached Lake executable": "lean/.lake/build/bin/*",
+        "cached dependency executable": "lean/.lake/packages/*/.lake/build/bin/*",
+    }
+    executables = {}
+    for label, pattern in patterns.items():
+        for path in sorted(root.glob(pattern)):
+            if path.is_file():
+                executables[path] = label
+    return executables
+
+
 def elf_architecture(path: Path) -> str | None:
     with path.open("rb") as stream:
         header = stream.read(20)
@@ -28,8 +46,7 @@ def elf_architecture(path: Path) -> str | None:
 
 
 def native_environment_errors(root: Path) -> list[str]:
-    machine = platform.machine()
-    expected = HOST_ARCHITECTURES.get(machine, machine)
+    expected = host_architecture()
     print(f"Platform: {platform.system()}/{expected}")
     targets = {Path(sys.executable): "Python"}
     for name in ("lean", "lake"):
@@ -49,14 +66,7 @@ def native_environment_errors(root: Path) -> list[str]:
         if selected.returncode == 0 and path.is_file():
             targets[path] = "selected Lean toolchain"
 
-    patterns = {
-        "cached Lake executable": "lean/.lake/build/bin/*",
-        "cached dependency executable": "lean/.lake/packages/*/.lake/build/bin/*",
-    }
-    for label, pattern in patterns.items():
-        for path in sorted(root.glob(pattern)):
-            if path.is_file():
-                targets[path] = label
+    targets.update(cached_lake_executables(root))
 
     errors = []
     for path, label in targets.items():
@@ -65,10 +75,15 @@ def native_environment_errors(root: Path) -> list[str]:
             continue
         print(f"{label}: {architecture} ({path})")
         if architecture != expected:
+            if label.startswith("cached"):
+                recovery = "use 'ashaiy lean prepare' for supported cached tools"
+            elif label == "selected Lean toolchain":
+                recovery = "reinstall the selected toolchain for the current architecture"
+            else:
+                recovery = "reopen the container for the current architecture"
             errors.append(
                 f"{label} targets {architecture}, host is {expected}: {path}; "
-                "rebuild the named Lake executable or reopen the container for "
-                "the current architecture; see "
+                f"{recovery}; see "
                 "docs/developer-workflow.md#switching-container-architectures"
             )
     return errors

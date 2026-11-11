@@ -40,6 +40,10 @@ The PDF is written to `build/linear-algebra/book.pdf`. See the
 [developer workflow](docs/developer-workflow.md#development-environment) for
 toolchain configuration and environment checks.
 
+Before the first Lean check in a new environment, run `ashaiy lean prepare`,
+then `ashaiy lean check`. Dependency and tool caches use persistent Docker
+volumes; source files and PDFs remain in the host checkout.
+
 Development uses the pinned container environment, shared with CI and releases.
 The host needs Git and Docker. The terminal runner additionally uses host Python
 and the Dev Container CLI; VS Code is optional when the CLI is installed separately.
