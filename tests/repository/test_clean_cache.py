@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from tests.support.fixtures import copy_file
+from tests.support.fixtures import copy_file, write_executable
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -63,6 +65,34 @@ class CleanCacheTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(all(not path.exists() for path in caches.values()))
 
+    def test_all_empties_mounted_roots_and_preserves_unrelated_cache(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            caches = self.populate_caches(root)
+            mounted = [root / "lean/.lake", root / ".hypothesis"]
+            for directory in mounted:
+                (directory / ".hidden").write_text("cache")
+            preserved = root / ".cache/custom/keep"
+            preserved.parent.mkdir(parents=True)
+            preserved.write_text("keep")
+            write_executable(
+                root / "bin/mountpoint",
+                '#!/bin/sh\ncase "$3" in\n  "$MOUNTED_LAKE"|"$MOUNTED_HYPOTHESIS") exit 0 ;;\n  *) exit 1 ;;\nesac\n',
+            )
+            with patch.dict(
+                os.environ,
+                {
+                    "PATH": f"{root / 'bin'}:{os.environ['PATH']}",
+                    "MOUNTED_LAKE": str(mounted[0]),
+                    "MOUNTED_HYPOTHESIS": str(mounted[1]),
+                },
+            ):
+                result = self.run_clean(root, "all")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(all(directory.is_dir() and not list(directory.iterdir()) for directory in mounted))
+            self.assertTrue(all(not path.exists() for path in caches.values()))
+            self.assertEqual(preserved.read_text(), "keep")
+
     def test_cleanup_preserves_unknown_caches_and_unrelated_bytecode(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -76,6 +106,22 @@ class CleanCacheTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(all(path.read_text() == "keep" for path in preserved))
+
+    def test_hypothesis_scopes_clear_repository_examples_and_framework_cache(self) -> None:
+        for scope in ("hypothesis", "all"):
+            with self.subTest(scope=scope), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                examples = root / ".cache/hypothesis/examples/old-example"
+                framework = root / ".hypothesis/constants/old-constant"
+                preserved = root / ".cache/custom/keep"
+                for path in (examples, framework, preserved):
+                    path.parent.mkdir(parents=True)
+                    path.write_text("cache")
+                result = self.run_clean(root, scope)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertFalse(examples.exists())
+                self.assertFalse(framework.exists())
+                self.assertEqual(preserved.read_text(), "cache")
 
     def test_rejects_symlinked_cache_directories_and_parents(self) -> None:
         for relative, scope in ((".cache/ruff", "ruff"), ("lean/.lake", "lake")):

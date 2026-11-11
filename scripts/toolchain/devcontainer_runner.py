@@ -7,6 +7,7 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -17,6 +18,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from scripts.repository.config.json_config import parse_json, read_json
+from scripts.toolchain.container_mounts import CACHE_DIRECTORIES, mount_options
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -102,6 +104,32 @@ def check_existing_image(container: dict | None, image: str, identity: str) -> N
     )
 
 
+def check_cache_mounts(container: dict | None, configuration: dict) -> None:
+    if container is None:
+        return
+    environment = dict(value.split("=", 1) for value in container["Config"].get("Env", []) if "=" in value)
+    workspace = environment.get("ASHAIY_ROOT", "")
+    actual_mounts = {mount["Destination"]: mount for mount in container.get("Mounts", [])}
+    cache_targets = {f"${{containerWorkspaceFolder}}/{directory}" for directory in CACHE_DIRECTORIES}
+    for requested in configuration.get("mounts", []):
+        options = mount_options(requested)
+        target = options.get("target", "")
+        if target not in cache_targets:
+            continue
+        target = target.replace("${containerWorkspaceFolder}", workspace)
+        mounted = actual_mounts.get(target, {})
+        source = re.escape(options.get("source", ""))
+        source = source.replace(re.escape("${devcontainerId}"), "[a-zA-Z0-9]+")
+        if workspace and mounted.get("Type") == "volume" and re.fullmatch(source, mounted.get("Name", "")):
+            continue
+        raise ValueError(
+            f"container {container['Id'][:12]} has outdated cache mounts at {target}; "
+            "preserve any changes in its home, then use 'Dev Containers: Rebuild "
+            "Container', or run with IMAGE to create an isolated profile; "
+            "the existing container and host caches have been preserved"
+        )
+
+
 def preparation_result(output: str) -> dict:
     for line in reversed(output.splitlines()):
         try:
@@ -115,9 +143,8 @@ def preparation_result(output: str) -> dict:
     raise ValueError("Dev Container CLI did not return a successful container ID")
 
 
-def report_container(identifier: str, image: str) -> None:
+def report_container(identifier: str, image: str, container: dict) -> None:
     print(f"[Container] {identifier[:12]} using {image}", file=sys.stderr)
-    container = parse_json(captured("docker", "container", "inspect", identifier))[0]
     bindings = container.get("NetworkSettings", {}).get("Ports", {}) or {}
     for binding in bindings.get("4000/tcp") or []:
         print(
@@ -172,6 +199,7 @@ def main(root: Path = ROOT) -> int:
         fcntl.flock(lock, fcntl.LOCK_EX)
         existing = matching_container(labels)
         check_existing_image(existing, image, identity)
+        check_cache_mounts(existing, config)
         command = [devcontainer, "up", *common]
         result = subprocess.run(command, stdout=subprocess.PIPE, text=True, check=False)
         if result.returncode:
@@ -184,8 +212,10 @@ def main(root: Path = ROOT) -> int:
             )
             return result.returncode
         identifier = preparation_result(result.stdout)["containerId"]
+        container = parse_json(captured("docker", "container", "inspect", identifier))[0]
+        check_cache_mounts(container, config)
 
-    report_container(identifier, image)
+    report_container(identifier, image, container)
     arguments = [devcontainer, "exec", *common, "--container-id", identifier]
     for name in ("TERM", "COLORTERM"):
         value = os.environ.get(name)

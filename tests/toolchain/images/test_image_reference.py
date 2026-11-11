@@ -20,6 +20,32 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class ConfigurationTests(unittest.TestCase):
+    def test_cache_mount_synchronization_preserves_other_mounts_and_rotates_lean(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.make_repository(root)
+            path = root / ".devcontainer/devcontainer.json"
+            configuration = json.loads(path.read_text())
+            extra = {"type": "volume", "source": "custom-data", "target": "/data"}
+            configuration["mounts"].append(extra)
+            configuration["mounts"][0] = configuration["mounts"][0].replace("lake-v", "stale-lake-v")
+            path.write_text(json.dumps(configuration))
+            SYNC.synchronize(root=root)
+            synchronized = json.loads(path.read_text())
+            self.assertIn(extra, synchronized["mounts"])
+            self.assertEqual(len(synchronized["mounts"]), 4)
+            self.assertNotIn("stale-lake-v", path.read_text())
+            old_mounts = synchronized["mounts"]
+            toolchain = root / "config/toolchain.env"
+            version = CONFIG.load_toolchain(toolchain)["LEAN_VERSION"]
+            toolchain.write_text(toolchain.read_text().replace(version, "99.0.0"))
+            SYNC.synchronize(root=root)
+            new_mounts = json.loads(path.read_text())["mounts"]
+            self.assertEqual(new_mounts[0], extra)
+            self.assertNotEqual(new_mounts[1], old_mounts[1])
+            self.assertEqual(new_mounts[2:], old_mounts[2:])
+            self.assertEqual(SYNC.synchronize(root=root, check=True), [])
+
     def test_issue_form_choices_preserve_other_content_and_escape_titles(self):
         from scripts.repository.source_reads import parse_yaml
 

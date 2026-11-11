@@ -52,5 +52,10 @@
       "label": "Site preview",
       "onAutoForward": "notify"
     }
-  }
+  },
+  "mounts": [
+    "source=ashaiy-${devcontainerId}-lake-v4.35.0,target=${containerWorkspaceFolder}/lean/.lake,type=volume,volume-nocopy",
+    "source=ashaiy-${devcontainerId}-cache-v1,target=${containerWorkspaceFolder}/.cache,type=volume,volume-nocopy",
+    "source=ashaiy-${devcontainerId}-hypothesis-v1,target=${containerWorkspaceFolder}/.hypothesis,type=volume,volume-nocopy"
+  ]
 }

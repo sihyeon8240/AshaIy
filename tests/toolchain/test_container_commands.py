@@ -11,6 +11,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from scripts.toolchain.container_mounts import mount_options
 from tests.support.fixtures import copy_validation_configuration, write_executable
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -37,6 +38,17 @@ class ContainerCommandTests(unittest.TestCase):
         self.config_path = self.root / ".devcontainer/devcontainer.json"
         self.config_path.write_text(json.dumps(self.config))
         self.log = self.root / "calls.jsonl"
+        mounts = []
+        for mount in self.config.get("mounts", []):
+            options = mount_options(mount)
+            mounts.append(
+                {
+                    "Type": "volume",
+                    "Destination": options["target"].replace("${containerWorkspaceFolder}", "/workspace"),
+                    "Name": options["source"].replace("${devcontainerId}", "test"),
+                }
+            )
+        self.mounts = mounts
         prefix = (
             f"#!{sys.executable}\n"
             "import json, os, signal, sys\n"
@@ -52,9 +64,11 @@ class ContainerCommandTests(unittest.TestCase):
             "elif arguments[0] == 'ps':\n"
             "    print(os.environ.get('DOCKER_MATCHES', '').replace(',', '\\n'))\n"
             "elif arguments[:2] == ['container', 'inspect']:\n"
+            f"    mounts = json.loads(os.environ.get('DOCKER_MOUNTS', {json.dumps(mounts)!r}))\n"
             "    print(json.dumps([{'Id': arguments[2],\n"
             "        'Image': os.environ.get('EXISTING_IMAGE_ID', 'sha256:' + 'b' * 64),\n"
-            "        'Config': {'Labels': {}},\n"
+            "        'Config': {'Labels': {}, 'Env': ['ASHAIY_ROOT=/workspace']},\n"
+            "        'Mounts': mounts,\n"
             "        'NetworkSettings': {'Ports': {'4000/tcp': [\n"
             "            {'HostIp': '127.0.0.1', 'HostPort': '4000'}]}}}]))\n"
             "sys.exit(int(os.environ.get('DOCKER_EXIT', '0')))\n",
@@ -193,6 +207,31 @@ class ContainerCommandTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(self.calls("devcontainer"), [])
                 self.assertFalse(any(call[0] in {"rm", "stop"} for call in self.calls("docker")))
+
+    def test_outdated_cache_mounts_preserve_existing_container_and_host_cache(self) -> None:
+        self.environment["DOCKER_MATCHES"] = "existing-container"
+        sentinel = self.root / "lean/.lake/keep"
+        sentinel.parent.mkdir(parents=True)
+        sentinel.write_text("host cache")
+        wrong_name = [{**mount, "Name": mount["Name"] + "-old"} for mount in self.mounts]
+        for mounts in ([], wrong_name):
+            with self.subTest(mounts=mounts):
+                self.environment["DOCKER_MOUNTS"] = json.dumps(mounts)
+                result = self.cli("image", "run")
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("outdated cache mounts", result.stderr)
+                self.assertIn("preserve any changes in its home", result.stderr)
+                self.assertEqual(self.calls("devcontainer"), [])
+                self.assertEqual(sentinel.read_text(), "host cache")
+                self.assertFalse(any(call[0] in {"rm", "stop"} for call in self.calls("docker")))
+
+    def test_prepared_container_with_missing_volumes_never_executes_command(self) -> None:
+        self.environment["DOCKER_MOUNTS"] = "[]"
+        result = self.cli("image", "run", "--command", "touch unexpected")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("outdated cache mounts", result.stderr)
+        self.assertEqual(len(self.calls("devcontainer")), 1)
+        self.assertFalse((self.root / "unexpected").exists())
 
     def test_missing_cli_and_invalid_images_fail_before_docker_changes(self) -> None:
         for image in ("--privileged", "bad image", "bad\nimage"):

@@ -9,7 +9,7 @@ clean_directory() {
   case "$directory" in
     "$repo_root/.cache/latexindent" | "$repo_root/.cache/ruff" | \
       "$repo_root/.cache/python" | "$repo_root/.cache/mathlib" | \
-      "$repo_root/.cache/coverage" | "$repo_root/.hypothesis" | \
+      "$repo_root/.cache/coverage" | "$repo_root/.cache/hypothesis" | "$repo_root/.hypothesis" | \
       "$repo_root/lean/.lake") ;;
     *)
       echo "error: refusing unsafe cache path" >&2
@@ -24,6 +24,9 @@ clean_directory() {
 
   if [[ -d "$directory" ]]; then
     find "$directory" -mindepth 1 -delete
+    if command -v mountpoint > /dev/null 2>&1 && mountpoint -q -- "$directory"; then
+      return
+    fi
     rmdir "$directory"
   fi
 }
@@ -48,6 +51,7 @@ case "$scope" in
     clean_directory "$repo_root/.cache/coverage"
     ;;
   hypothesis)
+    clean_directory "$repo_root/.cache/hypothesis"
     clean_directory "$repo_root/.hypothesis"
     ;;
   all)
@@ -57,6 +61,7 @@ case "$scope" in
     clean_directory "$repo_root/.cache/ruff"
     clean_directory "$repo_root/.cache/python"
     clean_directory "$repo_root/.cache/coverage"
+    clean_directory "$repo_root/.cache/hypothesis"
     clean_directory "$repo_root/.hypothesis"
     ;;
   *)
