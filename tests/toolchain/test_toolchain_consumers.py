@@ -22,6 +22,36 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class ToolchainConsumerTests(unittest.TestCase):
+    def test_branch_dispatch_reuses_dev_and_prepares_missing_pdf(self):
+        jobs = build_workflow()["jobs"]
+        candidate = jobs["image-validation"]
+        context = {
+            "github.event_name": "workflow_dispatch",
+            "github.ref": "refs/heads/topic",
+            "needs.plan.outputs.image_changed": "false",
+        }
+        self.assertTrue(condition_allows(candidate["if"], context))
+        validate_existing = condition_allows(candidate["with"]["validate_existing"], context)
+        self.assertFalse(validate_existing)
+
+        builder = yaml.safe_load((ROOT / ".github/workflows/build-toolchain.yml").read_text())["jobs"]
+        run_local = condition_allows(builder["prepare"]["outputs"]["run_local"], context)
+        self.assertTrue(run_local)
+        for target, exists, build in (("dev", True, False), ("pdf", False, True)):
+            with self.subTest(target=target):
+                self.assertEqual(
+                    condition_allows(
+                        builder["build"]["if"],
+                        {
+                            "needs.prepare.outputs.exists": str(exists).lower(),
+                            "inputs.validate_existing": validate_existing,
+                        },
+                    ),
+                    build,
+                )
+        context["github.ref"] = "refs/heads/main"
+        self.assertFalse(condition_allows(candidate["if"], context))
+
     def test_main_prepares_images_before_selecting_consumers(self):
         jobs = build_workflow()["jobs"]
         main = jobs["main-image"]

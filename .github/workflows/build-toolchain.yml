@@ -49,6 +49,7 @@ jobs:
     timeout-minutes: 10
     outputs:
       exists: ${{ steps.release-tag.outputs.exists }}
+      run_local: ${{ github.event_name == 'pull_request' || github.ref != 'refs/heads/main' }}
       tag: ${{ inputs.tag }}
       image: ${{ steps.release-tag.outputs.image }}
       digest: ${{ steps.release-tag.outputs.digest }}
@@ -160,7 +161,7 @@ jobs:
             type=registry,ref=${{ steps.config.outputs.image_name }}:latest
           cache-to: |
             type=inline
-            ${{ github.event_name != 'pull_request' && format('type=registry,ref={0}:buildcache-{1}-{2},mode=max', steps.config.outputs.image_name, inputs.target, matrix.arch) || '' }}
+            ${{ needs.prepare.outputs.run_local != 'true' && format('type=registry,ref={0}:buildcache-{1}-{2},mode=max', steps.config.outputs.image_name, inputs.target, matrix.arch) || '' }}
       - name: Smoke test the image toolchain
         run: |
           test "$(docker image inspect "$BUILD_TAG" --format '{{.Architecture}}')" = "$ARCH"
@@ -201,7 +202,7 @@ jobs:
           path: build/test-results/site-layout-trace.zip
           if-no-files-found: ignore
       - name: Record PDFs checked with the run-local candidate
-        if: needs.prepare.outputs.exists != 'true' && github.event_name == 'pull_request' && matrix.arch == 'amd64'
+        if: needs.prepare.outputs.exists != 'true' && needs.prepare.outputs.run_local == 'true' && matrix.arch == 'amd64'
         run: |
           image_id="$(docker image inspect "$BUILD_TAG" --format '{{.Id}}')"
           docker run --rm -v "$PWD:/workspace" \
@@ -216,7 +217,7 @@ jobs:
             done <<< "$books"
           '
       - name: Upload candidate PDF validation results
-        if: needs.prepare.outputs.exists != 'true' && github.event_name == 'pull_request' && matrix.arch == 'amd64'
+        if: needs.prepare.outputs.exists != 'true' && needs.prepare.outputs.run_local == 'true' && matrix.arch == 'amd64'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: candidate-pdfs${{ inputs.target == 'pdf' && '-pdf' || '' }}
@@ -224,7 +225,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
       - name: Push the tested image and record its digest
-        if: needs.prepare.outputs.exists != 'true' && github.event_name != 'pull_request'
+        if: needs.prepare.outputs.exists != 'true' && needs.prepare.outputs.run_local != 'true'
         run: |
           docker push "$BUILD_TAG"
           digest="$(docker buildx imagetools inspect "$BUILD_TAG" --format '{{.Manifest.Digest}}')"
@@ -233,12 +234,12 @@ jobs:
           mkdir -p build/image-digests
           echo "${IMAGE_NAME}@${digest}" > "build/image-digests/${ARCH}"
       - name: Record the run-local tested image
-        if: needs.prepare.outputs.exists != 'true' && github.event_name == 'pull_request'
+        if: needs.prepare.outputs.exists != 'true' && needs.prepare.outputs.run_local == 'true'
         run: |
           mkdir -p build/image-digests
           docker image inspect "$BUILD_TAG" --format '{{.Id}}' > "build/image-digests/${ARCH}"
       - name: Export the tested image candidate
-        if: needs.prepare.outputs.exists != 'true' && github.event_name == 'pull_request'
+        if: needs.prepare.outputs.exists != 'true' && needs.prepare.outputs.run_local == 'true'
         run: |
           mkdir -p build/toolchain-image
           docker save "$BUILD_TAG" | gzip -1 > build/toolchain-image/image.tar.gz
@@ -246,7 +247,7 @@ jobs:
             python3 scripts/toolchain/images/image_candidate.py record --arch "$ARCH" --image "$BUILD_TAG"
           fi
       - name: Upload the run-local tested image
-        if: needs.prepare.outputs.exists != 'true' && github.event_name == 'pull_request'
+        if: needs.prepare.outputs.exists != 'true' && needs.prepare.outputs.run_local == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ inputs.target == 'pdf' && 'pdf-' || '' }}toolchain-image-${{ matrix.arch }}
@@ -313,7 +314,7 @@ jobs:
         if: >-
           needs.prepare.outputs.exists != 'true' &&
           steps.registry.outputs.exists != 'true' &&
-          github.event_name != 'pull_request'
+          needs.prepare.outputs.run_local != 'true'
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
@@ -324,7 +325,7 @@ jobs:
         if: >-
           needs.prepare.outputs.exists != 'true' &&
           steps.registry.outputs.exists != 'true' &&
-          github.event_name != 'pull_request'
+          needs.prepare.outputs.run_local != 'true'
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
         run: |
@@ -350,7 +351,7 @@ jobs:
         if: >-
           needs.prepare.outputs.exists != 'true' &&
           steps.registry.outputs.exists != 'true' &&
-          github.event_name == 'pull_request'
+          needs.prepare.outputs.run_local == 'true'
         run: |
           prefix=""
           if [[ "$IMAGE_TARGET" == pdf ]]; then
@@ -361,8 +362,9 @@ jobs:
         id: image
         env:
           PUBLISHED_IMAGE: ${{ needs.prepare.outputs.image }}
+          RUN_LOCAL_IMAGE: ${{ needs.prepare.outputs.run_local }}
         run: |
-          if [[ "$GITHUB_EVENT_NAME" == pull_request && -f build/image-digests/amd64 ]]; then
+          if [[ "$RUN_LOCAL_IMAGE" == true && -f build/image-digests/amd64 ]]; then
             digest="$(cat build/image-digests/amd64)"
             # validation-pattern: image_digest
             [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]

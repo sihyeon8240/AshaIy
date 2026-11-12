@@ -187,7 +187,9 @@ jobs:
   image-validation:
     name: Validate toolchain candidate
     needs: plan
-    if: github.event_name == 'pull_request' && needs.plan.outputs.image_changed == 'true'
+    if: >-
+      (github.event_name == 'pull_request' && needs.plan.outputs.image_changed == 'true') ||
+      (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main')
     permissions:
       contents: read
       actions: read
@@ -195,7 +197,7 @@ jobs:
     uses: ./.github/workflows/prepare-image.yml
     with:
       ref: ${{ github.sha }}
-      validate_existing: true
+      validate_existing: ${{ github.event_name == 'pull_request' }}
   main-image:
     name: Prepare main toolchain image
     needs: [source, lean]

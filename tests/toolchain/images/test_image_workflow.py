@@ -357,7 +357,7 @@ fi
                 self.assertIn("consumers require a public image", result.stderr)
                 self.assertIn("initial publication and pin recovery", result.stderr)
 
-    def test_pr_images_do_not_publish(self):
+    def test_only_main_images_publish_and_branch_runs_export_candidates(self):
         manual = yaml.safe_load((ROOT / ".github/workflows/build-image.yml").read_text())
         self.assertIn("workflow_dispatch", manual[True])
         self.assertNotIn("pull_request_target", manual[True])
@@ -365,14 +365,31 @@ fi
             self.assertNotEqual(scope.get("permissions", {}).get("pull-requests"), "write")
 
         workflow = yaml.safe_load((ROOT / ".github/workflows/build-toolchain.yml").read_text())
-        for job in workflow["jobs"].values():
-            for step in job.get("steps", []):
-                if "docker push" in step.get("run", "") or "imagetools create" in step.get("run", ""):
-                    with self.subTest(step=step.get("name")):
-                        self.assertIn("github.event_name != 'pull_request'", step["if"])
+        for event, ref, run_local in (
+            ("pull_request", "refs/pull/1/merge", True),
+            ("workflow_dispatch", "refs/heads/topic", True),
+            ("workflow_dispatch", "refs/heads/main", False),
+            ("push", "refs/heads/main", False),
+        ):
+            context = {
+                "github.event_name": event,
+                "github.ref": ref,
+                "needs.prepare.outputs.exists": "false",
+                "steps.registry.outputs.exists": "false",
+            }
+            local = condition_allows(workflow["jobs"]["prepare"]["outputs"]["run_local"], context)
+            self.assertEqual(local, run_local)
+            context["needs.prepare.outputs.run_local"] = str(local).lower()
+            for job in workflow["jobs"].values():
+                for step in job.get("steps", []):
+                    if "docker push" in step.get("run", "") or "imagetools create" in step.get("run", ""):
+                        with self.subTest(event=event, ref=ref, step=step.get("name")):
+                            self.assertEqual(condition_allows(step["if"], context), not run_local)
+            for name in ("Record the run-local tested image", "Export the tested image candidate"):
+                step = next(step for step in workflow["jobs"]["build"]["steps"] if step.get("name") == name)
+                self.assertEqual(condition_allows(step["if"], context), run_local)
         build_steps = workflow["jobs"]["build"]["steps"]
         archive = next(step for step in build_steps if "docker save" in step.get("run", ""))
-        self.assertIn("github.event_name == 'pull_request'", archive["if"])
         self.assertNotIn("matrix.arch", archive["if"])
         for name in ("latex", "book"):
             steps = build_workflow()["jobs"][name]["steps"]
@@ -381,14 +398,15 @@ fi
     def test_run_local_image_selection_does_not_access_the_registry(self):
         workflow = yaml.safe_load((ROOT / ".github/workflows/build-toolchain.yml").read_text())
         script = next(step["run"] for step in workflow["jobs"]["publish"]["steps"] if step.get("id") == "image")
-        for target, digest, success in (
-            ("dev", "sha256:" + "a" * 64, True),
-            ("pdf", "sha256:" + "a" * 64, True),
-            ("dev", "invalid", False),
-            ("pdf", "invalid", False),
+        for target, run_local, digest, success in (
+            ("dev", True, "sha256:" + "a" * 64, True),
+            ("pdf", True, "sha256:" + "a" * 64, True),
+            ("dev", True, "invalid", False),
+            ("pdf", True, "invalid", False),
+            ("pdf", False, "sha256:" + "a" * 64, False),
         ):
             with (
-                self.subTest(target=target, digest=digest),
+                self.subTest(target=target, run_local=run_local, digest=digest),
                 tempfile.TemporaryDirectory() as temporary,
             ):
                 root = Path(temporary)
@@ -403,7 +421,7 @@ fi
                     env={
                         **os.environ,
                         "PATH": f"{root}:{os.environ['PATH']}",
-                        "GITHUB_EVENT_NAME": "pull_request",
+                        "RUN_LOCAL_IMAGE": str(run_local).lower(),
                         "GITHUB_OUTPUT": str(output),
                         "GITHUB_RUN_ID": "123",
                         "GITHUB_RUN_ATTEMPT": "2",

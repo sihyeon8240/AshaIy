@@ -237,8 +237,9 @@ Ordinary source changes do not add another platform matrix. Verified PDF reuse
 remains AMD64-only; ARM64 checks produce no reusable publication artifacts.
 
 Image builds restore `buildcache-<arch>` registry caches, falling back to the
-latest image's inline cache. Non-PR builds export intermediate stages; PRs only
-read them. Cache refresh preserves the tested image and independent TeX Live stage.
+latest image's inline cache. Main builds export intermediate stages; PRs and
+branch dispatches only read them. Cache refresh preserves the tested image and
+independent TeX Live stage.
 
 The package is `ghcr.io/sihyeon8240/ashaiy`. `build.yml` calls
 `prepare-image.yml`, which derives a content tag and calls `build-toolchain.yml`.
@@ -301,7 +302,11 @@ textbooks** on the PR branch with the exact expected commit. Dispatch events run
 automatically without a GitHub App, PAT, or approval of the separate PR-event run.
 Transient dispatch failures retry the same committed pin up to three times.
 The source gate rejects a dispatch if the branch moved before it started. Final
-consumer CI resolves the published image and does not trigger another publisher.
+consumer CI prepares both image targets and does not trigger another publisher.
+It reuses published indexes and builds missing targets on both native platforms.
+Branch dispatches pass tested images and PDFs through run-local artifacts, using
+the same identity checks as PR jobs, without publishing images or registry caches.
+This also supports a new PDF target before its first main publication.
 If dispatch fails, manually dispatch **Build textbooks** on the PR branch with
 `expected_sha` set to the pin commit; do not rerun CI on the pre-pin commit.
 Ordinary textbook PRs neither publish images nor update pins.
