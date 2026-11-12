@@ -174,10 +174,12 @@ class ReleasePlanTests(unittest.TestCase):
             with patch.object(releases, "ROOT", local):
                 releases.check_remote_tags(["alpha"], self.new)
 
-    def test_summary_lists_only_selected_releases_and_explains_empty_plan(self):
+    def test_summary_lists_only_selected_releases_and_omits_empty_plans(self):
         self.new["books"].append({"slug": "beta", "version": "2.0.0", "release": False, "build": True})
         with tempfile.TemporaryDirectory() as directory:
             summary = Path(directory) / "summary.md"
+            releases.report_plan([], self.new, summary)
+            self.assertFalse(summary.exists())
             summary.write_text("Existing summary\n")
             releases.report_plan(["alpha"], self.new, summary)
             text = summary.read_text()
@@ -185,7 +187,7 @@ class ReleasePlanTests(unittest.TestCase):
             self.assertIn("alpha | 1.0.0 | `alpha-v1.0.0`", text)
             self.assertNotIn("beta", text)
             releases.report_plan([], self.new, summary)
-            self.assertIn("No textbook releases planned.", summary.read_text())
+            self.assertEqual(summary.read_text(), text)
 
     def test_prepare_preserves_manifest_comments_and_updates_assembly(self):
         with tempfile.TemporaryDirectory() as directory:

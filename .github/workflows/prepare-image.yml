@@ -35,6 +35,7 @@ on:
         value: ${{ jobs.pdf-image.outputs.artifact }}
 jobs:
   inputs:
+    name: Identify toolchain images
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     outputs:
@@ -54,6 +55,7 @@ jobs:
           pdf_hash="$(python3 scripts/toolchain/images/image_policy.py hash --target pdf)"
           echo "pdf_tag=texlive-${pdf_hash}" >> "$GITHUB_OUTPUT"
   image:
+    name: Development image
     needs: inputs
     uses: ./.github/workflows/build-toolchain.yml
     with:
@@ -62,6 +64,7 @@ jobs:
       validate_existing: ${{ inputs.validate_existing }}
       refresh_cache: ${{ inputs.refresh_cache }}
   pdf-image:
+    name: PDF image
     needs: inputs
     uses: ./.github/workflows/build-toolchain.yml
     with:

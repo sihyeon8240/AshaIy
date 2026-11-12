@@ -36,7 +36,8 @@ unnecessary rewrites, alongside the requirements below.
 
 `build.yml` plans releases from the PR base or main push's `before` commit,
 independently of the PDF snapshot baseline. Review planned books, versions, and
-tags in its summary. Existing tags or failed lookups reject the PR plan;
+tags in its summary, which appears only when releases are planned.
+Existing tags or failed lookups reject the PR plan;
 publication checks again after merge. Release targets always enter the PDF
 matrix. PRs validate; manual **Build textbooks** runs refresh development PDFs.
 

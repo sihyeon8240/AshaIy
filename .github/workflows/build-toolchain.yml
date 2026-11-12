@@ -44,6 +44,7 @@ env:
         || 'Development and CI toolchain for AshaIy mathematics textbooks, including TeX Live, Lean, and Python.' }}
 jobs:
   prepare:
+    name: Select ${{ inputs.target }} image
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     outputs:
@@ -83,7 +84,7 @@ jobs:
         id: release-tag
         run: ./scripts/toolchain/images/check_image_tag.sh
   build:
-    name: Validate toolchain (${{ matrix.arch }})
+    name: Validate ${{ inputs.target }} toolchain (${{ matrix.arch }})
     needs: prepare
     if: needs.prepare.outputs.exists != 'true' || inputs.validate_existing
     strategy:
@@ -182,7 +183,7 @@ jobs:
             git config --global --add safe.directory /workspace
             ./scripts/ashaiy book build --check --strict
           '
-      - name: Validate native ARM64 rendering and site behavior
+      - name: Validate native ARM64 rendering${{ inputs.target == 'dev' && ' and site behavior' || '' }}
         if: matrix.arch == 'arm64'
         run: |
           docker run --rm --platform linux/arm64 -v "$PWD:/workspace" "$BUILD_TAG" bash -euo pipefail -c '
@@ -262,6 +263,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
   publish:
+    name: Resolve tested ${{ inputs.target }} image
     needs: [prepare, build]
     concurrency:
       group: toolchain-image-publication
@@ -380,6 +382,7 @@ jobs:
           IMAGE_REF: ${{ steps.image.outputs.image }}
         run: python3 scripts/toolchain/images/image_registry.py
   refresh-cache:
+    name: Refresh ${{ inputs.target }} cache (${{ matrix.arch }})
     needs: [prepare, publish]
     if: >-
       !cancelled() && needs.publish.result == 'success' &&

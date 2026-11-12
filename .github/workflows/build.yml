@@ -401,6 +401,7 @@ jobs:
             esac
           done < "$pdf_output"
   plan:
+    name: Plan textbook builds and releases
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     outputs:

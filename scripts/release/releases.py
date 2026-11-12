@@ -77,16 +77,15 @@ def plan(previous: dict, current: dict) -> list[str]:
 
 
 def report_plan(selected: list[str], manifest: dict, summary: Path) -> None:
+    if not selected:
+        return
+
     books = {book["slug"]: book for book in manifest["books"]}
-    lines = ["## Planned textbook releases", ""]
-    if selected:
-        lines.extend(["Book | Version | Tag", "--- | --- | ---"])
-        for slug in selected:
-            version = books[slug]["version"]
-            lines.append(f"{slug} | {version} | `{slug}-v{version}`")
-        lines.extend(["", "A main merge publishes these versions after CI passes."])
-    else:
-        lines.append("No textbook releases planned.")
+    lines = ["## Planned textbook releases", "", "Book | Version | Tag", "--- | --- | ---"]
+    for slug in selected:
+        version = books[slug]["version"]
+        lines.append(f"{slug} | {version} | `{slug}-v{version}`")
+    lines.extend(["", "A main merge publishes these versions after CI passes."])
     with summary.open("a", encoding="utf-8") as output:
         output.write("\n".join(lines) + "\n")
 
