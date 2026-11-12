@@ -12,6 +12,8 @@ The CLI runs whole test modules in isolated processes, using at most four worker
 bounded by the available CPU count. `ashaiy test --jobs 1` runs modules serially;
 `--jobs 2` is useful on smaller CI runners. Failures retain their output and exit
 status, skips remain explicit, and interruption reaps active process groups.
+Custom `load_tests` hooks and imported test cases retain standard unittest
+discovery in one process. Module workers must execute the discovered test count.
 For a focused run, keep the checkout as unittest's top-level directory:
 
 ```bash

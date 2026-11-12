@@ -124,6 +124,45 @@ class SingleFileFormattingTests(unittest.TestCase):
 
 
 class FormatTexTests(unittest.TestCase):
+    def test_concurrent_source_and_macro_edits_are_preserved_without_caching_success(self) -> None:
+        for changed in ("source.tex", "common/styles/macros.yml"):
+            with self.subTest(changed=changed), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                self.prepare_formatter(root)
+                source = root / "source.tex"
+                original = b"Text.\n\n\n"
+                source.write_bytes(original)
+                subprocess.run(["git", "add", "source.tex"], cwd=root, check=True)
+                binary = root / "bin"
+                binary.mkdir()
+                target = root / changed
+                write_executable(
+                    binary / "latexindent",
+                    f"#!{sys.executable}\nimport sys\nfrom pathlib import Path\n"
+                    "if '--version' in sys.argv:\n    print('test formatter')\n"
+                    "else:\n"
+                    f"    if '--modifylinebreaks' in sys.argv: Path({str(target)!r}).write_bytes(b'external edit\\n')\n"
+                    "    sys.stdout.buffer.write(Path(sys.argv[-1]).read_bytes())\n",
+                )
+                result = subprocess.run(
+                    [sys.executable, "scripts/latex/format_tex.py", "--jobs", "2"],
+                    cwd=root,
+                    env={
+                        **os.environ,
+                        "PATH": f"{binary}:{os.environ['PATH']}",
+                        "FORMAT_TEX_CACHE_DIR": str(root / "cache"),
+                    },
+                    capture_output=True,
+                    text=True,
+                    timeout=20,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("source changed", result.stderr)
+                self.assertEqual(target.read_bytes(), b"external edit\n")
+                if target != source:
+                    self.assertEqual(source.read_bytes(), original)
+                self.assertFalse(any(path.is_file() for path in (root / "cache").glob("*/*")))
+
     def prepare_formatter(self, root: Path) -> Path:
         scripts = root / "scripts"
         scripts.mkdir()

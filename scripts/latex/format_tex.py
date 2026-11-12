@@ -23,6 +23,7 @@ from scripts.latex.macro_generation import MacroRegistry, MacroRepository
 from scripts.latex.normalize_braces import normalize_braces
 from scripts.lean.lean_source import ignored_spans
 from scripts.repository.config.validation_patterns import validation_pattern
+from scripts.repository.file_updates import observe_source, source_updates, write_updates
 from scripts.repository.formatting.normalize_eof import normalized_bytes
 from scripts.repository.processes import ProcessRunner, run_parallel, worker_count
 
@@ -173,13 +174,14 @@ def format_sources(root: Path, *, check: bool, file: Path | None, prune: bool = 
     if shutil.which("latexindent") is None:
         print("error: latexindent is required", file=sys.stderr)
         return 127
-    repository = MacroRepository(root)
-    registries = {path: repository.for_source(root / path) for path in files}
-    cache = cache_directory(root)
-    with (cache.parent / ".format.lock").open("a+b") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        cache.mkdir(parents=True, exist_ok=True)
-        return format_selected(root, files, registries, cache, check=check, prune=prune, jobs=jobs)
+    with source_updates(root, check=check):
+        repository = MacroRepository(root)
+        registries = {path: repository.for_source(root / path) for path in files}
+        cache = cache_directory(root)
+        with (cache.parent / ".format.lock").open("a+b") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            cache.mkdir(parents=True, exist_ok=True)
+            return format_selected(root, files, registries, cache, check=check, prune=prune, jobs=jobs)
 
 
 def format_selected(
@@ -200,6 +202,7 @@ def format_selected(
     for path in files:
         source = root / path
         original = source.read_bytes()
+        observe_source(source, original)
         registry = registries[path]
         content_hash = hashlib.sha256(original + registry.fingerprint).hexdigest()
         entry = cache / hashlib.sha256(os.fsencode(path)).hexdigest()
@@ -213,6 +216,8 @@ def format_selected(
         return format_file(path, registry=registries[path], output=runner.check_output)
 
     formatted_files = run_parallel(pending, format_target, jobs=jobs) if pending else []
+    updates = {}
+    entries = {}
     for (path, original, entry), formatted in zip(pending, formatted_files, strict=True):
         source = root / path
         registry = registries[path]
@@ -223,10 +228,15 @@ def format_selected(
                 print(f"[tex] needs formatting: {path}", file=sys.stderr)
                 status = 1
                 continue
-            source.write_bytes(formatted)
+            updates[source] = formatted.decode("utf-8")
             changed += 1
-            print(f"[tex] reformatted: {path}")
-        entry.write_text(hashlib.sha256(formatted + registry.fingerprint).hexdigest() + "\n")
+        entries[entry] = hashlib.sha256(formatted + registry.fingerprint).hexdigest() + "\n"
+    if updates:
+        write_updates(updates)
+        for source in updates:
+            print(f"[tex] reformatted: {source.relative_to(root)}")
+    for entry, fingerprint in entries.items():
+        entry.write_text(fingerprint)
     if status:
         return status
     if check:

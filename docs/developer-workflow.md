@@ -342,6 +342,8 @@ the limit for `format tex` and `format all`. Macro validation finishes before
 formatting starts, output stays ordered by source, and a changed source is
 preserved instead of being overwritten. Invocations sharing a formatter cache
 serialize cache pruning and formatting.
+Writing also uses the shared source-update lock and guarded replacements, so
+concurrent macro edits stop installation before success entries are cached.
 
 Omit `--check` to update files; include it to report drift without writing.
 `all` runs TeX, Python, shell, then repository-wide newline normalization and

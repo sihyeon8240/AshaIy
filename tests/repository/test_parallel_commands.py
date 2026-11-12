@@ -17,6 +17,26 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class ParallelCommandsTests(unittest.TestCase):
+    def test_custom_discovery_executes_function_cases_once(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            package = root / "custom_cases"
+            package.mkdir()
+            (package / "__init__.py").touch()
+            marker = root / "executions"
+            (package / "test_custom.py").write_text(
+                "import unittest\nfrom pathlib import Path\n"
+                "def load_tests(loader, tests, pattern):\n"
+                "    def action():\n"
+                f"        path = Path({str(marker)!r})\n"
+                "        path.write_text(path.read_text() + 'x' if path.exists() else 'x')\n"
+                "    return unittest.TestSuite([unittest.FunctionTestCase(action)])\n"
+            )
+            original_path = sys.path[:]
+            self.addCleanup(setattr, sys, "path", original_path)
+            self.assertEqual(run_tests(str(package), "test_*.py", jobs=4, root=root), 0)
+            self.assertEqual(marker.read_text(), "x")
+
     def test_test_failures_do_not_hide_independent_results_or_skips(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

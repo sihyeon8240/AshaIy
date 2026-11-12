@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import re
 import signal
 import sys
@@ -59,9 +60,24 @@ def run_module(module: str) -> int:
 
 
 def run_tests(directory: str, pattern: str, *, jobs: int | None = None, root: Path = ROOT) -> int:
-    suite = unittest.defaultTestLoader.discover(directory, pattern=pattern, top_level_dir=str(root))
-    modules = test_modules(suite)
     count = worker_count(jobs)
+    suite = unittest.defaultTestLoader.discover(directory, pattern=pattern, top_level_dir=str(root))
+    modules_with_hooks = any(
+        callable(getattr(module, "load_tests", None))
+        and (filename := getattr(module, "__file__", None))
+        and Path(filename).is_relative_to(Path(directory).resolve())
+        for module in tuple(sys.modules.values())
+    )
+    imported_cases = any(
+        not fnmatch.fnmatch(
+            Path(getattr(sys.modules.get(test.__class__.__module__), "__file__", None) or "").name, pattern
+        )
+        for test in test_cases(suite)
+    )
+    if modules_with_hooks or imported_cases:
+        print("Custom unittest discovery; running the discovered suite in one process.", flush=True)
+        return int(not unittest.TextTestRunner(verbosity=2, buffer=True).run(suite).wasSuccessful())
+    modules = test_modules(suite)
     started = time.monotonic()
 
     def execute(module: str, runner: ProcessRunner):
@@ -71,8 +87,12 @@ def run_tests(directory: str, pattern: str, *, jobs: int | None = None, root: Pa
     failed = skipped = 0
     for module, result in results:
         output = result.stdout.decode(errors="replace")
-        if result.returncode:
+        counts = re.findall(r"^Ran (\d+) tests? in ", output, re.MULTILINE)
+        complete = bool(counts) and int(counts[-1]) == modules[module]
+        if result.returncode or not complete:
             failed += 1
+            if not complete:
+                output += f"\nTest count differs from discovery: expected {modules[module]}.\n"
             print(f"\n==> Failed: {module}\n{output}", file=sys.stderr)
         else:
             for line in output.splitlines():
