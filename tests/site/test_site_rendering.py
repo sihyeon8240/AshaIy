@@ -283,6 +283,18 @@ return {
                     page.set_viewport_size({"width": width, "height": 1000})
                     for path in paths:
                         page.goto(f"http://127.0.0.1:{server_port}/math/{path}")
+                        if width == 375 and font_scale == 100:
+                            page.keyboard.press("Tab")
+                            self.assertEqual(page.locator(":focus").inner_text(), "Skip to content")
+                            page.keyboard.press("Enter")
+                            self.assertEqual(page.evaluate("location.hash"), "#main-content")
+                            if path.startswith("books/"):
+                                command = page.locator(".resource-list code").inner_text()
+                                self.assertEqual(
+                                    " ".join(command.split()), f"ashaiy book build --book {Path(path).stem}"
+                                )
+                                fallback = page.locator("object p a")
+                                self.assertTrue((fallback.get_attribute("href") or "").startswith("/math/pdf/"))
                         if font_scale != 100:
                             page.add_style_tag(content=f"html {{ font-size: {font_scale}%; }}")
                         page.evaluate("document.fonts.ready")

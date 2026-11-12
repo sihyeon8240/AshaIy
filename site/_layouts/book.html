@@ -16,8 +16,7 @@ layout: default
     <ul class="resource-list">
       <li>
         <code>
-          ashaiy book build --book<br>
-          { {{ book.slug | escape }}{% if book.label_prefix %} | {{ book.label_prefix | escape }}{% endif %} }
+          ashaiy book build --book {{ book.slug | escape }}
         </code>
       </li>
       <li>
