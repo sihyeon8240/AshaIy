@@ -30,9 +30,9 @@ Validation and formatting:
       Check sources, formatting, Lean, and PDFs for check-enabled textbooks.
   lean {prepare|build|check}
       Prepare dependencies or build Lean; check also verifies proof declarations.
-  format {tex|py|sh|all} [--check] [--file PATH]
+  format {tex|py|sh|all} [--check] [--file PATH] [--jobs N]
       Format sources, or report drift with --check. --file selects one file.
-  test
+  test [--jobs N] [--coverage]
       Run the Python test suite separately from check all.
 
 Generated content:
@@ -335,6 +335,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="format one file relative to the caller; requires a single language scope",
     )
     formatting.set_defaults(run=run_format)
+    formatting.add_argument("--jobs", type=positive_integer, metavar="N", help="maximum parallel TeX formatters")
 
     command("lean", "prepare dependencies, build, or verify Lean", ("prepare", "build", "check"))
     doctor = command("doctor", "diagnose environment or textbooks", ("env", "book"))
@@ -394,6 +395,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     tests = command("test", "run the repository test suite")
     tests.add_argument("--coverage", action="store_true", help="measure Python branch coverage")
+    tests.add_argument("--jobs", type=positive_integer, metavar="N", help="maximum test workers (default: at most 4)")
     command("report", "print a repository report")
     command("tree", "write build/tree.txt")
 
@@ -542,7 +544,10 @@ def run_format(arguments: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
-    return format_sources(arguments.scope, check=arguments.check, file=arguments.file).returncode
+    if arguments.jobs is not None and arguments.scope not in {"tex", "all"}:
+        print("error: --jobs requires the tex or all format scope", file=sys.stderr)
+        return 2
+    return format_sources(arguments.scope, check=arguments.check, file=arguments.file, jobs=arguments.jobs).returncode
 
 
 if __name__ == "__main__":

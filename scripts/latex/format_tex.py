@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
 import hashlib
 import os
 import re
@@ -10,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 from typing import cast
 
@@ -22,6 +24,7 @@ from scripts.latex.normalize_braces import normalize_braces
 from scripts.lean.lean_source import ignored_spans
 from scripts.repository.config.validation_patterns import validation_pattern
 from scripts.repository.formatting.normalize_eof import normalized_bytes
+from scripts.repository.processes import ProcessRunner, run_parallel, worker_count
 
 ROOT = Path(__file__).resolve().parents[2]
 LEAN_BLOCK = re.compile(
@@ -48,7 +51,13 @@ def normalize_lean_indentation(source: bytes) -> bytes:
     return LEAN_BLOCK.sub(replace, source)
 
 
-def format_file(file: Path, *, source: Path | None = None, registry: MacroRegistry | None = None) -> bytes:
+def format_file(
+    file: Path,
+    *,
+    source: Path | None = None,
+    registry: MacroRegistry | None = None,
+    output: Callable[[list[str]], bytes] = subprocess.check_output,
+) -> bytes:
     if not file.is_file():
         raise ValueError(f"FILE does not exist: {file}")
     settings = ROOT / "config/latexindent.yaml"
@@ -79,10 +88,10 @@ def format_file(file: Path, *, source: Path | None = None, registry: MacroRegist
         original = cruft / file.name
         original.write_text(source_text, encoding="utf-8")
         options = ["latexindent", f"--local={settings}", f"--cruft={cruft}"]
-        result = subprocess.check_output([*options, "--modifylinebreaks", str(original)])
+        result = output([*options, "--modifylinebreaks", str(original)])
         wrapped.write_bytes(result)
         # The second pass corrects indentation added to short wrapped sentences.
-        result = subprocess.check_output([*options, str(wrapped)])
+        result = output([*options, str(wrapped)])
     result = normalized_bytes(normalize_lean_indentation(result), collapse=True)
     text = result.decode()
     clean = without_comments_and_literals(text)
@@ -132,6 +141,7 @@ def cache_directory(root: Path) -> Path:
         "latex/macro_manifest.py",
         "latex/macro_generation.py",
         "repository/source_reads.py",
+        "repository/processes.py",
         "books/book_manifest.py",
         "lean/lean_source.py",
         "latex/format_tex_file.sh",
@@ -157,7 +167,8 @@ def prune_cache(cache: Path) -> None:
             shutil.rmtree(entry)
 
 
-def format_sources(root: Path, *, check: bool, file: Path | None, prune: bool = False) -> int:
+def format_sources(root: Path, *, check: bool, file: Path | None, prune: bool = False, jobs: int | None = None) -> int:
+    jobs = worker_count(jobs)
     files = selected_files(root, file)
     if shutil.which("latexindent") is None:
         print("error: latexindent is required", file=sys.stderr)
@@ -165,10 +176,27 @@ def format_sources(root: Path, *, check: bool, file: Path | None, prune: bool = 
     repository = MacroRepository(root)
     registries = {path: repository.for_source(root / path) for path in files}
     cache = cache_directory(root)
+    with (cache.parent / ".format.lock").open("a+b") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        cache.mkdir(parents=True, exist_ok=True)
+        return format_selected(root, files, registries, cache, check=check, prune=prune, jobs=jobs)
+
+
+def format_selected(
+    root: Path,
+    files: list[Path],
+    registries: dict[Path, MacroRegistry],
+    cache: Path,
+    *,
+    check: bool,
+    prune: bool,
+    jobs: int | None,
+) -> int:
     if prune:
         prune_cache(cache)
     print(f"[tex] {'checking' if check else 'formatting'} LaTeX source files", flush=True)
     cached = changed = status = 0
+    pending = []
     for path in files:
         source = root / path
         original = source.read_bytes()
@@ -178,8 +206,18 @@ def format_sources(root: Path, *, check: bool, file: Path | None, prune: bool = 
         if entry.is_file() and entry.read_text().strip() == content_hash:
             cached += 1
             continue
-        # Use repository-relative names for bulk formatting, as the existing CLI does.
-        formatted = format_file(path, registry=registry)
+        pending.append((path, original, entry))
+
+    def format_target(target, runner: ProcessRunner) -> bytes:
+        path, _, _ = target
+        return format_file(path, registry=registries[path], output=runner.check_output)
+
+    formatted_files = run_parallel(pending, format_target, jobs=jobs) if pending else []
+    for (path, original, entry), formatted in zip(pending, formatted_files, strict=True):
+        source = root / path
+        registry = registries[path]
+        if source.read_bytes() != original:
+            raise ValueError(f"source changed while formatting; preserved current file: {path}")
         if formatted != original:
             if check:
                 print(f"[tex] needs formatting: {path}", file=sys.stderr)
@@ -213,6 +251,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--file", type=Path)
+    parser.add_argument("--jobs", type=int, help="maximum parallel formatters (default: at most 4)")
     parser.add_argument(
         "--prune-cache",
         action="store_true",
@@ -238,7 +277,9 @@ def main() -> int:
         file = args.file.resolve() if args.file is not None else None
         root = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
         os.chdir(root)
-        return format_sources(root, check=args.check, file=file, prune=args.prune_cache)
+        return format_sources(root, check=args.check, file=file, prune=args.prune_cache, jobs=args.jobs)
+    except KeyboardInterrupt:
+        return 130
     except subprocess.CalledProcessError as error:
         return error.returncode
     except (OSError, ValueError) as error:

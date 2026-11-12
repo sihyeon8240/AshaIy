@@ -122,18 +122,16 @@ def clean_command(arguments: argparse.Namespace) -> int:
 def test_command(arguments: argparse.Namespace) -> int:
     authoring = load_authoring()
     discovery = [
-        "discover",
-        "-t",
-        ".",
-        "-s",
+        str(ROOT / "scripts/repository/test_runner.py"),
+        "--directory",
         authoring["test_directory"],
-        "-p",
+        "--pattern",
         authoring["test_pattern"],
-        "-v",
-        "--buffer",
     ]
+    if arguments.jobs is not None:
+        discovery.extend(("--jobs", str(arguments.jobs)))
     if not arguments.coverage:
-        return subprocess.run([sys.executable, "-m", "unittest", *discovery], cwd=ROOT, check=False).returncode
+        return subprocess.run([sys.executable, *discovery], cwd=ROOT, check=False).returncode
 
     environment = {**os.environ, "ASHAIY_TEST_ROOT": str(ROOT)}
     coverage = [
@@ -154,7 +152,7 @@ def test_command(arguments: argparse.Namespace) -> int:
     status = measure("erase")
     if status:
         return status
-    status = measure("run", "-m", "unittest", *discovery)
+    status = measure("run", *discovery)
     combined = measure("combine")
     if combined:
         return status or combined

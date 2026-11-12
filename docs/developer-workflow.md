@@ -337,6 +337,12 @@ ashaiy format sh --file scripts/latex/build_book.sh
 ashaiy format all --check
 ```
 
+TeX formatting uses at most four workers for cache misses; `--jobs N` overrides
+the limit for `format tex` and `format all`. Macro validation finishes before
+formatting starts, output stays ordered by source, and a changed source is
+preserved instead of being overwritten. Invocations sharing a formatter cache
+serialize cache pruning and formatting.
+
 Omit `--check` to update files; include it to report drift without writing.
 `all` runs TeX, Python, shell, then repository-wide newline normalization and
 stops at the first failure. Review formatter diffs before committing.
