@@ -282,6 +282,7 @@ def build_parser() -> argparse.ArgumentParser:
     build.set_defaults(run=run_book)
     books["new"].add_argument("--slug", required=True, help="new textbook directory and registry slug")
     books["new"].add_argument("--title", required=True, help="textbook title; quote titles containing spaces")
+    books["new"].add_argument("--label-prefix", help="unique label prefix (default: slug initials)")
     book_option(books["release"], required=True)
     books["release"].add_argument("--version", required=True, help="release version to prepare for review")
 

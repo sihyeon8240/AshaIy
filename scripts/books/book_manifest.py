@@ -110,12 +110,14 @@ def save_manifest(manifest: dict[str, Any]) -> None:
         write_updates({MANIFEST_PATH: text}, durable=True)
 
 
-def validate_new_book_input(slug: str, title: str) -> None:
+def validate_new_book_input(slug: str, title: str, label_prefix: str | None = None) -> None:
     if not SLUG_PATTERN.fullmatch(slug):
         raise ValueError("slug must contain lowercase letters/numbers separated by single hyphens")
 
     if not title.strip() or "\n" in title or "\r" in title:
         raise ValueError("title must be a non-empty single line")
+    if label_prefix is not None and not LABEL_PREFIX_PATTERN.fullmatch(label_prefix):
+        raise ValueError("label prefix must begin with a lowercase letter and contain lowercase letters/numbers")
 
 
 def suggested_label_prefix(slug: str) -> str:
@@ -123,13 +125,15 @@ def suggested_label_prefix(slug: str) -> str:
     return "".join(part[0] for part in slug.split("-"))
 
 
-def add_book(slug: str, title: str, *, release: bool | None = None, site: bool | None = None) -> None:
+def add_book(
+    slug: str, title: str, *, release: bool | None = None, site: bool | None = None, label_prefix: str | None = None
+) -> None:
     with source_updates(REPO_ROOT):
-        _add_book(slug, title, release=release, site=site)
+        _add_book(slug, title, release=release, site=site, label_prefix=label_prefix)
 
 
-def _add_book(slug: str, title: str, *, release: bool | None, site: bool | None) -> None:
-    validate_new_book_input(slug, title)
+def _add_book(slug: str, title: str, *, release: bool | None, site: bool | None, label_prefix: str | None) -> None:
+    validate_new_book_input(slug, title, label_prefix)
     title = title.strip()
 
     load_manifest()
@@ -146,7 +150,7 @@ def _add_book(slug: str, title: str, *, release: bool | None, site: bool | None)
         "slug": slug,
         "title": title,
         "version": "0.1.0",
-        "label_prefix": suggested_label_prefix(slug),
+        "label_prefix": label_prefix if label_prefix is not None else suggested_label_prefix(slug),
         "status": "draft",
         "order": next_order,
     }

@@ -36,7 +36,8 @@ def book_command(arguments: argparse.Namespace) -> int:
                 print(f"{book['slug']} ({book['label_prefix']})  {book['title']}  [{flags}]")
         return 0
     if action == "new":
-        return run("books/new_book.py", arguments.slug, arguments.title)
+        options = ["--label-prefix", arguments.label_prefix] if arguments.label_prefix is not None else []
+        return run("books/new_book.py", arguments.slug, arguments.title, *options)
     return run(
         "release/releases.py",
         "prepare",

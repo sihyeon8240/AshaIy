@@ -37,13 +37,17 @@ class NewBookTests(unittest.TestCase):
         copy_validation_configuration(self.root)
         write_yaml(self.root / "config/books.yml", manifest_document([]))
 
-    def run_new(self, slug: str = "new-book", **environment: str) -> subprocess.CompletedProcess[str]:
+    def run_new(
+        self, slug: str = "new-book", *, label_prefix: str | None = None, **environment: str
+    ) -> subprocess.CompletedProcess[str]:
+        options = ["--label-prefix", label_prefix] if label_prefix is not None else []
         return subprocess.run(
             [
                 sys.executable,
                 str(self.root / "scripts/books/new_book.py"),
                 slug,
                 "New Book",
+                *options,
             ],
             cwd=self.root,
             env={**os.environ, "PYTHON": sys.executable, **environment},
@@ -52,6 +56,22 @@ class NewBookTests(unittest.TestCase):
             check=False,
             timeout=30,
         )
+
+    def test_explicit_prefix_resolves_collision_without_changing_existing_labels(self) -> None:
+        first = self.run_new("abstract-algebra")
+        self.assertEqual(first.returncode, 0, first.stderr)
+        original = (self.root / "config/books.yml").read_bytes()
+        rejected = self.run_new("advanced-analysis")
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertIn("--label-prefix", rejected.stderr)
+        self.assertFalse((self.root / "books/advanced-analysis").exists())
+        self.assertEqual((self.root / "config/books.yml").read_bytes(), original)
+        accepted = self.run_new("advanced-analysis", label_prefix="adv")
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+        section = self.root / "books/advanced-analysis/chapters/introduction/first-section.tex"
+        self.assertIn("adv:sec:first-section", section.read_text())
+        old_section = self.root / "books/abstract-algebra/chapters/introduction/first-section.tex"
+        self.assertIn("aa:sec:first-section", old_section.read_text())
 
     def test_success_creates_minimal_scaffold(self) -> None:
         result = self.run_new()

@@ -15,6 +15,7 @@ from scripts.books.book_manifest import (
     load_manifest,
     manifest_warnings,
     require_book,
+    suggested_label_prefix,
     validate_new_book_input,
 )
 from scripts.books.contents_generation import generate
@@ -28,19 +29,23 @@ from scripts.repository.file_updates import (
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def create_book(slug: str, title: str) -> None:
+def create_book(slug: str, title: str, *, label_prefix: str | None = None) -> None:
     with source_updates(ROOT):
-        _create_book(slug, title)
+        _create_book(slug, title, label_prefix=label_prefix)
 
 
-def _create_book(slug: str, title: str) -> None:
-    validate_new_book_input(slug, title)
+def _create_book(slug: str, title: str, *, label_prefix: str | None) -> None:
+    validate_new_book_input(slug, title, label_prefix)
     print("New book input is valid")
     target = ROOT / "books" / slug
     if target.exists() or target.is_symlink():
         raise ValueError(f"refusing to overwrite existing path: {target}")
 
-    for warning in manifest_warnings(load_manifest()):
+    data = load_manifest()
+    prefix = label_prefix if label_prefix is not None else suggested_label_prefix(slug)
+    if any(book["label_prefix"] == prefix for book in data["books"]):
+        raise ValueError(f"duplicate label_prefix: {prefix}; choose another --label-prefix")
+    for warning in manifest_warnings(data):
         print(f"warning: {warning}", file=sys.stderr)
     print("config/books.yml is valid")
     manifest = ROOT / "config/books.yml"
@@ -64,7 +69,7 @@ def _create_book(slug: str, title: str) -> None:
         for name, destination in sources.items():
             shutil.copyfile(templates / name, destination)
 
-        add_book(slug, title, release=False, site=False)
+        add_book(slug, title, release=False, site=False, label_prefix=prefix)
         registered = manifest.read_bytes()
         print(f"Added '{slug}' to config/books.yml")
         label_prefix = require_book(slug)["label_prefix"]
@@ -93,9 +98,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("slug")
     parser.add_argument("title")
+    parser.add_argument("--label-prefix")
     arguments = parser.parse_args()
     try:
-        create_book(arguments.slug, arguments.title)
+        create_book(arguments.slug, arguments.title, label_prefix=arguments.label_prefix)
     except (OSError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
