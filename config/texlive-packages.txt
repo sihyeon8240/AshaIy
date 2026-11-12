@@ -29,6 +29,7 @@ stdclsdv
 stmaryrd
 tcolorbox
 tex-gyre
+tex-gyre-math
 tikzfill
 tools
 xcolor
