@@ -38,8 +38,21 @@ substantive reasoning.
 
 Update displayed code with its checked source and manually review the statement,
 each explanation/code pair, and complete declaration for agreement, including
-display-only edits. `ashaiy lean check` neither extracts printed code nor checks
-its correspondence; PDF compilation establishes only that it can be typeset.
+display-only edits. Unannotated displays remain manually checked. Opt-in source links compare literal
+fragments during proof-link checks; PDF compilation alone establishes only
+that code can be typeset.
+
+For a new or revised paired block, delimit the corresponding checked source with
+standalone `-- textbook:begin <name>` and `-- textbook:end <name>` comments.
+Names use lowercase letters, digits, and hyphens and are unique within the topic.
+Immediately precede the argument-free `lean` environment with
+`% lean-source: lean/Textbooks/<Book>/<Chapter>/<Topic>.lean#<name>`.
+The checker accepts a uniform indentation shift, rejects missing or changed
+fragments and cross-book sources, and preserves multiline literal bytes exactly.
+A fragment can be a signature or one reasoning unit; source markers are comments
+and the complete declaration still compiles normally. This pilot does not
+certify natural-language fidelity, proof completeness, or prerequisite compliance.
+Rendering specimens remain unannotated unless backed by a checked source.
 
 ## Lean readability
 
@@ -394,7 +407,8 @@ standard `propext`, `Classical.choice`, and `Quot.sound` axioms are permitted;
 authorize mathematical prerequisites outside a book's boundary.
 
 [`lean-proof-audit.lean`](../scripts/lean/lean-proof-audit.lean) is validation
-tooling; its generated probe lives in ignored `build/lean-links/`. Source scanning
+tooling; each generated probe uses an isolated temporary directory under
+ignored `build/lean-links/` and receives declaration names through stdin. Source scanning
 also catches unfinished anonymous examples absent from the imported environment.
 `ashaiy check all --strict` requires these checks before building PDFs.
 

@@ -42,7 +42,8 @@ private def auditProof (name : Name) : MetaM Unit := do
 
   auditAxioms name
 
-public unsafe def main (declarations : List String) : IO Unit := do
+public unsafe def main (_ : List String) : IO Unit := do
+  let declarations := ((← (← IO.getStdin).readToEnd).splitOn "\n").filter (· != "")
   initSearchPath (← findSysroot)
   enableInitializersExecution
 
