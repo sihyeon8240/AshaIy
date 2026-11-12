@@ -63,7 +63,7 @@ def book_assembly(root: Path, book: dict) -> str:
             if modules:
                 groups.append(
                     "\n".join(
-                        f"import Textbooks.{book['lean_module']}.{relative.replace('/', '.')}.{name}"
+                        f"public import Textbooks.{book['lean_module']}.{relative.replace('/', '.')}.{name}"
                         for name in modules
                     )
                 )
@@ -73,7 +73,7 @@ def book_assembly(root: Path, book: dict) -> str:
     )
     if orphaned:
         raise ValueError(f"{sorted(orphaned)[0]}: unregistered Lean source or manifest")
-    return "\n\n".join([GENERATED_NOTICE, *groups]) + "\n"
+    return "\n\n".join([GENERATED_NOTICE, "module", *groups]) + "\n"
 
 
 def expected_files(root: Path = ROOT, book: str | None = None) -> dict[Path, str]:
@@ -88,8 +88,8 @@ def expected_files(root: Path = ROOT, book: str | None = None) -> dict[Path, str
             if owner not in registered:
                 raise ValueError(f"{path}: unregistered Lean book")
 
-    imports = [f"import Textbooks.{item['lean_module']}.All" for item in lean_books]
-    root_text = "\n".join([GENERATED_NOTICE, "", *imports]).rstrip() + "\n"
+    imports = [f"public import Textbooks.{item['lean_module']}.All" for item in lean_books]
+    root_text = "\n".join([GENERATED_NOTICE, "module", "", *imports]).rstrip() + "\n"
     expected = {root / "lean/Textbooks.lean": root_text}
     for item in lean_books:
         if book is None or item["slug"] == book:

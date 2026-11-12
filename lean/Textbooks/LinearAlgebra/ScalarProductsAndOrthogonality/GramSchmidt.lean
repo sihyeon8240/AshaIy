@@ -1,6 +1,10 @@
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.PositiveDefinite
-import Textbooks.LinearAlgebra.VectorSpaces.DirectSums
-import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
+module
+
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.PositiveDefinite
+public import Textbooks.LinearAlgebra.VectorSpaces.DirectSums
+public import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
+
+public section
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 
@@ -8,7 +12,7 @@ open Module Submodule Set
 open scoped BigOperators
 
 variable {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
-variable {ι : Type*} [Fintype ι] [LinearOrder ι] [LocallyFiniteOrderBot ι]
+variable {ι : Type*} [LinearOrder ι] [LocallyFiniteOrderBot ι]
 
 attribute [local instance] IsWellOrder.toHasWellFounded
 
@@ -168,6 +172,8 @@ theorem gramSchmidt_ne_zero (f : ι → E) (hf : LinearIndependent 𝕜 f) (j : 
     exact smul_mem _ _ (subset_span ⟨i, Finset.mem_Iio.mp hi, rfl⟩)
 
   exact hf.notMem_span_image (by simp only [mem_Iio, lt_self_iff_false, not_false_eq_true]) hm
+
+variable [Fintype ι]
 
 /-- Definition: the orthogonal basis obtained by Gram–Schmidt. -/
 noncomputable def orthogonalizedBasis (b : Basis ι 𝕜 E) : Basis ι 𝕜 E :=

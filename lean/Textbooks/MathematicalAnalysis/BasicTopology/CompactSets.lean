@@ -1,8 +1,14 @@
-import Textbooks.MathematicalAnalysis.BasicTopology.MetricSpaces
-import Mathlib.Topology.Compactness.Compact
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Textbooks.MathematicalAnalysis.BasicTopology.MetricSpaces
+public import Mathlib.Topology.Compactness.Compact
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
 import Mathlib.Tactic.Convert
 import Mathlib.Tactic.Positivity
+import Mathlib.Tactic.Linarith
+
+public section
 
 namespace MathematicalAnalysis.BasicTopology
 

@@ -1,6 +1,13 @@
-import Textbooks.ElementaryNumberTheory.DivisibilityTheoryInTheIntegers.DiophantineEquations
-import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.Primes
-import Mathlib.Data.Int.ModEq
+module
+
+public import Textbooks.ElementaryNumberTheory.DivisibilityTheoryInTheIntegers.DiophantineEquations
+public import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.Primes
+public import Mathlib.Data.Int.ModEq
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.TheTheoryOfCongruences
 

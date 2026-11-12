@@ -1,7 +1,11 @@
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.DualSpaces
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.CoordinateProducts
-import Textbooks.LinearAlgebra.LinearMapsAndMatrices.MatrixMaps
-import Mathlib.LinearAlgebra.Matrix.Rank
+module
+
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.DualSpaces
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.CoordinateProducts
+public import Textbooks.LinearAlgebra.LinearMapsAndMatrices.MatrixMaps
+public import Mathlib.LinearAlgebra.Matrix.Rank
+
+public section
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 

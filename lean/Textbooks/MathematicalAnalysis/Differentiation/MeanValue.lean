@@ -1,7 +1,14 @@
-import Textbooks.MathematicalAnalysis.Differentiation.DerivativeLimits
-import Textbooks.MathematicalAnalysis.Continuity.CompactContinuity
-import Mathlib.Topology.Order.LocalExtr
-import Mathlib.Topology.Order.Bornology
+module
+
+public import Textbooks.MathematicalAnalysis.Differentiation.DerivativeLimits
+public import Textbooks.MathematicalAnalysis.Continuity.CompactContinuity
+public import Mathlib.Topology.Order.LocalExtr
+public import Mathlib.Topology.Order.Bornology
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace MathematicalAnalysis.Differentiation
 

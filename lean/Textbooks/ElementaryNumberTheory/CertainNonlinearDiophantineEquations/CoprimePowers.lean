@@ -1,6 +1,13 @@
-import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.PrimeExponentSplitting
-import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.Mobius
-import Mathlib.RingTheory.Coprime.Lemmas
+module
+
+public import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.PrimeExponentSplitting
+public import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.Mobius
+public import Mathlib.RingTheory.Coprime.Lemmas
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.NormNum
+
+public section
 
 namespace ElementaryNumberTheory.CertainNonlinearDiophantineEquations
 

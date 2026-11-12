@@ -1,5 +1,11 @@
-import Textbooks.ElementaryNumberTheory.FermatsTheorem.Wilson
-import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.SieveOfEratosthenes
+module
+
+public import Textbooks.ElementaryNumberTheory.FermatsTheorem.Wilson
+public import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.SieveOfEratosthenes
+
+import Mathlib.Tactic.Linarith
+
+public section
 
 namespace ElementaryNumberTheory.FermatsTheorem
 

@@ -1,4 +1,11 @@
-import Textbooks.ElementaryNumberTheory.FermatsTheorem.Wilson
+module
+
+public import Textbooks.ElementaryNumberTheory.FermatsTheorem.Wilson
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.FermatsTheorem
 

@@ -1,5 +1,13 @@
-import Textbooks.ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem.Euler
-import Textbooks.ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem.TotientFormulas
+module
+
+public import Textbooks.ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem.Euler
+public import Textbooks.ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem.TotientFormulas
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.NormNum
+
+public section
 
 namespace ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem
 

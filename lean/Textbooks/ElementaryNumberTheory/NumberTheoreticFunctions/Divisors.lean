@@ -1,22 +1,33 @@
-import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.PrimeFactorization
-import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.ChineseRemainder
-import Mathlib.NumberTheory.Divisors
+module
+
+public import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.PrimeFactorization
+public import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.ChineseRemainder
+public import Mathlib.NumberTheory.Divisors
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.NumberTheoreticFunctions
 
 /-- Definition: the number of positive divisors. The value at zero follows Mathlib's
 empty-divisor convention; the lecture statements assume n positive. -/
+@[expose]
 def tau (n : ℕ) : ℕ := n.divisors.card
 
 /-- Definition: the sum of positive divisors. -/
+@[expose]
 def sigma (n : ℕ) : ℕ := ∑ d ∈ n.divisors, d
 
 /-- Definition: Burton multiplicativity permits the zero function. Only positive arguments are
 constrained, and f(1)=1 is not part of the definition. -/
+@[expose]
 def IsMultiplicative (f : ℕ → ℤ) : Prop :=
   ∀ m n : ℕ, 0 < m → 0 < n → DivisibilityTheoryInTheIntegers.gcd m n = 1 → f (m * n) = f m * f n
 
 /-- Definition: the divisor sum of an arithmetic function. -/
+@[expose]
 def divisorSum (f : ℕ → ℤ) (n : ℕ) : ℤ := ∑ d ∈ n.divisors, f d
 
 /-- Lemma: coprimality is inherited by divisors. -/

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import subprocess
 import sys
@@ -42,6 +43,10 @@ def project_mathlib_imports(root: Path) -> list[str]:
             elif dependency.startswith("Textbooks."):
                 pending.append(dependency)
     return sorted(mathlib)
+
+
+def import_fingerprint(root: Path = ROOT) -> str:
+    return hashlib.sha256("\n".join(project_mathlib_imports(root)).encode()).hexdigest()
 
 
 def repair_native_executables(root: Path) -> None:
@@ -89,9 +94,16 @@ def prepare(root: Path = ROOT) -> None:
 
 
 def main() -> int:
-    argparse.ArgumentParser(description=__doc__).parse_args()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--import-hash", action="store_true", help="print the normalized direct-import cache fingerprint"
+    )
+    arguments = parser.parse_args()
     try:
-        prepare()
+        if arguments.import_hash:
+            print(import_fingerprint())
+        else:
+            prepare()
     except subprocess.CalledProcessError as error:
         return error.returncode
     except (OSError, ValueError) as error:

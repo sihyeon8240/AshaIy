@@ -1,5 +1,12 @@
-import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.ExponentReduction
-import Mathlib.Algebra.BigOperators.Ring.Nat
+module
+
+public import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.ExponentReduction
+public import Mathlib.Algebra.BigOperators.Ring.Nat
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.NormNum
+
+public section
 
 namespace ElementaryNumberTheory.CertainNonlinearDiophantineEquations
 

@@ -1,5 +1,11 @@
-import Textbooks.MathematicalAnalysis.SequencesAndSeries.Subsequences
-import Mathlib.Topology.MetricSpace.Cauchy
+module
+
+public import Textbooks.MathematicalAnalysis.SequencesAndSeries.Subsequences
+public import Mathlib.Topology.MetricSpace.Cauchy
+
+import Mathlib.Tactic.Linarith
+
+public section
 
 namespace MathematicalAnalysis.SequencesAndSeries
 

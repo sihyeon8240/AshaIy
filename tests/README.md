@@ -8,6 +8,12 @@ The larger areas also mirror `repository/{checks,config,formatting}/` and
 `toolchain/images/`.
 Keep shared fixture builders in `support/` and LaTeX specimens in `fixtures/`.
 Keep package `__init__.py` files and use absolute `tests.*` imports for helpers.
+The CLI runs whole test modules in isolated processes, using at most four workers
+bounded by the available CPU count. `ashaiy test --jobs 1` runs modules serially;
+`--jobs 2` is useful on smaller CI runners. Failures retain their output and exit
+status, skips remain explicit, and interruption reaps active process groups.
+Custom `load_tests` hooks and imported test cases retain standard unittest
+discovery in one process. Module workers must execute the discovered test count.
 For a focused run, keep the checkout as unittest's top-level directory:
 
 ```bash
@@ -31,6 +37,7 @@ Keep fixed examples for known regressions.
 
 Use `ashaiy test --coverage` to measure Python statement and branch coverage,
 including Python subprocesses. Reports and data live under `.cache/coverage/`;
+`--jobs` also applies in coverage mode; worker measurements are combined before reporting.
 open `.cache/coverage/html/index.html` inside the container for missing branches.
 In Dev Containers this directory is on the cache volume. Use `docker cp` to
 export its HTML directory into host `build/reports/coverage/` when needed.
@@ -44,6 +51,7 @@ Use `support/fixtures.py` builders for valid fixture setup; keep malformed recor
 and expected results explicit. Register cleanup immediately, start long-lived
 processes in new sessions, bound waits, and clean process groups before their
 temporary directories.
+Tests that write GitHub job summaries must use their own temporary summary file.
 `support/workflows.py` evaluates the workflow expressions used by tests; it does
 not emulate Actions scheduling or implicit status checks.
 

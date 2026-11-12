@@ -1,5 +1,9 @@
-import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.FourthPowerSums
-import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.SieveOfEratosthenes
+module
+
+public import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.FourthPowerSums
+public import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.SieveOfEratosthenes
+
+public section
 
 namespace ElementaryNumberTheory.CertainNonlinearDiophantineEquations
 

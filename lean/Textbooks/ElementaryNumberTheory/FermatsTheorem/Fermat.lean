@@ -1,6 +1,10 @@
-import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.ChineseRemainder
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
+module
+
+public import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.ChineseRemainder
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
+
+public section
 
 namespace ElementaryNumberTheory.FermatsTheorem
 

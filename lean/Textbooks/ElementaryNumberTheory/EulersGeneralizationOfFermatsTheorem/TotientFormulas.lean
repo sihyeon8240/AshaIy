@@ -1,5 +1,12 @@
-import Textbooks.ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem.Totient
+module
+
+public import Textbooks.ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem.Totient
+
 import Mathlib.Tactic.FieldSimp
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem
 

@@ -1,5 +1,9 @@
-import Textbooks.ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem.Totient
-import Mathlib.Data.ZMod.Basic
+module
+
+public import Textbooks.ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem.Totient
+public import Mathlib.Data.ZMod.Basic
+
+public section
 
 namespace ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem
 

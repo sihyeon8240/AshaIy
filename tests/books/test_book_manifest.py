@@ -8,6 +8,7 @@ import json
 import sys
 import tempfile
 import unittest
+from collections.abc import Mapping
 from pathlib import Path
 from unittest.mock import patch
 
@@ -52,7 +53,7 @@ class ManifestWarningTests(unittest.TestCase):
 
 
 class ManifestModuleTests(unittest.TestCase):
-    def fixture(self, book: dict[str, object], defaults: dict[str, object] | None = None):
+    def fixture(self, book: Mapping[str, object], defaults: dict[str, object] | None = None):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         root = Path(temporary.name)

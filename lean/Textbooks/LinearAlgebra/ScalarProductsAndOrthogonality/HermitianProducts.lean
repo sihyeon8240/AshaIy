@@ -1,6 +1,14 @@
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.ScalarProducts
-import Mathlib.Analysis.InnerProductSpace.Defs
-import Mathlib.Analysis.Complex.Basic
+module
+
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.ScalarProducts
+public import Mathlib.Analysis.InnerProductSpace.Defs
+public import Mathlib.Analysis.Complex.Basic
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.NormNum
+import Mathlib.Tactic.LinearCombination
+
+public section
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 

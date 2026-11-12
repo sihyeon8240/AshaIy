@@ -1,5 +1,9 @@
-import Textbooks.LinearAlgebra.Determinants.Characterization
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.MatrixRank
+module
+
+public import Textbooks.LinearAlgebra.Determinants.Characterization
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.MatrixRank
+
+public section
 
 namespace LinearAlgebra.Determinants
 

@@ -1,4 +1,12 @@
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.DarbouxCriterion
+module
+
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.DarbouxCriterion
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace MathematicalAnalysis.TheRiemannStieltjesIntegral
 

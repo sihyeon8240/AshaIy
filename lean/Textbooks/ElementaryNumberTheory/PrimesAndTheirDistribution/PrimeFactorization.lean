@@ -1,7 +1,13 @@
-import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.Primes
-import Mathlib.Data.List.Sort
-import Mathlib.Data.Finset.Sort
-import Mathlib.Data.Finsupp.Multiset
+module
+
+public import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.Primes
+public import Mathlib.Data.List.Sort
+public import Mathlib.Data.Finset.Sort
+public import Mathlib.Data.Finsupp.Multiset
+
+import Mathlib.Tactic.Linarith
+
+public section
 
 namespace ElementaryNumberTheory.PrimesAndTheirDistribution
 

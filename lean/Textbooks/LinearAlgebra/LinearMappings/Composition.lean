@@ -1,4 +1,8 @@
-import Textbooks.LinearAlgebra.LinearMappings.KernelImage
+module
+
+public import Textbooks.LinearAlgebra.LinearMappings.KernelImage
+
+public section
 
 namespace LinearAlgebra.LinearMappings
 
@@ -67,6 +71,7 @@ theorem exists_inverse_linear (f : U →ₗ[K] V) (hk : LinearMap.ker f = ⊥)
   exact ⟨inverseLinear f g hgf hfg, hgf, hfg⟩
 
 /-- Definition: a linear isomorphism from a linear map and its two-sided inverse. -/
+@[expose]
 def isomorphismOfInverse (f : U →ₗ[K] V) (g : V → U)
     (hgf : Function.LeftInverse g f) (hfg : Function.RightInverse g f) : U ≃ₗ[K] V where
   toFun := f

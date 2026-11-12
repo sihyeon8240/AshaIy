@@ -1,6 +1,12 @@
-import Textbooks.MathematicalAnalysis.BasicTopology.MetricSpaces
+module
+
+public import Textbooks.MathematicalAnalysis.BasicTopology.MetricSpaces
+public import Mathlib.Topology.Connected.Basic
+
 import Mathlib.Tactic.Ring
-import Mathlib.Topology.Connected.Basic
+import Mathlib.Tactic.Linarith
+
+public section
 
 namespace MathematicalAnalysis.BasicTopology
 

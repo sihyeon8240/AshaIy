@@ -93,16 +93,55 @@ def validate_context(root: Path, inputs: list[str]) -> None:
         raise ValueError("unhashed Docker build inputs: " + ", ".join(missing))
 
 
-def input_hash(root: Path = ROOT) -> str:
+def pdf_inputs(root: Path) -> tuple[bytes, set[str]] | None:
+    """Project our PDF stages; unknown stage dependencies retain the full key."""
+    recipe = root / ".devcontainer/Dockerfile"
+    if not recipe.is_file():
+        return None
+    text = recipe.read_text()
+    starts = list(re.finditer(r"^FROM\s+.+\s+AS\s+(\S+)\s*$", text, re.MULTILINE | re.IGNORECASE))
+    names = {match[1] for match in starts}
+    selected = {"texlive", "pdf"}
+    if not selected <= names:
+        return None
+    pieces = [text[: starts[0].start()]]
+    for index, match in enumerate(starts):
+        if match[1] in selected:
+            end = starts[index + 1].start() if index + 1 < len(starts) else len(text)
+            pieces.append(text[match.start() : end])
+    projection = "".join(pieces)
+    paths = {".devcontainer/Dockerfile", ".devcontainer/Dockerfile.dockerignore", "config/image-build.json"}
+    for _, instruction in docker_instructions(projection):
+        words = shlex.split(instruction)
+        directive = words[0].upper()
+        if directive == "FROM" and words[1] in names - selected:
+            return None
+        if directive == "RUN" and "--mount" in instruction:
+            return None
+        if directive != "COPY":
+            continue
+        source = next((word[7:] for word in words if word.startswith("--from=")), None)
+        if source is not None:
+            if source not in selected and "@sha256:" not in source:
+                return None
+            continue
+        paths.update(word for word in words[1:-1] if not word.startswith("--"))
+    return projection.encode(), paths
+
+
+def input_hash(root: Path = ROOT, *, target: str = "dev") -> str:
     """Hash the publication transcript shared by independently deployed readers.
 
     Docker COPY fixes input permissions in the recipe, so checkout mode bits do
     not change image contents. Keep this byte protocol stable across PR and main.
     """
     root = root.resolve()
+    if target not in {"dev", "pdf"}:
+        raise ValueError("image target must be dev or pdf")
     config = load_image_build(root)
     validate_context(root, config["inputs"])
     digest = hashlib.sha256()
+    projection = pdf_inputs(root) if target == "pdf" else None
     for path in config["inputs"]:
         source = root / path
         mode = source.lstat().st_mode
@@ -110,21 +149,29 @@ def input_hash(root: Path = ROOT) -> str:
             parent.is_symlink() for parent in source.parents if parent.is_relative_to(root)
         ):
             raise ValueError(f"image input must be a regular file without symlinks: {path}")
-        with source.open("rb") as stream:
-            checksum = hashlib.file_digest(stream, "sha256").hexdigest()
+        if projection is not None and path not in projection[1]:
+            continue
+        if projection is not None and path == ".devcontainer/Dockerfile":
+            checksum = hashlib.sha256(projection[0]).hexdigest()
+        else:
+            with source.open("rb") as stream:
+                checksum = hashlib.file_digest(stream, "sha256").hexdigest()
         digest.update(f"{checksum}  {path}\n".encode())
     platforms = ",".join(f"linux/{item['arch']}" for item in config["platforms"])
     digest.update(f"{config['policy_version']}\n{platforms}\n".encode())
+    if target != "dev":
+        digest.update(f"target={target}\n".encode())
     return digest.hexdigest()[:12]
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("consumer", choices=("hash", "matrix", "architectures"))
+    parser.add_argument("--target", choices=("dev", "pdf"), default="dev")
     args = parser.parse_args()
     try:
         if args.consumer == "hash":
-            output = input_hash()
+            output = input_hash(target=args.target)
         else:
             config = load_image_build()
             if args.consumer == "matrix":

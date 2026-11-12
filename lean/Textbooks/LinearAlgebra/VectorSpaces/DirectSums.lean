@@ -1,4 +1,10 @@
-import Textbooks.LinearAlgebra.VectorSpaces.Dimension
+module
+
+public import Textbooks.LinearAlgebra.VectorSpaces.Dimension
+
+import Mathlib.Tactic.Abel
+
+public section
 
 namespace LinearAlgebra.VectorSpaces
 
@@ -35,6 +41,7 @@ theorem sum_eq_sup (U W : Submodule K V) : sumSubspace U W = U ⊔ W := by
       exact ⟨0, U.zero_mem, w, hw, zero_add _⟩
 
 /-- Definition: every vector has a unique decomposition into the two subspaces. -/
+@[expose]
 def IsDirectSum (U W : Submodule K V) : Prop :=
   ∀ x : V, ∃! p : U × W, (p.1 : V) + (p.2 : V) = x
 

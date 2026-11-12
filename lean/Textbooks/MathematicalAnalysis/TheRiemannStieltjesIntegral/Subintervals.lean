@@ -1,4 +1,11 @@
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.IntegralValues
+module
+
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.IntegralValues
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace MathematicalAnalysis.TheRiemannStieltjesIntegral
 
@@ -7,6 +14,7 @@ open Set BoxIntegral
 noncomputable section
 
 /-- Lemma: a partition of a subinterval is induced by restriction. -/
+@[expose]
 def restrictPartition {I : Box Unit} (P : Partition I) (J : Box Unit) (hJI : J ≤ I) :
     Partition J := ⟨P.val.restrict J, P.property.restrict hJI⟩
 

@@ -1,4 +1,8 @@
-import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.PrimePowerCongruences
+module
+
+public import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.PrimePowerCongruences
+
+public section
 
 namespace ElementaryNumberTheory.TheQuadraticReciprocityLaw
 

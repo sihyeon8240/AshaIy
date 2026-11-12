@@ -1,6 +1,11 @@
-import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.LinearCongruences
-import Mathlib.Data.ZMod.Basic
+module
+
+public import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.LinearCongruences
+public import Mathlib.Data.ZMod.Basic
+
 import Mathlib.Tactic.LinearCombination
+
+public section
 
 namespace ElementaryNumberTheory.TheTheoryOfCongruences
 

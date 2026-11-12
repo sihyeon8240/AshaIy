@@ -1,4 +1,8 @@
-import Textbooks.LinearAlgebra.LinearMapsAndMatrices.MatrixMaps
+module
+
+public import Textbooks.LinearAlgebra.LinearMapsAndMatrices.MatrixMaps
+
+public section
 
 namespace LinearAlgebra.LinearMapsAndMatrices
 

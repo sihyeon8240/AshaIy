@@ -74,13 +74,14 @@ def rendered_toolchain_groups(root: Path, toolchain: dict[str, str]) -> dict[Pat
     groups = {
         "tools": ("ELAN_", "RUFF_", "SHFMT_", "LATEXINDENT_", "SHELLCHECK_", "GH_"),
         "texlive": ("TEXLIVE_",),
+        "pdf": ("TEXLIVE_", "PYTHON_", "PYYAML_"),
         "lean": ("LEAN_",),
         "python": (
             "PYYAML_",
             "PLAYWRIGHT_",
             "HYPOTHESIS_",
             "COVERAGE_",
-            "BASEDPYRIGHT_",
+            "TY_",
             "YAMLLINT_",
             "DJLINT_",
             "CHECK_JSONSCHEMA_",
@@ -164,7 +165,7 @@ def rendered_consumers(root: Path = ROOT, *, image: str | None = None) -> dict[P
     )
     pyproject_text = replace_once(
         pyproject_text,
-        r'^(pythonVersion\s*=\s*)"[0-9.]+"$',
+        r'^(python-version\s*=\s*)"[0-9.]+"$',
         rf'\g<1>"{toolchain["PYTHON_SERIES"]}"',
         pyproject,
     )
@@ -173,7 +174,7 @@ def rendered_consumers(root: Path = ROOT, *, image: str | None = None) -> dict[P
         f"coverage=={toolchain['COVERAGE_VERSION']}\n"
         f"hypothesis=={toolchain['HYPOTHESIS_VERSION']}\n"
         f"playwright=={toolchain['PLAYWRIGHT_VERSION']}\n"
-        f"basedpyright=={toolchain['BASEDPYRIGHT_VERSION']}\n"
+        f"ty=={toolchain['TY_VERSION']}\n"
         f"yamllint=={toolchain['YAMLLINT_VERSION']}\n"
         f"djlint=={toolchain['DJLINT_VERSION']}\n"
         f"check-jsonschema=={toolchain['CHECK_JSONSCHEMA_VERSION']}\n"

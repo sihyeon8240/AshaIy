@@ -1,4 +1,11 @@
-import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.SupplementaryLaws
+module
+
+public import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.SupplementaryLaws
+
+import Mathlib.Tactic.NormNum
+import Mathlib.Tactic.LinearCombination
+
+public section
 
 namespace ElementaryNumberTheory.TheQuadraticReciprocityLaw
 

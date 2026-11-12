@@ -53,7 +53,15 @@ def classify(paths: list[str] | None, *, root: Path = ROOT) -> dict[str, bool]:
 
 
 def consumer_selections(paths: list[str] | None, *, root: Path = ROOT) -> dict[str, dict]:
-    names = ("image_changed", "structured", "site_changed", "snapshot_changed")
+    names = (
+        "image_changed",
+        "structured",
+        "site_changed",
+        "snapshot_changed",
+        "toolchain_checks",
+        "rendering_tests",
+        "site_tests",
+    )
     if paths is None:
         return {
             name: {
@@ -64,7 +72,18 @@ def consumer_selections(paths: list[str] | None, *, root: Path = ROOT) -> dict[s
             for name in names
         }
     inputs = image_inputs(root)
+    independent_sources = {
+        path
+        for path in paths
+        if is_documentation(path)
+        or (path.startswith("lean/") and (path.endswith(".lean") or path.endswith("/modules.yml")))
+        or (path.startswith("books/") and path.endswith((".tex", ".sty")))
+    }
+    shared = set(paths) - independent_sources
     matches = {
+        "site_tests": sorted(shared),
+        "rendering_tests": sorted(path for path in shared if not path.startswith("site/")),
+        "toolchain_checks": sorted(shared | {path for path in paths if path.endswith((".tex", ".sty", ".sh"))}),
         "image_changed": sorted(set(paths) & (inputs | IMAGE_PIPELINE)),
         "structured": sorted(
             path

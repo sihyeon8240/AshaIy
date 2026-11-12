@@ -1,5 +1,11 @@
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.BilinearMatrices
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.OrthogonalBases
+module
+
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.BilinearMatrices
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.OrthogonalBases
+
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 

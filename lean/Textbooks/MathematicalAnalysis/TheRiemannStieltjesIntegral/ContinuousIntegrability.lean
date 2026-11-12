@@ -1,5 +1,13 @@
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.DarbouxCriterion
-import Textbooks.MathematicalAnalysis.Continuity.CompactContinuity
+module
+
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.DarbouxCriterion
+public import Textbooks.MathematicalAnalysis.Continuity.CompactContinuity
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace MathematicalAnalysis.TheRiemannStieltjesIntegral
 

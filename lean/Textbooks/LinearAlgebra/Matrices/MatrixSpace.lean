@@ -1,8 +1,12 @@
-import Textbooks.LinearAlgebra.VectorSpaces.Bases
-import Mathlib.LinearAlgebra.Dimension.Finite
-import Mathlib.Data.Matrix.Basic
-import Mathlib.LinearAlgebra.Matrix.IsDiag
-import Mathlib.LinearAlgebra.Matrix.Symmetric
+module
+
+public import Textbooks.LinearAlgebra.VectorSpaces.Bases
+public import Mathlib.LinearAlgebra.Dimension.Finite
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.LinearAlgebra.Matrix.IsDiag
+public import Mathlib.LinearAlgebra.Matrix.Symmetric
+
+public section
 
 namespace LinearAlgebra.Matrices
 
@@ -18,6 +22,7 @@ abbrev MatrixSpace (K : Type*) (m n : ℕ) := Matrix (Fin m) (Fin n) K
 def row {m n : ℕ} (A : MatrixSpace K m n) (i : Fin m) : Fin n → K := A i
 
 /-- Definition: a column of a matrix. -/
+@[expose]
 def column {m n : ℕ} (A : MatrixSpace K m n) (j : Fin n) : Fin m → K := fun i => A i j
 
 /-- Definition: a matrix supported on a single entry. -/

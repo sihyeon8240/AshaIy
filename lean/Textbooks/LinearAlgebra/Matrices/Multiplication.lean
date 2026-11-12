@@ -1,4 +1,8 @@
-import Textbooks.LinearAlgebra.Matrices.MatrixSpace
+module
+
+public import Textbooks.LinearAlgebra.Matrices.MatrixSpace
+
+public section
 
 namespace LinearAlgebra.Matrices
 
@@ -64,6 +68,7 @@ theorem mul_zero {m n p : ℕ} (A : MatrixSpace K m n) : A * (0 : MatrixSpace K 
   simp only [mul_apply, Matrix.zero_apply, MulZeroClass.mul_zero, Finset.sum_const_zero]
 
 /-- Definition: a square matrix is nonsingular if it has a two-sided inverse. -/
+@[expose]
 def IsNonsingular {n : ℕ} (A : MatrixSpace K n n) : Prop := ∃ B, A * B = 1 ∧ B * A = 1
 
 /-- Theorem: a left inverse and a right inverse coincide. -/

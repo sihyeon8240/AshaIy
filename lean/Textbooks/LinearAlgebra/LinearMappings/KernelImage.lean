@@ -1,4 +1,8 @@
-import Textbooks.LinearAlgebra.LinearMappings.LinearMappings
+module
+
+public import Textbooks.LinearAlgebra.LinearMappings.LinearMappings
+
+public section
 
 namespace LinearAlgebra.LinearMappings
 
@@ -13,6 +17,7 @@ theorem map_sub (f : V →ₗ[K] W) (x y : V) : f (x - y) = f x - f y := by
   rw [← f.map_add, sub_add_cancel, sub_add_cancel]
 
 /-- Definition: the kernel as a subspace, with its closure proof. -/
+@[expose]
 def kernelSubspace (f : V →ₗ[K] W) : Submodule K V :=
   subspaceOfClosed {x | f x = 0} (map_zero f)
     (fun x hx y hy => by
@@ -26,6 +31,7 @@ def kernelSubspace (f : V →ₗ[K] W) : Submodule K V :=
 theorem kernelSubspace_eq_ker (f : V →ₗ[K] W) : kernelSubspace f = LinearMap.ker f := rfl
 
 /-- Definition: the image as a subspace, with its closure proof. -/
+@[expose]
 def imageSubspace (f : V →ₗ[K] W) : Submodule K W :=
   subspaceOfClosed (Set.range f) ⟨0, map_zero f⟩
     (fun _ ⟨x, hx⟩ _ ⟨y, hy⟩ => ⟨x + y, by rw [f.map_add, hx, hy]⟩)

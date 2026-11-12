@@ -1,5 +1,13 @@
-import Textbooks.MathematicalAnalysis.SequencesAndSeries.UpperLowerLimits
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Textbooks.MathematicalAnalysis.SequencesAndSeries.UpperLowerLimits
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace MathematicalAnalysis.SequencesAndSeries
 

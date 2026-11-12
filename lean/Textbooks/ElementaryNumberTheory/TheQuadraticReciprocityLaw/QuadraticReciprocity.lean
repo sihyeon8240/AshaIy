@@ -1,4 +1,8 @@
-import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.GaussLemma
+module
+
+public import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.GaussLemma
+
+public section
 
 namespace ElementaryNumberTheory.TheQuadraticReciprocityLaw
 

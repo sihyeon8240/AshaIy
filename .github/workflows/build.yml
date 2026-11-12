@@ -24,6 +24,7 @@ jobs:
     env:
       PYTHONPYCACHEPREFIX: ${{ github.workspace }}/.cache/python
       MATHLIB_CACHE_DIR: ${{ github.workspace }}/.cache/mathlib
+      MATHLIB_NO_CACHE_ON_UPDATE: '1'
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
@@ -65,58 +66,14 @@ jobs:
       - run: >-
           python3 -m pip install --disable-pip-version-check
           --requirement .github/requirements-ci.txt
-      - name: Compute Lean cache keys
-        if: steps.changes.outputs.lean == 'true'
-        id: lean-cache
-        env:
-          DEPENDENCIES_HASH: >-
-            ${{ hashFiles(
-              'lean/lean-toolchain',
-              'lean/lake-manifest.json',
-              'lean/lakefile.toml'
-            ) }}
-          SOURCES_HASH: ${{ hashFiles('lean/Textbooks.lean', 'lean/Textbooks/**/*.lean') }}
-        run: |
-          dependencies="lean-dependencies-v2-${RUNNER_OS}-${RUNNER_ARCH}-${DEPENDENCIES_HASH}"
-          build_prefix="lean-build-v2-${RUNNER_OS}-${RUNNER_ARCH}-${DEPENDENCIES_HASH}"
-          {
-            echo "dependencies=$dependencies"
-            echo "build=$build_prefix-$SOURCES_HASH"
-            echo "build-prefix=$build_prefix-"
-          } >> "$GITHUB_OUTPUT"
-      # Dependency archives are large; source edits must not duplicate them.
-      - name: Restore Lean dependencies
-        if: steps.changes.outputs.lean == 'true'
-        id: lean-dependencies
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: lean/.lake/packages
-          key: ${{ steps.lean-cache.outputs.dependencies }}
-      - name: Restore Lean build outputs
-        if: steps.changes.outputs.lean == 'true'
-        id: lean-build
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: lean/.lake/build
-          key: ${{ steps.lean-cache.outputs.build }}
-          restore-keys: |
-            ${{ steps.lean-cache.outputs.build-prefix }}
-      - name: Set up the pinned Lean toolchain
-        if: steps.changes.outputs.lean == 'true'
-        uses: leanprover/lean-action@ba3fdfe5c4476c925da13bf11a005ddb47e47aee # v1
-        with:
-          auto-config: false
-          lake-package-directory: lean
-          use-github-cache: false
-          use-mathlib-cache: true
       - name: Check proofs and repository sources
         env:
-          LEAN_MODE: ${{ steps.changes.outputs.lean == 'true' && 'build' || 'links' }}
+          LEAN_MODE: links
         run: ./scripts/ashaiy ci-source --lean-mode "$LEAN_MODE"
       - name: Python formatting and lint
         run: ./scripts/ashaiy format py --check
       - name: Unit tests
-        run: ./scripts/ashaiy test
+        run: ./scripts/ashaiy test --jobs 2
       - name: YAML and JSON syntax
         if: steps.changes.outputs.structured == 'true'
         run: |
@@ -133,10 +90,85 @@ jobs:
       - name: GitHub Actions semantics
         if: steps.changes.outputs.structured == 'true'
         run: ./scripts/repository/checks/check_actions.sh
+  lean:
+    name: Check Lean proofs
+    needs: plan
+    if: needs.plan.outputs.lean == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env:
+      PYTHONPYCACHEPREFIX: ${{ github.workspace }}/.cache/python
+      MATHLIB_CACHE_DIR: ${{ github.workspace }}/.cache/mathlib
+      MATHLIB_NO_CACHE_ON_UPDATE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Load repository configuration
+        id: config
+        run: ./scripts/repository/config/export_config.sh
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: ${{ steps.config.outputs.python }}
+          cache: pip
+          cache-dependency-path: .github/requirements-ci.txt
+      - run: python3 -m pip install --disable-pip-version-check --constraint .github/requirements-ci.txt PyYAML
+      - name: Compute Lean cache keys
+        if: needs.plan.outputs.lean == 'true'
+        id: lean-cache
+        env:
+          DEPENDENCIES_HASH: >-
+            ${{ hashFiles(
+              'lean/lean-toolchain',
+              'lean/lake-manifest.json',
+              'lean/lakefile.toml'
+            ) }}
+          SOURCES_HASH: ${{ hashFiles('lean/Textbooks.lean', 'lean/Textbooks/**/*.lean') }}
+        run: |
+          imports="$(python3 scripts/lean/prepare_cache.py --import-hash)"
+          dependencies_prefix="lean-dependencies-v3-${RUNNER_OS}-${RUNNER_ARCH}-${DEPENDENCIES_HASH}-"
+          dependencies="${dependencies_prefix}${imports}"
+          build_prefix="lean-build-v2-${RUNNER_OS}-${RUNNER_ARCH}-${DEPENDENCIES_HASH}"
+          {
+            echo "dependencies=$dependencies"
+            echo "dependencies-prefix=$dependencies_prefix"
+            echo "build=$build_prefix-$SOURCES_HASH"
+            echo "build-prefix=$build_prefix-"
+          } >> "$GITHUB_OUTPUT"
+      # Dependency archives are large; source edits must not duplicate them.
+      - name: Restore Lean dependencies
+        if: needs.plan.outputs.lean == 'true'
+        id: lean-dependencies
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: lean/.lake/packages
+          key: ${{ steps.lean-cache.outputs.dependencies }}
+          restore-keys: |
+            ${{ steps.lean-cache.outputs.dependencies-prefix }}
+      - name: Restore Lean build outputs
+        if: needs.plan.outputs.lean == 'true'
+        id: lean-build
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: lean/.lake/build
+          key: ${{ steps.lean-cache.outputs.build }}
+          restore-keys: |
+            ${{ steps.lean-cache.outputs.build-prefix }}
+      - name: Set up the pinned Lean toolchain
+        if: needs.plan.outputs.lean == 'true'
+        uses: leanprover/lean-action@ba3fdfe5c4476c925da13bf11a005ddb47e47aee # v1
+        with:
+          auto-config: false
+          lake-package-directory: lean
+          use-github-cache: false
+          use-mathlib-cache: false
+      - name: Prepare only imported Mathlib dependencies
+        if: needs.plan.outputs.lean == 'true'
+        run: ./scripts/ashaiy lean prepare
+      - name: Compile proofs and check declaration correspondence
+        run: ./scripts/ashaiy lean check
       # PRs can restore main's caches without creating PR-scoped copies.
       - name: Save Lean dependencies
         if: >-
-          steps.changes.outputs.lean == 'true' &&
+          needs.plan.outputs.lean == 'true' &&
           github.event_name == 'push' && github.ref == 'refs/heads/main' &&
           steps.lean-dependencies.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -145,7 +177,7 @@ jobs:
           key: ${{ steps.lean-dependencies.outputs.cache-primary-key }}
       - name: Save Lean build outputs
         if: >-
-          steps.changes.outputs.lean == 'true' &&
+          needs.plan.outputs.lean == 'true' &&
           github.event_name == 'push' && github.ref == 'refs/heads/main' &&
           steps.lean-build.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -154,8 +186,10 @@ jobs:
           key: ${{ steps.lean-build.outputs.cache-primary-key }}
   image-validation:
     name: Validate toolchain candidate
-    needs: source
-    if: github.event_name == 'pull_request' && needs.source.outputs.image_changed == 'true'
+    needs: plan
+    if: >-
+      (github.event_name == 'pull_request' && needs.plan.outputs.image_changed == 'true') ||
+      (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main')
     permissions:
       contents: read
       actions: read
@@ -163,11 +197,13 @@ jobs:
     uses: ./.github/workflows/prepare-image.yml
     with:
       ref: ${{ github.sha }}
-      validate_existing: true
+      validate_existing: ${{ github.event_name == 'pull_request' }}
   main-image:
     name: Prepare main toolchain image
-    needs: source
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [source, lean]
+    if: >-
+      !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' &&
+      needs.source.result == 'success' && (needs.lean.result == 'success' || needs.lean.result == 'skipped')
     permissions:
       contents: read
       actions: read
@@ -177,7 +213,7 @@ jobs:
       ref: ${{ github.sha }}
   latex:
     name: Source formatting and site tests
-    needs: prepare-image
+    needs: [prepare-image, plan]
     if: ${{ !cancelled() && needs.prepare-image.result == 'success' }}
     permissions:
       contents: read
@@ -190,19 +226,27 @@ jobs:
       - name: Compute LaTeX formatting cache keys
         id: latex-cache
         env:
-          IMAGE_DIGEST: ${{ needs.prepare-image.outputs.digest }}
           FORMATTER_HASH: >-
             ${{ hashFiles(
               'scripts/latex/format_tex.py',
               'scripts/repository/formatting/normalize_eof.py',
               'scripts/latex/latex_scan.py',
+              'scripts/latex/normalize_braces.py',
+              'scripts/latex/command_specs.py',
+              'scripts/latex/macro_manifest.py',
+              'scripts/latex/macro_generation.py',
+              'scripts/books/book_manifest.py',
+              'scripts/repository/source_reads.py',
+              'scripts/repository/processes.py',
               'scripts/lean/lean_source.py',
               'scripts/latex/format_tex_file.sh',
               'config/latexindent.yaml'
             ) }}
-          SOURCES_HASH: ${{ hashFiles('**/*.tex', '**/*.sty') }}
+          SOURCES_HASH: ${{ hashFiles('**/*.tex', '**/*.sty', '**/macros.yml', 'config/books.yml') }}
         run: |
-          prefix="latexindent-v2-${RUNNER_OS}-${RUNNER_ARCH}-${IMAGE_DIGEST}-${FORMATTER_HASH}"
+          source config/toolchain.env
+          tools="${PYTHON_VERSION}-${PYYAML_VERSION}-${LATEXINDENT_VERSION}-${LATEXINDENT_SHA256_AMD64}"
+          prefix="latexindent-v3-${RUNNER_OS}-${RUNNER_ARCH}-${tools}-${FORMATTER_HASH}"
           {
             echo "key=$prefix-$SOURCES_HASH"
             echo "prefix=$prefix-"
@@ -216,6 +260,7 @@ jobs:
           restore-keys: |
             ${{ steps.latex-cache.outputs.prefix }}
       - uses: ./.github/actions/run-toolchain
+        if: needs.plan.outputs.toolchain_checks == 'true'
         with:
           image: ${{ needs.prepare-image.outputs.image }}
           digest: ${{ needs.prepare-image.outputs.digest }}
@@ -225,8 +270,12 @@ jobs:
             git config --global --add safe.directory "$(pwd)"
             ./scripts/ashaiy format sh --check
             python3 scripts/latex/format_tex.py --check --prune-cache
-            REQUIRE_TEX_TESTS=1 python3 -m unittest discover -t . -s tests/latex -p test_code_fonts.py -v
-            ./scripts/ashaiy site test
+            if [[ "${{ needs.plan.outputs.rendering_tests }}" == true ]]; then
+              REQUIRE_TEX_TESTS=1 python3 -m unittest discover -t . -s tests/latex -p test_code_fonts.py -v
+            fi
+            if [[ "${{ needs.plan.outputs.site_tests }}" == true ]]; then
+              ./scripts/ashaiy site test
+            fi
       - name: Upload failed browser trace
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -244,7 +293,7 @@ jobs:
           key: ${{ steps.latex-format-cache.outputs.cache-primary-key }}
   check:
     name: Check sources
-    needs: [source, latex, image-validation]
+    needs: [source, lean, latex, image-validation, plan]
     if: always()
     runs-on: ubuntu-26.04
     timeout-minutes: 1
@@ -253,11 +302,22 @@ jobs:
         env:
           SOURCE_RESULT: ${{ needs.source.result }}
           LATEX_RESULT: ${{ needs.latex.result }}
+          LEAN_RESULT: ${{ needs.lean.result }}
+          LEAN_REQUIRED: ${{ needs.plan.outputs.lean }}
           IMAGE_RESULT: ${{ needs.image-validation.result }}
         shell: bash
         run: |
           if [[ "$SOURCE_RESULT" != success || "$LATEX_RESULT" != success ]]; then
             echo "::error::Source checks: $SOURCE_RESULT; formatting checks: $LATEX_RESULT"
+            exit 1
+          fi
+          if [[ "$LEAN_REQUIRED" == true ]]; then
+            expected_lean=success
+          else
+            expected_lean=skipped
+          fi
+          if [[ "$LEAN_RESULT" != "$expected_lean" ]]; then
+            echo "::error::Lean checks: $LEAN_RESULT; expected: $expected_lean"
             exit 1
           fi
           if [[ "$IMAGE_RESULT" != success && "$IMAGE_RESULT" != skipped ]]; then
@@ -281,6 +341,9 @@ jobs:
       image: ${{ steps.image.outputs.image }}
       digest: ${{ steps.image.outputs.digest }}
       artifact: ${{ steps.image.outputs.artifact }}
+      pdf_image: ${{ steps.image.outputs.pdf_image }}
+      pdf_digest: ${{ steps.image.outputs.pdf_digest }}
+      pdf_artifact: ${{ steps.image.outputs.pdf_artifact }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Load repository configuration
@@ -293,7 +356,7 @@ jobs:
           cache-dependency-path: .github/requirements-ci.txt
       - run: >-
           python3 -m pip install --disable-pip-version-check
-          --requirement .github/requirements-ci.txt
+          --constraint .github/requirements-ci.txt PyYAML
       - name: Authenticate image lookup for same-repository runs
         if: >-
           needs.image-validation.result == 'skipped' && needs.main-image.result == 'skipped' &&
@@ -309,12 +372,19 @@ jobs:
           PREPARED_IMAGE: ${{ needs.image-validation.outputs.image || needs.main-image.outputs.image }}
           PREPARED_DIGEST: ${{ needs.image-validation.outputs.digest || needs.main-image.outputs.digest }}
           PREPARED_ARTIFACT: ${{ needs.image-validation.outputs.artifact || needs.main-image.outputs.artifact }}
+          PREPARED_PDF_IMAGE: ${{ needs.image-validation.outputs.pdf_image || needs.main-image.outputs.pdf_image }}
+          PREPARED_PDF_DIGEST: ${{ needs.image-validation.outputs.pdf_digest || needs.main-image.outputs.pdf_digest }}
+          PREPARED_PDF_ARTIFACT: ${{ needs.image-validation.outputs.pdf_artifact || needs.main-image.outputs.pdf_artifact }}
         run: |
           if [[ -n "$PREPARED_IMAGE" ]]; then
+            [[ -n "$PREPARED_PDF_IMAGE" && -n "$PREPARED_PDF_DIGEST" ]]
             {
               echo "image=$PREPARED_IMAGE"
               echo "digest=$PREPARED_DIGEST"
               echo "artifact=$PREPARED_ARTIFACT"
+              echo "pdf_image=$PREPARED_PDF_IMAGE"
+              echo "pdf_digest=$PREPARED_PDF_DIGEST"
+              echo "pdf_artifact=$PREPARED_PDF_ARTIFACT"
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -322,10 +392,26 @@ jobs:
           input_hash="$(python3 scripts/toolchain/images/image_policy.py hash)"
           tag="${IMAGE_NAME}:texlive-${input_hash}"
           IMAGE_REF="$tag" REQUIRE_IMAGE=true ./scripts/toolchain/images/check_image_tag.sh
+          pdf_hash="$(python3 scripts/toolchain/images/image_policy.py hash --target pdf)"
+          pdf_output="$(mktemp)"
+          trap 'rm -f -- "$pdf_output"' EXIT
+          GITHUB_OUTPUT="$pdf_output" IMAGE_REF="${IMAGE_NAME}:texlive-${pdf_hash}" \
+            REQUIRE_IMAGE=true ./scripts/toolchain/images/check_image_tag.sh
+          while IFS='=' read -r key value; do
+            case "$key" in
+              image|digest) echo "pdf_${key}=$value" >> "$GITHUB_OUTPUT" ;;
+            esac
+          done < "$pdf_output"
   plan:
+    name: Plan textbook builds and releases
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     outputs:
+      lean: ${{ steps.changes.outputs.lean }}
+      image_changed: ${{ steps.changes.outputs.image_changed }}
+      toolchain_checks: ${{ steps.changes.outputs.toolchain_checks }}
+      rendering_tests: ${{ steps.changes.outputs.rendering_tests }}
+      site_tests: ${{ steps.changes.outputs.site_tests }}
       release_matrix: ${{ steps.releases.outputs.matrix }}
       release_count: ${{ steps.releases.outputs.count }}
       matrix: ${{ steps.books.outputs.matrix }}
@@ -346,7 +432,12 @@ jobs:
           cache-dependency-path: .github/requirements-ci.txt
       - run: >-
           python3 -m pip install --disable-pip-version-check
-          --requirement .github/requirements-ci.txt
+          --constraint .github/requirements-ci.txt PyYAML
+      - name: Classify changed files
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: python3 scripts/ci/ci_check_scope.py --base "$BASE_SHA" --format github >> "$GITHUB_OUTPUT"
       - name: Validate manifest before creating the matrix
         run: python3 scripts/books/books.py validate
       - id: releases
@@ -408,7 +499,7 @@ jobs:
       - name: Identify the build inputs
         id: inputs
         env:
-          DIGEST: ${{ needs.prepare-image.outputs.digest }}
+          DIGEST: ${{ needs.prepare-image.outputs.pdf_digest }}
           BOOK: ${{ matrix.book }}
         run: |
           mkdir -p "build/$BOOK"
@@ -419,19 +510,19 @@ jobs:
           echo "sources=$sources" >> "$GITHUB_OUTPUT"
           echo "image=$DIGEST" >> "$GITHUB_OUTPUT"
       - name: Download PDF validation results from the candidate image job
-        if: needs.prepare-image.outputs.artifact != ''
+        if: needs.prepare-image.outputs.pdf_artifact != ''
         continue-on-error: true
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          name: candidate-pdfs
+          name: candidate-pdfs-pdf
           path: build/candidate-pdfs
       - name: Reuse a verified PDF
         id: reuse
-        if: github.event_name == 'push' || needs.prepare-image.outputs.artifact != ''
+        if: github.event_name == 'push' || needs.prepare-image.outputs.pdf_artifact != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          IMAGE: ${{ needs.prepare-image.outputs.image }}
-          CANDIDATE_ID: ${{ needs.prepare-image.outputs.artifact != '' && needs.prepare-image.outputs.digest || '' }}
+          IMAGE: ${{ needs.prepare-image.outputs.pdf_image }}
+          CANDIDATE_ID: ${{ needs.prepare-image.outputs.pdf_artifact != '' && needs.prepare-image.outputs.pdf_digest || '' }}
           BOOK: ${{ matrix.book }}
         run: |
           if [[ -n "$CANDIDATE_ID" ]]; then
@@ -468,9 +559,9 @@ jobs:
         if: steps.reuse.outputs.reused != 'true'
         uses: ./.github/actions/run-toolchain
         with:
-          image: ${{ needs.prepare-image.outputs.image }}
-          digest: ${{ needs.prepare-image.outputs.digest }}
-          artifact: ${{ needs.prepare-image.outputs.artifact }}
+          image: ${{ needs.prepare-image.outputs.pdf_image }}
+          digest: ${{ needs.prepare-image.outputs.pdf_digest }}
+          artifact: ${{ needs.prepare-image.outputs.pdf_artifact }}
           token: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.token || '' }}
           metrics-book: ${{ matrix.book }}
           run: |
@@ -497,9 +588,9 @@ jobs:
         if: github.event_name == 'push' && contains(fromJSON(needs.plan.outputs.release_matrix).book, matrix.book)
         uses: ./.github/actions/run-toolchain
         with:
-          image: ${{ needs.prepare-image.outputs.image }}
-          digest: ${{ needs.prepare-image.outputs.digest }}
-          artifact: ${{ needs.prepare-image.outputs.artifact }}
+          image: ${{ needs.prepare-image.outputs.pdf_image }}
+          digest: ${{ needs.prepare-image.outputs.pdf_digest }}
+          artifact: ${{ needs.prepare-image.outputs.pdf_artifact }}
           token: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.token || '' }}
           run: ./scripts/release/package_book.sh "${{ matrix.book }}" "build/release/${{ matrix.book }}"
       - name: Record the original release package identity
@@ -517,17 +608,17 @@ jobs:
           retention-days: 90
       - name: Record the verified build
         if: >-
-          needs.prepare-image.outputs.artifact == '' &&
+          needs.prepare-image.outputs.pdf_artifact == '' &&
           (github.event_name == 'pull_request' ||
           (github.event_name == 'workflow_dispatch' && inputs.expected_sha != ''))
         env:
           VALIDATION_SHA: ${{ inputs.expected_sha }}
-          IMAGE: ${{ needs.prepare-image.outputs.image }}
+          IMAGE: ${{ needs.prepare-image.outputs.pdf_image }}
           BOOK: ${{ matrix.book }}
         run: python3 scripts/ci/verified_build.py record --book "$BOOK" --image "$IMAGE"
       - name: Upload verified build for reuse after merge
         if: >-
-          needs.prepare-image.outputs.artifact == '' &&
+          needs.prepare-image.outputs.pdf_artifact == '' &&
           (github.event_name == 'pull_request' ||
           (github.event_name == 'workflow_dispatch' && inputs.expected_sha != ''))
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

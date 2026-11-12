@@ -1,7 +1,11 @@
-import Textbooks.MathematicalAnalysis.SequencesAndSeries.CauchySequences
-import Textbooks.MathematicalAnalysis.SequencesAndSeries.MonotoneSequences
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.BigOperators.Intervals
+module
+
+public import Textbooks.MathematicalAnalysis.SequencesAndSeries.CauchySequences
+public import Textbooks.MathematicalAnalysis.SequencesAndSeries.MonotoneSequences
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.BigOperators.Intervals
+
+public section
 
 namespace MathematicalAnalysis.SequencesAndSeries
 
@@ -9,16 +13,20 @@ open Set Metric Filter Finset
 open scoped Topology
 
 /-- Definition: partial sums use the standard zero-based indexing convention. -/
+@[expose]
 def partialSums (u : ℕ → ℝ) (n : ℕ) : ℝ := ∑ k ∈ range n, u k
 
 /-- Definition: a series has sum `a` when its ordered partial sums converge to `a`.
 This includes conditional convergence, unlike unordered `HasSum` on real families. -/
+@[expose]
 def HasSeriesSum (u : ℕ → ℝ) (a : ℝ) : Prop := Tendsto (partialSums u) atTop (𝓝 a)
 
 /-- Definition: a series converges when its partial sums have a real limit. -/
+@[expose]
 def SeriesConverges (u : ℕ → ℝ) : Prop := ∃ a, HasSeriesSum u a
 
 /-- Definition: absolute convergence is convergence of the series of absolute values. -/
+@[expose]
 def AbsolutelyConverges (u : ℕ → ℝ) : Prop := SeriesConverges (fun n => |u n|)
 
 /-- Lemma: the increment of a partial sum is the next summand. -/

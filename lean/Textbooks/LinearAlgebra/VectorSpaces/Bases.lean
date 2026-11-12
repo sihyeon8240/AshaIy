@@ -1,5 +1,9 @@
-import Textbooks.LinearAlgebra.VectorSpaces.VectorSpaces
-import Mathlib.LinearAlgebra.Basis.Basic
+module
+
+public import Textbooks.LinearAlgebra.VectorSpaces.VectorSpaces
+public import Mathlib.LinearAlgebra.Basis.Basic
+
+public section
 
 namespace LinearAlgebra.VectorSpaces
 
@@ -9,6 +13,7 @@ open Submodule
 variable {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
 
 /-- Definition: dependence means a nonzero tuple of coefficients gives zero. -/
+@[expose]
 def Dependent {ι : Type*} [Fintype ι] (v : ι → V) : Prop :=
   ∃ a : ι → K, linearCombination v a = 0 ∧ a ≠ 0
 
@@ -20,6 +25,7 @@ theorem dependent_iff {ι : Type*} [Fintype ι] (v : ι → V) :
     ne_eq, funext_iff, Pi.zero_apply, not_forall]
 
 /-- Definition: a finite basis is an independent generating family. -/
+@[expose]
 def IsFiniteBasis {ι : Type*} [Fintype ι] (v : ι → V) : Prop :=
   LinearIndependent K v ∧ Generates (K := K) v
 
@@ -74,6 +80,7 @@ theorem finiteBasis_iff {ι : Type*} [Fintype ι] (v : ι → V) :
       trivial)
 
 /-- Definition: standard unit vectors in a coordinate space. -/
+@[expose]
 def standardVector {n : ℕ} (i : Fin n) : CoordinateSpace K n :=
   fun j => if i = j then 1 else 0
 
@@ -94,6 +101,7 @@ theorem standard_is_basis (n : ℕ) :
   exact congrFun h i
 
 /-- Definition: maximal independence among a specified set of allowable vectors. -/
+@[expose]
 def MaximalIndependentIn (s t : Set V) : Prop :=
   s ⊆ t ∧ LinearIndepOn K id s ∧
     ∀ x ∈ t, x ∉ s → ¬LinearIndepOn K id (insert x s)

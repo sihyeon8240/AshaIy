@@ -1,5 +1,11 @@
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.ScalarProducts
-import Mathlib.LinearAlgebra.Matrix.ToLin
+module
+
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.ScalarProducts
+public import Mathlib.LinearAlgebra.Matrix.ToLin
+
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 
@@ -13,6 +19,7 @@ def bilinearMatrix (g : (Fin m → K) →ₗ[K] (Fin n → K) →ₗ[K] K) :
   fun i j => g (Pi.single i 1) (Pi.single j 1)
 
 /-- Definition: the bilinear map `XᵀAY`, bundled in each argument. -/
+@[expose]
 def matrixBilinear (A : Matrix (Fin m) (Fin n) K) :
     (Fin m → K) →ₗ[K] (Fin n → K) →ₗ[K] K where
   toFun x :=

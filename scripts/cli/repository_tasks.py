@@ -164,14 +164,15 @@ def check_repository(scope: str, *, strict: bool = False) -> int:
     return 128 - status if status < 0 else status
 
 
-def format_sources(scope: str, *, check: bool = False, file: str | None = None) -> StageResult:
+def format_sources(scope: str, *, check: bool = False, file: str | None = None, jobs: int | None = None) -> StageResult:
     options = ["--check"] if check else []
     if file:
         options.extend(("--file", file))
 
     def command(script: str, *arguments: str) -> int:
+        parallel = ["--jobs", str(jobs)] if jobs is not None and script == "latex/format_tex.py" else []
         status = subprocess.run(
-            [sys.executable, str(ROOT / "scripts" / script), *arguments, *options],
+            [sys.executable, str(ROOT / "scripts" / script), *arguments, *options, *parallel],
             cwd=ROOT,
             check=False,
         ).returncode

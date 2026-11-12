@@ -37,8 +37,8 @@ class WorkflowContractTests(unittest.TestCase):
     def test_source_gate_rejects_unsuccessful_dependencies(self):
         job = build_workflow()["jobs"]["check"]
         self.assertEqual(job["if"], "always()")
-        for source, latex in itertools.product(("success", "failure", "cancelled", "skipped"), repeat=2):
-            with self.subTest(source=source, latex=latex):
+        for source, latex, lean in itertools.product(("success", "failure", "cancelled", "skipped"), repeat=3):
+            with self.subTest(source=source, latex=latex, lean=lean):
                 result = subprocess.run(
                     ["bash", "-euo", "pipefail", "-c", job["steps"][0]["run"]],
                     env={
@@ -46,13 +46,15 @@ class WorkflowContractTests(unittest.TestCase):
                         "SOURCE_RESULT": source,
                         "LATEX_RESULT": latex,
                         "IMAGE_RESULT": "skipped",
+                        "LEAN_RESULT": lean,
+                        "LEAN_REQUIRED": "true",
                     },
                     capture_output=True,
                     text=True,
                     check=False,
                     timeout=10,
                 )
-                self.assertEqual(result.returncode == 0, source == latex == "success")
+                self.assertEqual(result.returncode == 0, source == latex == lean == "success")
 
 
 if __name__ == "__main__":

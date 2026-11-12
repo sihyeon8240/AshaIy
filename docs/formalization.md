@@ -309,6 +309,14 @@ Lean options before adding module-local settings; do not repeat those defaults.
 Do not use `sorry`, `admit`, or new unchecked `axiom` declarations in checked
 sources.
 
+Use the Lean module system: begin each topic file with `module` and place
+reusable mathematical declarations in a `public section`. Use `public import`
+for dependencies of the public mathematical interface; keep proof-only imports,
+including tactics, private with plain `import`. Generated aggregation modules
+use `public import` to export their topics. Mark a definition `@[expose]` only
+when its body must unfold across module boundaries; keep implementation details
+and local helpers private.
+
 ## Linking a verified proof
 
 A verified LaTeX theorem needs two parts:
@@ -373,8 +381,11 @@ and declarations, namespace/module paths, import reachability, and source-level
 without Lean and reports registered links, not kernel verification.
 
 `ashaiy lean check` builds the pinned project and runs those checks plus a Lean
-environment audit after `import Textbooks`. Each registered declaration must
-exist, be safe, and have a proposition as its type. The audit rejects
+environment audit of `Textbooks`. Its standalone Lean program loads the private
+import level and cached axiom dependencies so that hidden proof bodies and
+non-public dependencies remain checked.
+Each registered declaration must exist, be safe, and have a proposition as its
+type. The audit rejects
 repository-defined axioms, including private and unused axioms and declarations
 in the root module. It also checks the transitive axiom dependencies of all
 imported textbook declarations, including unregistered helpers. Only Lean's

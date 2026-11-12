@@ -1,4 +1,11 @@
-import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.SummatoryFunctions
+module
+
+public import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.SummatoryFunctions
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.NumberTheoreticFunctions
 

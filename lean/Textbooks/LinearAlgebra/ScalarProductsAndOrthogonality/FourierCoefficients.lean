@@ -1,4 +1,11 @@
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.IntegralProducts
+module
+
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.IntegralProducts
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 

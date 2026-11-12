@@ -107,7 +107,7 @@ affects a build-enabled book excluded from full checks, also run its explicit
 `ashaiy book build --book <slug> --check --strict` command.
 
 `ashaiy check source` checks structure, generated sources, proof links, Python
-types (basedpyright), YAML (yamllint), editor-associated schemas (check-jsonschema),
+types (ty), YAML (yamllint), editor-associated schemas (check-jsonschema),
 Liquid templates (djLint), Bash syntax, and ShellCheck at error severity. It runs
 neither formatters nor Ruff; run applicable format commands separately.
 `ashaiy check docs` is an optional fast preliminary check, already included in

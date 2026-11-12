@@ -1,6 +1,13 @@
-import Textbooks.MathematicalAnalysis.SequencesAndSeries.Series
-import Textbooks.MathematicalAnalysis.SequencesAndSeries.SpecialSequences
-import Mathlib.Algebra.Field.GeomSum
+module
+
+public import Textbooks.MathematicalAnalysis.SequencesAndSeries.Series
+public import Textbooks.MathematicalAnalysis.SequencesAndSeries.SpecialSequences
+public import Mathlib.Algebra.Field.GeomSum
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace MathematicalAnalysis.SequencesAndSeries
 
@@ -8,10 +15,12 @@ open Filter Finset
 open scoped Topology
 
 /-- Definition: root terms use positive indices, excluding the irrelevant zeroth root. -/
+@[expose]
 noncomputable def rootTerms (u : ℕ → ℝ) (n : ℕ) : ℝ := |u (n + 1)| ^ ((n + 1 : ℝ)⁻¹)
 
 /-- Definition: ratio terms are absolute consecutive quotients;
 ratio theorems require the denominators to be eventually nonzero. -/
+@[expose]
 noncomputable def ratioTerms (u : ℕ → ℝ) (n : ℕ) : ℝ := |u (n + 1) / u n|
 
 /-- Lemma: nonnegative geometric series with ratio below one converge. -/

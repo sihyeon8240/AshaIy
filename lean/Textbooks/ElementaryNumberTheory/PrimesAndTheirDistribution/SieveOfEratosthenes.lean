@@ -1,8 +1,15 @@
-import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.PrimeFactorization
-import Mathlib.Data.Nat.Factorial.Basic
-import Mathlib.Data.Nat.Nth
-import Mathlib.Data.Nat.Sqrt
-import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
+module
+
+public import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.PrimeFactorization
+public import Mathlib.Data.Nat.Factorial.Basic
+public import Mathlib.Data.Nat.Nth
+public import Mathlib.Data.Nat.Sqrt
+public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.PrimesAndTheirDistribution
 

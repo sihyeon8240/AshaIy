@@ -1,5 +1,9 @@
-import Textbooks.LinearAlgebra.VectorSpaces.Exchange
-import Mathlib.LinearAlgebra.Dimension.Finite
+module
+
+public import Textbooks.LinearAlgebra.VectorSpaces.Exchange
+public import Mathlib.LinearAlgebra.Dimension.Finite
+
+public section
 
 namespace LinearAlgebra.VectorSpaces
 
@@ -8,6 +12,7 @@ open Submodule Set
 variable {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
 
 /-- Definition: a finite set of vectors is a basis of a subspace. -/
+@[expose]
 def IsBasisOf (s : Finset V) (W : Submodule K V) : Prop :=
   LinearIndepOn K id (s : Set V) ∧ span K (s : Set V) = W
 
@@ -77,10 +82,12 @@ theorem subspace_has_basis (t : Finset V) (ht : span K (t : Set V) = ⊤)
   exact ⟨s, hs, hc⟩
 
 /-- Definition: finite dimension is the existence of a finite basis. -/
+@[expose]
 def HasFiniteBasis (K V : Type*) [Field K] [AddCommGroup V] [Module K V] : Prop :=
   ∃ s : Finset V, IsBasisOf s (⊤ : Submodule K V)
 
 /-- Definition: a space has dimension `n` if a finite basis has `n` elements. -/
+@[expose]
 def HasDimension (K V : Type*) [Field K] [AddCommGroup V] [Module K V] (n : ℕ) : Prop :=
   ∃ s : Finset V, IsBasisOf s (⊤ : Submodule K V) ∧ s.card = n
 

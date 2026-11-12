@@ -7,7 +7,9 @@ import re
 RAW_STRING = re.compile(r'r(#+)?"')
 CHARACTER = re.compile(r"'(?:\\(?:u\{[0-9A-Fa-f]+\}|u[0-9A-Fa-f]{4}|x[0-9A-Fa-f]{2}|[^\r\n])|[^'\\\r\n])'")
 MODULE_PART = r"(?:[A-Za-z_][A-Za-z0-9_']*|«[^»\r\n]+»)"
-IMPORT = re.compile(r"(?m)^\s*(?:public\s+)?import\s+(" + MODULE_PART + r"(?:\." + MODULE_PART + r")*)")
+IMPORT = re.compile(
+    r"(?m)^\s*(?:public\s+)?(?:meta\s+)?import\s+(?:all\s+)?(" + MODULE_PART + r"(?:\." + MODULE_PART + r")*)"
+)
 
 
 def ignored_spans(text: str) -> list[tuple[int, int, str]]:

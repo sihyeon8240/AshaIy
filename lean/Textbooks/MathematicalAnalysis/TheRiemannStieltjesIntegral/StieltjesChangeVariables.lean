@@ -1,5 +1,12 @@
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.IntegralValues
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.Subintervals
+module
+
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.IntegralValues
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.Subintervals
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace MathematicalAnalysis.TheRiemannStieltjesIntegral
 

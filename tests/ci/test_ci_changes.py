@@ -40,3 +40,21 @@ class CiChangeTests(unittest.TestCase):
         result = CI.classify([".github/workflows/release-retry.yml"])
         self.assertTrue(result["structured"])
         self.assertFalse(result["site_changed"])
+
+    def test_toolchain_tests_skip_only_known_independent_inputs(self):
+        for path in ("docs/README.md", "lean/Textbooks/Topic.lean", "lean/Textbooks/Topic/modules.yml"):
+            with self.subTest(path=path):
+                result = CI.classify([path])
+                self.assertFalse(result["toolchain_checks"])
+                self.assertFalse(result["rendering_tests"])
+                self.assertFalse(result["site_tests"])
+        book = CI.classify(["books/example/chapters/topic/source.tex"])
+        self.assertTrue(book["toolchain_checks"])
+        self.assertFalse(book["rendering_tests"])
+        self.assertFalse(book["site_tests"])
+        for path in ("common/styles/code.sty", "scripts/new-check.py", "config/books.yml", "lean/lakefile.toml"):
+            with self.subTest(path=path):
+                result = CI.classify([path])
+                self.assertTrue(result["toolchain_checks"])
+                self.assertTrue(result["rendering_tests"])
+                self.assertTrue(result["site_tests"])

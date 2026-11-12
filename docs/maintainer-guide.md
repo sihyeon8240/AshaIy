@@ -36,7 +36,8 @@ unnecessary rewrites, alongside the requirements below.
 
 `build.yml` plans releases from the PR base or main push's `before` commit,
 independently of the PDF snapshot baseline. Review planned books, versions, and
-tags in its summary. Existing tags or failed lookups reject the PR plan;
+tags in its summary, which appears only when releases are planned.
+Existing tags or failed lookups reject the PR plan;
 publication checks again after merge. Release targets always enter the PDF
 matrix. PRs validate; manual **Build textbooks** runs refresh development PDFs.
 
@@ -156,6 +157,12 @@ the same book and image. Only successful main pushes save Lean and PDF caches;
 PRs restore them. Python and Mathlib download directories are not separately
 restored by Actions.
 
+Lean dependency keys also include the normalized reachable Mathlib import set.
+`ashaiy lean prepare` fills that set after an exact or compatible prefix restore;
+proof edits without import changes reuse the same dependency archive. Lean
+compilation runs independently of general source checks and remains part of the
+required source gate. Image publication still waits for both checks.
+
 Formatter caches use implementation and configuration inputs. CI prunes obsolete
 generations with `python3 scripts/latex/format_tex.py --check --prune-cache` before
 saving. Use pruning locally only without concurrent formatter runs.
@@ -230,8 +237,9 @@ Ordinary source changes do not add another platform matrix. Verified PDF reuse
 remains AMD64-only; ARM64 checks produce no reusable publication artifacts.
 
 Image builds restore `buildcache-<arch>` registry caches, falling back to the
-latest image's inline cache. Non-PR builds export intermediate stages; PRs only
-read them. Cache refresh preserves the tested image and independent TeX Live stage.
+latest image's inline cache. Main builds export intermediate stages; PRs and
+branch dispatches only read them. Cache refresh preserves the tested image and
+independent TeX Live stage.
 
 The package is `ghcr.io/sihyeon8240/ashaiy`. `build.yml` calls
 `prepare-image.yml`, which derives a content tag and calls `build-toolchain.yml`.
@@ -294,7 +302,11 @@ textbooks** on the PR branch with the exact expected commit. Dispatch events run
 automatically without a GitHub App, PAT, or approval of the separate PR-event run.
 Transient dispatch failures retry the same committed pin up to three times.
 The source gate rejects a dispatch if the branch moved before it started. Final
-consumer CI resolves the published image and does not trigger another publisher.
+consumer CI prepares both image targets and does not trigger another publisher.
+It reuses published indexes and builds missing targets on both native platforms.
+Branch dispatches pass tested images and PDFs through run-local artifacts, using
+the same identity checks as PR jobs, without publishing images or registry caches.
+This also supports a new PDF target before its first main publication.
 If dispatch fails, manually dispatch **Build textbooks** on the PR branch with
 `expected_sha` set to the pin commit; do not rerun CI on the pre-pin commit.
 Ordinary textbook PRs neither publish images nor update pins.
@@ -305,6 +317,15 @@ policy version and ordered platforms. This format is a wire contract shared by
 the independently deployed PR validator and trusted main publisher. Keep it stable
 when either side is updated first; a policy-version bump alone cannot teach an
 older publisher a different serialization algorithm.
+
+Preparation supplies separate `dev` and `pdf` indexes and run-local artifacts.
+Book builds, incremental keys, and verified PDF records use the PDF image;
+formatting and browser checks use the development image. Only development images
+participate in the existing PR pin promotion and mutable `latest` aliases.
+PDF tags project the `texlive` and `pdf` Docker stages and their COPY inputs,
+including generated `pdf.env`; development-only pins and shell changes therefore
+retain the PDF image. Unknown stage dependencies or mounts conservatively use
+the complete input transcript. Development tag serialization remains unchanged.
 
 Docker `COPY --chmod` fixes executable and data permissions in the recipe. Checkout
 mode bits therefore do not affect the image; permission-policy changes modify the
@@ -380,9 +401,24 @@ Their versions are checked against `config/toolchain.env`, and
 Playwright uses installed Chromium. The reviewed image digest pins the installed
 set; rebuilding can pick up newer Debian package revisions.
 
+The `pdf` final target contains the TeX runtime, Python/PyYAML, and PDF build and
+inspection tools. `dev` adds Lean, formatters, static checks, Ruby/Jekyll,
+Chromium, and authoring conveniences. Both share the pinned TeX installation
+declared by `config/texlive.profile` and `config/texlive-packages.txt`; update the
+package list when new source or fixture requirements appear. The image prepares
+its Lua font database once. Build a local PDF target with
+`IMAGE_TARGET=pdf IMAGE=ashaiy-pdf:local ./scripts/toolchain/images/build_image.sh`.
+The Dev Container continues to use the reviewed development pin.
+
 The development Python remains on the 3.14 series and uses its latest reviewed
 patch release. Check wheel availability before changing that series; Python
 dependencies retain the binary-wheel requirement, without runtime build tools.
+
+Python type checks use the pinned Rust-based `ty` binary. `check_quality.py`
+selects both `scripts/` and `tests/`, the active interpreter, and the shared
+`config/pyproject.toml`; warnings fail alongside errors. The Python target follows
+`config/toolchain.env`. No Rust compiler or separate Node runtime is needed for
+type checking in development or CI images.
 
 After changing Lean, configuration generation rotates its Dev Container cache
 volume name. Initialize the new volume with `ashaiy lean prepare`, then verify

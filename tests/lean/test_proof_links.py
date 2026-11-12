@@ -5,6 +5,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from typing import cast
 from unittest.mock import patch
 
 from scripts.lean import proof_links as MODULE
@@ -18,16 +19,9 @@ class ProofLinkTests(unittest.TestCase):
         records = []
         for order, entry in enumerate(entries, 1):
             slug = str(entry["slug"])
-            records.append(
-                book_record(
-                    **{
-                        "version": "0.1.0",
-                        "label_prefix": slug[:2],
-                        "order": order * 10,
-                        **entry,
-                    }
-                )
-            )
+            record = book_record(cast(str, entry["slug"]))
+            record.update({"version": "0.1.0", "label_prefix": slug[:2], "order": order * 10, **entry})
+            records.append(record)
             book = self.root / "books" / slug / "book.tex"
             book.parent.mkdir(parents=True, exist_ok=True)
             book.touch()
@@ -302,7 +296,7 @@ class ProofLinkTests(unittest.TestCase):
         lean = self.root / "lean"
         module = lean / "Textbooks/Sample"
         module.mkdir(parents=True)
-        (lean / "Textbooks.lean").write_text("import Textbooks.Sample.All\n")
+        (lean / "Textbooks.lean").write_text("module\n\npublic import Textbooks.Sample.All\n")
         entry = module / "All.lean"
         for path, valid in (
             ("Start/WellOrdering.lean", True),
@@ -335,7 +329,7 @@ class ProofLinkTests(unittest.TestCase):
         lean = self.root / "lean"
         module = lean / "Textbooks/Sample"
         module.mkdir(parents=True)
-        (lean / "Textbooks.lean").write_text("import Textbooks.Sample.All\n", encoding="utf-8")
+        (lean / "Textbooks.lean").write_text("module\n\npublic import Textbooks.Sample.All\n", encoding="utf-8")
         (module / "All.lean").write_text("", encoding="utf-8")
         (module / "Chapter01").mkdir()
         (module / "Chapter01/Orphan.lean").write_text("", encoding="utf-8")
@@ -382,6 +376,9 @@ class ProofLinkTests(unittest.TestCase):
             (
                 "import «Textbooks».LinearAlgebra.All\n",
                 "public import Textbooks.«LinearAlgebra».All\n",
+                "module\nimport all Textbooks.LinearAlgebra.All\n",
+                "module\nmeta import Textbooks.LinearAlgebra.All\n",
+                "module\nmeta import all Textbooks.LinearAlgebra.All\n",
             )
         )
         for text in imports:

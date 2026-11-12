@@ -1,5 +1,9 @@
-import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.PrimitiveRoots
-import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.LinearCongruences
+module
+
+public import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.PrimitiveRoots
+public import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.LinearCongruences
+
+public section
 
 namespace ElementaryNumberTheory.PrimitiveRootsAndIndices
 
@@ -127,6 +131,7 @@ theorem pow_eq_iff_index (n : ℕ) [NeZero n] (r : (ZMod n)ˣ)
   rw [he, pow_eq_pow_iff_modEq r (unit_orderOf_pos n r), (orderOf_eq_of_primitiveRoot hr)]
 
 /-- Definition: indices modulo phi(n) identify units with exponent residue classes. -/
+@[expose]
 noncomputable def indexEquiv (n : ℕ) [NeZero n] (r : (ZMod n)ˣ)
     (hr : IsPrimitiveRoot r (Nat.totient n)) : (ZMod n)ˣ ≃ ZMod (Nat.totient n) := by
   have : NeZero (Nat.totient n) := ⟨(totient_pos _ (NeZero.pos n)).ne'⟩

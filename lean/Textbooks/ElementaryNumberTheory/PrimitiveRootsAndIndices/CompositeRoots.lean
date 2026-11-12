@@ -1,6 +1,14 @@
-import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.PrimePowerLifting
-import Textbooks.ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem.ReducedResidues
-import Mathlib.Algebra.Group.Equiv.Basic
+module
+
+public import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.PrimePowerLifting
+public import Textbooks.ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem.ReducedResidues
+public import Mathlib.Algebra.Group.Equiv.Basic
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.NormNum
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace ElementaryNumberTheory.PrimitiveRootsAndIndices
 

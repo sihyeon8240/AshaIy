@@ -1,5 +1,12 @@
-import Textbooks.MathematicalAnalysis.SequencesAndSeries.Series
-import Mathlib.Algebra.Order.Archimedean.Basic
+module
+
+public import Textbooks.MathematicalAnalysis.SequencesAndSeries.Series
+public import Mathlib.Algebra.Order.Archimedean.Basic
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.NormNum
+
+public section
 
 namespace MathematicalAnalysis.SequencesAndSeries
 

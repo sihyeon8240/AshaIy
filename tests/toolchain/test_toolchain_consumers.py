@@ -22,6 +22,36 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class ToolchainConsumerTests(unittest.TestCase):
+    def test_branch_dispatch_reuses_dev_and_prepares_missing_pdf(self):
+        jobs = build_workflow()["jobs"]
+        candidate = jobs["image-validation"]
+        context = {
+            "github.event_name": "workflow_dispatch",
+            "github.ref": "refs/heads/topic",
+            "needs.plan.outputs.image_changed": "false",
+        }
+        self.assertTrue(condition_allows(candidate["if"], context))
+        validate_existing = condition_allows(candidate["with"]["validate_existing"], context)
+        self.assertFalse(validate_existing)
+
+        builder = yaml.safe_load((ROOT / ".github/workflows/build-toolchain.yml").read_text())["jobs"]
+        run_local = condition_allows(builder["prepare"]["outputs"]["run_local"], context)
+        self.assertTrue(run_local)
+        for target, exists, build in (("dev", True, False), ("pdf", False, True)):
+            with self.subTest(target=target):
+                self.assertEqual(
+                    condition_allows(
+                        builder["build"]["if"],
+                        {
+                            "needs.prepare.outputs.exists": str(exists).lower(),
+                            "inputs.validate_existing": validate_existing,
+                        },
+                    ),
+                    build,
+                )
+        context["github.ref"] = "refs/heads/main"
+        self.assertFalse(condition_allows(candidate["if"], context))
+
     def test_main_prepares_images_before_selecting_consumers(self):
         jobs = build_workflow()["jobs"]
         main = jobs["main-image"]
@@ -35,7 +65,15 @@ class ToolchainConsumerTests(unittest.TestCase):
         ):
             with self.subTest(event=event, ref=ref):
                 self.assertEqual(
-                    condition_allows(main["if"], {"github.event_name": event, "github.ref": ref}),
+                    condition_allows(
+                        main["if"],
+                        {
+                            "github.event_name": event,
+                            "github.ref": ref,
+                            "needs.source.result": "success",
+                            "needs.lean.result": "success",
+                        },
+                    ),
                     expected,
                 )
         self.assertIn("main-image", jobs["prepare-image"]["needs"])
@@ -82,6 +120,9 @@ class ToolchainConsumerTests(unittest.TestCase):
                         "PREPARED_IMAGE": image,
                         "PREPARED_DIGEST": digest,
                         "PREPARED_ARTIFACT": artifact,
+                        "PREPARED_PDF_IMAGE": image + "-pdf",
+                        "PREPARED_PDF_DIGEST": "b" * 64,
+                        "PREPARED_PDF_ARTIFACT": "pdf-" + artifact if artifact else "",
                     },
                     capture_output=True,
                     text=True,
@@ -90,7 +131,9 @@ class ToolchainConsumerTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(
                     output.read_text(),
-                    f"image={image}\ndigest={digest}\nartifact={artifact}\n",
+                    f"image={image}\ndigest={digest}\nartifact={artifact}\n"
+                    f"pdf_image={image}-pdf\npdf_digest={'b' * 64}\n"
+                    f"pdf_artifact={'pdf-' + artifact if artifact else ''}\n",
                 )
 
     def test_consumers_receive_candidate_identity_and_skip_registry_pdf_recording(self):
@@ -102,9 +145,10 @@ class ToolchainConsumerTests(unittest.TestCase):
                 if step.get("uses") != "./.github/actions/run-toolchain":
                     continue
                 for key in ("image", "digest", "artifact"):
+                    output = "pdf_" + key if name == "book" else key
                     self.assertEqual(
                         step["with"][key],
-                        "${{ needs.prepare-image.outputs." + key + " }}",
+                        "${{ needs.prepare-image.outputs." + output + " }}",
                     )
             self.assertEqual(job["permissions"]["packages"], "read")
         for step in jobs["book"]["steps"]:
@@ -112,7 +156,7 @@ class ToolchainConsumerTests(unittest.TestCase):
                 "Record the verified build",
                 "Upload verified build for reuse after merge",
             ):
-                self.assertIn("needs.prepare-image.outputs.artifact == ''", step["if"])
+                self.assertIn("needs.prepare-image.outputs.pdf_artifact == ''", step["if"])
 
     def test_local_images_run_without_a_registry_pull(self):
         action = yaml.safe_load((ROOT / ".github/actions/run-toolchain/action.yml").read_text())

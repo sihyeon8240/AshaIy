@@ -1,5 +1,9 @@
-import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.Congruences
-import Mathlib.Data.ZMod.Basic
+module
+
+public import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.Congruences
+public import Mathlib.Data.ZMod.Basic
+
+public section
 
 namespace ElementaryNumberTheory.TheTheoryOfCongruences
 

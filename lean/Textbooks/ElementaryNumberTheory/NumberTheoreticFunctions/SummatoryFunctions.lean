@@ -1,6 +1,13 @@
-import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.MobiusInversion
-import Mathlib.Algebra.Order.Floor.Ring
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
+module
+
+public import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.MobiusInversion
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.NumberTheoreticFunctions
 

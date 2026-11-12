@@ -1,5 +1,9 @@
-import Textbooks.LinearAlgebra.SymmetricHermitianAndUnitaryOperators.Transpose
-import Textbooks.LinearAlgebra.SymmetricHermitianAndUnitaryOperators.Unitary
+module
+
+public import Textbooks.LinearAlgebra.SymmetricHermitianAndUnitaryOperators.Transpose
+public import Textbooks.LinearAlgebra.SymmetricHermitianAndUnitaryOperators.Unitary
+
+public section
 
 namespace LinearAlgebra.SymmetricHermitianAndUnitaryOperators
 

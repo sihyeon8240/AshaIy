@@ -1,4 +1,10 @@
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.DarbouxSums
+module
+
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.DarbouxSums
+
+import Mathlib.Tactic.Linarith
+
+public section
 
 namespace MathematicalAnalysis.TheRiemannStieltjesIntegral
 

@@ -1,6 +1,12 @@
-import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.MobiusInversion
-import Mathlib.Data.Nat.Totient
-import Textbooks.ElementaryNumberTheory.DivisibilityTheoryInTheIntegers.EuclideanAlgorithm
+module
+
+public import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.MobiusInversion
+public import Mathlib.Data.Nat.Totient
+public import Textbooks.ElementaryNumberTheory.DivisibilityTheoryInTheIntegers.EuclideanAlgorithm
+
+import Mathlib.Tactic.Linarith
+
+public section
 
 namespace ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem
 
@@ -30,6 +36,7 @@ theorem coprime_iff_gcd_eq_one (m n : ℕ) (hm : 0 < m) :
 
 /-- Definition: the reduced nonnegative representatives modulo n. At n=1 the representative
 is zero; its class is the same as the positive representative one used in the notes. -/
+@[expose]
 def reducedResidues (n : ℕ) : Finset ℕ := (Finset.range n).filter (Nat.Coprime n)
 
 /-- Theorem: the standard phi-function also counts positive representatives up to n. -/

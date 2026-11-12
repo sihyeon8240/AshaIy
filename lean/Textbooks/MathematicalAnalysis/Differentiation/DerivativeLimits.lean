@@ -1,5 +1,13 @@
-import Textbooks.MathematicalAnalysis.Continuity.ContinuousFunctions
-import Mathlib.Analysis.Calculus.Deriv.Slope
+module
+
+public import Textbooks.MathematicalAnalysis.Continuity.ContinuousFunctions
+public import Mathlib.Analysis.Calculus.Deriv.Slope
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace MathematicalAnalysis.Differentiation
 

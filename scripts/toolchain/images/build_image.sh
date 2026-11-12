@@ -8,5 +8,10 @@ fi
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 image="${IMAGE:-ashaiy-toolchain:local}"
+target="${IMAGE_TARGET:-dev}"
+if [[ "$target" != dev && "$target" != pdf ]]; then
+  echo "error: IMAGE_TARGET must be dev or pdf" >&2
+  exit 2
+fi
 
-exec docker build --tag "$image" --file "$repo_root/.devcontainer/Dockerfile" "$repo_root"
+exec docker build --target "$target" --tag "$image" --file "$repo_root/.devcontainer/Dockerfile" "$repo_root"

@@ -1,5 +1,6 @@
 -- Generated from Lean module manifests; do not edit.
+module
 
-import Textbooks.MathematicalAnalysis.All
-import Textbooks.ElementaryNumberTheory.All
-import Textbooks.LinearAlgebra.All
+public import Textbooks.MathematicalAnalysis.All
+public import Textbooks.ElementaryNumberTheory.All
+public import Textbooks.LinearAlgebra.All

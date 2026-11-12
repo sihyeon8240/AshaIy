@@ -10,6 +10,10 @@ on:
         description: Content-addressed image tag
         required: true
         type: string
+      target:
+        description: Docker final target (dev or pdf)
+        type: string
+        default: dev
       validate_existing:
         description: Run current validation even when the content tag is published
         type: boolean
@@ -33,13 +37,19 @@ concurrency:
   cancel-in-progress: false
   queue: max
 env:
-  IMAGE_DESCRIPTION: Development and CI toolchain for AshaIy mathematics textbooks, including TeX Live, Lean, and Python.
+  IMAGE_TARGET: ${{ inputs.target }}
+  IMAGE_DESCRIPTION: >-
+    ${{ inputs.target == 'pdf'
+        && 'PDF build toolchain for AshaIy mathematics textbooks, including TeX Live and Python.'
+        || 'Development and CI toolchain for AshaIy mathematics textbooks, including TeX Live, Lean, and Python.' }}
 jobs:
   prepare:
+    name: Select ${{ inputs.target }} image
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     outputs:
       exists: ${{ steps.release-tag.outputs.exists }}
+      run_local: ${{ github.event_name == 'pull_request' || github.ref != 'refs/heads/main' }}
       tag: ${{ inputs.tag }}
       image: ${{ steps.release-tag.outputs.image }}
       digest: ${{ steps.release-tag.outputs.digest }}
@@ -54,6 +64,7 @@ jobs:
       - name: Read the image build matrix
         id: policy
         run: |
+          [[ "$IMAGE_TARGET" == dev || "$IMAGE_TARGET" == pdf ]]
           matrix="$(python3 scripts/toolchain/images/image_policy.py matrix)"
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
       - name: Select the content-addressed image tag
@@ -74,7 +85,7 @@ jobs:
         id: release-tag
         run: ./scripts/toolchain/images/check_image_tag.sh
   build:
-    name: Validate toolchain (${{ matrix.arch }})
+    name: Validate ${{ inputs.target }} toolchain (${{ matrix.arch }})
     needs: prepare
     if: needs.prepare.outputs.exists != 'true' || inputs.validate_existing
     strategy:
@@ -95,14 +106,18 @@ jobs:
       - name: Set the temporary image tag
         id: build-tag
         run: |
-          build_tag="${IMAGE_NAME}:build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${ARCH}"
+          suffix="$ARCH"
+          if [[ "$IMAGE_TARGET" == pdf ]]; then
+            suffix="pdf-$ARCH"
+          fi
+          build_tag="${IMAGE_NAME}:build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${suffix}"
           echo "BUILD_TAG=$build_tag" >> "$GITHUB_ENV"
           echo "tag=$build_tag" >> "$GITHUB_OUTPUT"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
       - name: Restore a verified candidate from the merged PR
         id: candidate
-        if: needs.prepare.outputs.exists != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: inputs.target == 'dev' && needs.prepare.outputs.exists != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 scripts/toolchain/images/image_candidate.py restore --arch "$ARCH" --image "$BUILD_TAG"
@@ -135,21 +150,24 @@ jobs:
         with:
           context: .
           file: ./.devcontainer/Dockerfile
+          target: ${{ inputs.target }}
           platforms: linux/${{ matrix.arch }}
           load: true
           tags: ${{ steps.build-tag.outputs.tag }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
+            type=registry,ref=${{ steps.config.outputs.image_name }}:buildcache-${{ inputs.target }}-${{ matrix.arch }}
             type=registry,ref=${{ steps.config.outputs.image_name }}:buildcache-${{ matrix.arch }}
             type=registry,ref=${{ steps.config.outputs.image_name }}:latest
           cache-to: |
             type=inline
-            ${{ github.event_name != 'pull_request' && format('type=registry,ref={0}:buildcache-{1},mode=max', steps.config.outputs.image_name, matrix.arch) || '' }}
+            ${{ needs.prepare.outputs.run_local != 'true' && format('type=registry,ref={0}:buildcache-{1}-{2},mode=max', steps.config.outputs.image_name, inputs.target, matrix.arch) || '' }}
       - name: Smoke test the image toolchain
         run: |
           test "$(docker image inspect "$BUILD_TAG" --format '{{.Architecture}}')" = "$ARCH"
-          docker run --rm --platform "linux/$ARCH" "$BUILD_TAG" ./scripts/toolchain/check_toolchain.sh
+          docker run --rm --platform "linux/$ARCH" "$BUILD_TAG" ./scripts/toolchain/check_toolchain.sh "$IMAGE_TARGET"
       - name: Build the Mathlib cache executable without existing Lean outputs
+        if: inputs.target == 'dev'
         run: |
           docker run --rm --platform "linux/$ARCH" \
             -v "$PWD:/workspace:ro" "$BUILD_TAG" bash -euo pipefail -c '
@@ -166,13 +184,15 @@ jobs:
             git config --global --add safe.directory /workspace
             ./scripts/ashaiy book build --check --strict
           '
-      - name: Validate native ARM64 rendering and site behavior
+      - name: Validate native ARM64 rendering${{ inputs.target == 'dev' && ' and site behavior' || '' }}
         if: matrix.arch == 'arm64'
         run: |
           docker run --rm --platform linux/arm64 -v "$PWD:/workspace" "$BUILD_TAG" bash -euo pipefail -c '
             git config --global --add safe.directory /workspace
             REQUIRE_TEX_TESTS=1 python3 -m unittest discover -t . -s tests/latex -p test_code_fonts.py -v
-            ./scripts/ashaiy site test
+            if [[ "${{ inputs.target }}" == dev ]]; then
+              ./scripts/ashaiy site test
+            fi
           '
       - name: Preserve the failed ARM64 browser trace
         if: failure() && matrix.arch == 'arm64'
@@ -182,7 +202,7 @@ jobs:
           path: build/test-results/site-layout-trace.zip
           if-no-files-found: ignore
       - name: Record PDFs checked with the run-local candidate
-        if: needs.prepare.outputs.exists != 'true' && github.event_name == 'pull_request' && matrix.arch == 'amd64'
+        if: needs.prepare.outputs.exists != 'true' && needs.prepare.outputs.run_local == 'true' && matrix.arch == 'amd64'
         run: |
           image_id="$(docker image inspect "$BUILD_TAG" --format '{{.Id}}')"
           docker run --rm -v "$PWD:/workspace" \
@@ -197,15 +217,15 @@ jobs:
             done <<< "$books"
           '
       - name: Upload candidate PDF validation results
-        if: needs.prepare.outputs.exists != 'true' && github.event_name == 'pull_request' && matrix.arch == 'amd64'
+        if: needs.prepare.outputs.exists != 'true' && needs.prepare.outputs.run_local == 'true' && matrix.arch == 'amd64'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: candidate-pdfs
+          name: candidate-pdfs${{ inputs.target == 'pdf' && '-pdf' || '' }}
           path: build/candidate-pdfs/
           if-no-files-found: ignore
           retention-days: 14
       - name: Push the tested image and record its digest
-        if: needs.prepare.outputs.exists != 'true' && github.event_name != 'pull_request'
+        if: needs.prepare.outputs.exists != 'true' && needs.prepare.outputs.run_local != 'true'
         run: |
           docker push "$BUILD_TAG"
           digest="$(docker buildx imagetools inspect "$BUILD_TAG" --format '{{.Manifest.Digest}}')"
@@ -214,21 +234,23 @@ jobs:
           mkdir -p build/image-digests
           echo "${IMAGE_NAME}@${digest}" > "build/image-digests/${ARCH}"
       - name: Record the run-local tested image
-        if: needs.prepare.outputs.exists != 'true' && github.event_name == 'pull_request'
+        if: needs.prepare.outputs.exists != 'true' && needs.prepare.outputs.run_local == 'true'
         run: |
           mkdir -p build/image-digests
           docker image inspect "$BUILD_TAG" --format '{{.Id}}' > "build/image-digests/${ARCH}"
       - name: Export the tested image candidate
-        if: needs.prepare.outputs.exists != 'true' && github.event_name == 'pull_request'
+        if: needs.prepare.outputs.exists != 'true' && needs.prepare.outputs.run_local == 'true'
         run: |
           mkdir -p build/toolchain-image
           docker save "$BUILD_TAG" | gzip -1 > build/toolchain-image/image.tar.gz
-          python3 scripts/toolchain/images/image_candidate.py record --arch "$ARCH" --image "$BUILD_TAG"
+          if [[ "$IMAGE_TARGET" == dev ]]; then
+            python3 scripts/toolchain/images/image_candidate.py record --arch "$ARCH" --image "$BUILD_TAG"
+          fi
       - name: Upload the run-local tested image
-        if: needs.prepare.outputs.exists != 'true' && github.event_name == 'pull_request'
+        if: needs.prepare.outputs.exists != 'true' && needs.prepare.outputs.run_local == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: toolchain-image-${{ matrix.arch }}
+          name: ${{ inputs.target == 'pdf' && 'pdf-' || '' }}toolchain-image-${{ matrix.arch }}
           path: build/toolchain-image/
           if-no-files-found: error
           compression-level: 0
@@ -237,11 +259,12 @@ jobs:
         if: needs.prepare.outputs.exists != 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: image-digest-${{ matrix.arch }}
+          name: ${{ inputs.target == 'pdf' && 'pdf-' || '' }}image-digest-${{ matrix.arch }}
           path: build/image-digests/${{ matrix.arch }}
           if-no-files-found: error
           retention-days: 14
   publish:
+    name: Resolve tested ${{ inputs.target }} image
     needs: [prepare, build]
     concurrency:
       group: toolchain-image-publication
@@ -284,14 +307,14 @@ jobs:
         if: needs.prepare.outputs.exists != 'true' && steps.registry.outputs.exists != 'true'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          pattern: image-digest-*
+          pattern: ${{ inputs.target == 'pdf' && 'pdf-' || '' }}image-digest-*
           path: build/image-digests
           merge-multiple: true
       - name: Extract Docker metadata
         if: >-
           needs.prepare.outputs.exists != 'true' &&
           steps.registry.outputs.exists != 'true' &&
-          github.event_name != 'pull_request'
+          needs.prepare.outputs.run_local != 'true'
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
@@ -302,7 +325,7 @@ jobs:
         if: >-
           needs.prepare.outputs.exists != 'true' &&
           steps.registry.outputs.exists != 'true' &&
-          github.event_name != 'pull_request'
+          needs.prepare.outputs.run_local != 'true'
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
         run: |
@@ -328,29 +351,40 @@ jobs:
         if: >-
           needs.prepare.outputs.exists != 'true' &&
           steps.registry.outputs.exists != 'true' &&
-          github.event_name == 'pull_request'
-        run: echo "artifact=toolchain-image-amd64" >> "$GITHUB_OUTPUT"
+          needs.prepare.outputs.run_local == 'true'
+        run: |
+          prefix=""
+          if [[ "$IMAGE_TARGET" == pdf ]]; then
+            prefix=pdf-
+          fi
+          echo "artifact=${prefix}toolchain-image-amd64" >> "$GITHUB_OUTPUT"
       - name: Resolve and validate the tested index digest
         id: image
         env:
           PUBLISHED_IMAGE: ${{ needs.prepare.outputs.image }}
+          RUN_LOCAL_IMAGE: ${{ needs.prepare.outputs.run_local }}
         run: |
-          if [[ "$GITHUB_EVENT_NAME" == pull_request && -f build/image-digests/amd64 ]]; then
+          if [[ "$RUN_LOCAL_IMAGE" == true && -f build/image-digests/amd64 ]]; then
             digest="$(cat build/image-digests/amd64)"
             # validation-pattern: image_digest
             [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
             echo "digest=${digest#sha256:}" >> "$GITHUB_OUTPUT"
-            echo "image=${IMAGE_NAME}:build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-amd64" >> "$GITHUB_OUTPUT"
+            suffix=amd64
+            if [[ "$IMAGE_TARGET" == pdf ]]; then
+              suffix=pdf-amd64
+            fi
+            echo "image=${IMAGE_NAME}:build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${suffix}" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           IMAGE_REF="${PUBLISHED_IMAGE:-${IMAGE_NAME}:${RELEASE_TAG}}" \
             REQUIRE_IMAGE=true ./scripts/toolchain/images/check_image_tag.sh
       - name: Promote current main aliases and report image access
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        if: inputs.target == 'dev' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
           IMAGE_REF: ${{ steps.image.outputs.image }}
         run: python3 scripts/toolchain/images/image_registry.py
   refresh-cache:
+    name: Refresh ${{ inputs.target }} cache (${{ matrix.arch }})
     needs: [prepare, publish]
     if: >-
       !cancelled() && needs.publish.result == 'success' &&
@@ -378,9 +412,11 @@ jobs:
         with:
           context: .
           file: ./.devcontainer/Dockerfile
+          target: ${{ inputs.target }}
           platforms: linux/${{ matrix.arch }}
           outputs: type=cacheonly
           cache-from: |
+            type=registry,ref=${{ steps.config.outputs.image_name }}:buildcache-${{ inputs.target }}-${{ matrix.arch }}
             type=registry,ref=${{ steps.config.outputs.image_name }}:buildcache-${{ matrix.arch }}
             type=registry,ref=${{ needs.publish.outputs.image }}
-          cache-to: type=registry,ref=${{ steps.config.outputs.image_name }}:buildcache-${{ matrix.arch }},mode=max
+          cache-to: type=registry,ref=${{ steps.config.outputs.image_name }}:buildcache-${{ inputs.target }}-${{ matrix.arch }},mode=max

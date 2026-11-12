@@ -102,6 +102,8 @@ config/toolchain.env       -> Docker, CI Python, Lean, and Python tooling consum
 config/container-image.txt -> local and devcontainer image consumers
 config/ignore-patterns.yml -> Git, Docker, tree, and VS Code exclusion consumers
 config/image-build.json    -> image input detection, tag hashing, build matrix, and index checks
+config/texlive.profile     -> minimal TeX Live installation policy
+config/texlive-packages.txt -> TeX runtime packages and resolved dependencies
 config/authoring.json      -> CLI/editor shell formatting and unittest discovery
 config/validation-patterns.json -> Python validation and synchronized shell/schema expressions
 config/books.yml           -> VS Code task and GitHub issue-form book choices
@@ -139,7 +141,7 @@ glob exclusions belong in `config/ignore-patterns.yml`.
 | Runtime readers | Shell/Python tools and image jobs read canonical configuration directly when execution can supply the value. |
 | Complete generated files | Toolchain pins, CI requirements, exclusion lists, and publication version macros remain committed outputs for tools that consume those file formats directly. |
 | Mixed editor/container files | Synchronization owns the image, cache volume mounts, extension lists, book choices, and configured editor fields; remaining user-maintained settings and unrelated mounts are preserved. |
-| Mixed TOML files | Synchronization owns the Lean dependency revision and Ruff target version; package metadata, Lean options, and lint policy remain hand-maintained. |
+| Mixed TOML files | Synchronization owns the Lean dependency revision and Python versions for Ruff and ty; package metadata, Lean options, and check policy remain hand-maintained. |
 
 Preserve hand-maintained fields in mixed consumers; do not replace these files
 with complete generated templates. Synchronization validates the full update set

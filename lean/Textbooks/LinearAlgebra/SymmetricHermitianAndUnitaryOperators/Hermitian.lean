@@ -1,6 +1,14 @@
-import Textbooks.LinearAlgebra.SymmetricHermitianAndUnitaryOperators.Adjoint
-import Mathlib.LinearAlgebra.Matrix.Hermitian
+module
+
+public import Textbooks.LinearAlgebra.SymmetricHermitianAndUnitaryOperators.Adjoint
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+
 import Mathlib.Tactic.LinearCombination
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.NormNum
+
+public section
 
 namespace LinearAlgebra.SymmetricHermitianAndUnitaryOperators
 

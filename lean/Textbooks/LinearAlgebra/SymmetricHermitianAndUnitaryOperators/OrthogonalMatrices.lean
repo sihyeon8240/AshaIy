@@ -1,6 +1,10 @@
-import Textbooks.LinearAlgebra.LinearMappings.RankNullity
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+module
+
+public import Textbooks.LinearAlgebra.LinearMappings.RankNullity
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+
+public section
 
 namespace LinearAlgebra.SymmetricHermitianAndUnitaryOperators
 

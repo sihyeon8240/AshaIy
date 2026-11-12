@@ -1,10 +1,17 @@
-import Textbooks.ElementaryNumberTheory.FermatsTheorem.Fermat
-import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.PrimeFactorization
+module
+
+public import Textbooks.ElementaryNumberTheory.FermatsTheorem.Fermat
+public import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.PrimeFactorization
+
+import Mathlib.Tactic.Linarith
+
+public section
 
 namespace ElementaryNumberTheory.FermatsTheorem
 
 /-- Definition: Burton's pseudoprime to base a is composite and satisfies the unrestricted
 Fermat congruence. No coprimality assumption is imposed. -/
+@[expose]
 def IsPseudoprime (a : ℤ) (n : ℕ) : Prop :=
   PrimesAndTheirDistribution.isComposite n ∧ a ^ n ≡ a [ZMOD (n : ℤ)]
 

@@ -1,4 +1,13 @@
-import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.PythagoreanTriples
+module
+
+public import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.PythagoreanTriples
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.NormNum
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace ElementaryNumberTheory.CertainNonlinearDiophantineEquations
 

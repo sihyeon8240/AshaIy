@@ -1,4 +1,11 @@
-import Textbooks.ElementaryNumberTheory.DivisibilityTheoryInTheIntegers.EuclideanAlgorithm
+module
+
+public import Textbooks.ElementaryNumberTheory.DivisibilityTheoryInTheIntegers.EuclideanAlgorithm
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.DivisibilityTheoryInTheIntegers
 

@@ -1,4 +1,10 @@
-import Textbooks.MathematicalAnalysis.SequencesAndSeries.ConvergentSequences
+module
+
+public import Textbooks.MathematicalAnalysis.SequencesAndSeries.ConvergentSequences
+
+import Mathlib.Tactic.Linarith
+
+public section
 
 namespace MathematicalAnalysis.SequencesAndSeries
 

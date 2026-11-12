@@ -1,6 +1,10 @@
-import Textbooks.ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem.Euler
-import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.PrimeExponentSplitting
-import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
+module
+
+public import Textbooks.ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem.Euler
+public import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.PrimeExponentSplitting
+public import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
+
+public section
 
 namespace ElementaryNumberTheory.PrimitiveRootsAndIndices
 

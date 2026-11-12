@@ -122,6 +122,8 @@ class ContainerCommandTests(unittest.TestCase):
                     self.calls("docker")[-1],
                     [
                         "build",
+                        "--target",
+                        "dev",
                         "--tag",
                         tag,
                         "--file",

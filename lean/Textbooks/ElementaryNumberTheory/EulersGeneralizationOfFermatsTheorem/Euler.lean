@@ -1,9 +1,14 @@
-import Textbooks.ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem.Totient
-import Mathlib.Data.ZMod.Basic
+module
+
+public import Textbooks.ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem.Totient
+public import Mathlib.Data.ZMod.Basic
+
+public section
 
 namespace ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem
 
 /-- Definition: a Bezout witness represents the inverse of a reduced residue class. -/
+@[expose]
 noncomputable def unitOfGcdEqOne (n : ℕ) (hn : 0 < n) (a : ℤ)
     (ha : DivisibilityTheoryInTheIntegers.gcd a n = 1) : (ZMod n)ˣ := by
   have hz : (n : ℤ) ≠ 0 := by omega

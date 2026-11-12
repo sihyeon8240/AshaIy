@@ -91,6 +91,79 @@ Detailed experiments and raw measurements remain local under
 and `reproducibility-final/results.json`. They are disposable build outputs.
 Regression tests retain the important safety and input-selection contracts.
 
+## Runtime and toolchain review, November 2026
+
+The November 12 review used Linux ARM64, 10 available logical CPUs, Python
+3.14.10, and the installed pinned development tools. Local measurements below
+use warm filesystem caches; they do not predict hosted runner wall time.
+The final test suite contains 546 tests in 67 modules, with no skipped tests in
+this environment.
+
+| Change | Measured result | Decision |
+| --- | --- | --- |
+| Bounded Python test workers | Executing the same 546 tests took 42.18 seconds with one worker and a median of 13.70 with four. Serial ran once and parallel ran three times, using the same module order and child commands. | Retain Python orchestration with isolated whole-module workers, count checks, cleanup, and combined subprocess coverage. |
+| TeX formatting with an empty formatter cache | Checking the same 228 files took 27.85 seconds with one worker and 8.16 with four; reusing the cache took 0.21 seconds. Each cold case used a separate empty cache and ran once. | Use the bounded process runner for cache misses. Keep source observation, guarded writes, macro validation, and serialized cache pruning. |
+| Rust type checker | Seven alternating successful checks of the same `scripts/` and `tests/` trees had medians of 2.407 seconds for basedpyright and 0.089 for ty, about 27 times faster. | Replace basedpyright with pinned native ty wheels. Keep the active interpreter, configured Python target, and failure on warnings. |
+| Installed type-checker footprint | Basedpyright plus its Node wheel occupied 278.0 MiB; ty's executable and Python package occupied 27.6 MiB on ARM64. | Omit approximately 250 MiB from future development installations. This measures installed files, not compressed image layers. |
+| Minimal TeX package closure | An isolated runtime assembled from the pinned installed package database occupied about 252 MiB after rendering, versus 4,861.5 MiB for the full installation. | Use `scheme-minimal` plus the declared package roots, retaining tlmgr dependency resolution. This measures a local runtime, not a freshly built image. |
+
+A temporary Rust launcher and scheduler used rustc 1.99.1, an optimized static
+ARM64 musl binary of 530 kB, and the same Python test workers. The binary compiled
+in 0.35 seconds without third-party crates. With identical module order, its
+four-worker suite median was 13.76 seconds versus Python's 13.70; serial runs
+were 41.21 versus 42.18 seconds, each measured once. Launcher replacement alone
+does not justify migrating the test framework or CLI.
+
+Across 21 alternating runs, a native book-cache fingerprint prototype reduced
+the median from 31.82 to 3.51 milliseconds, and a Rust launcher handing off to
+the existing Python formatter reduced a cached check from 184.49 to 148.60
+milliseconds. Fingerprints matched for all three books, with additional hash
+vectors checked. These save about 28 and 36 milliseconds per invocation;
+the experiment does not establish full CLI compatibility. Keep the prototypes
+local and prioritize external-tool work, parallelism, and reuse over a new
+repository compiler dependency.
+
+The type-checker comparison first resolved diagnostics through explicit types
+and imports, without rule exclusions or a diagnostic baseline. Both tools then
+passed the repository and detected representative invalid returns, assignments,
+arguments, optional-member access, unresolved names, and list elements. The
+type-gate regression also exercises a source/test cross-module error through
+the actual quality-check entry point. These probes cover relevant contracts;
+they do not establish equivalence between the two type systems. Native binary
+wheels were available for both supported Linux architectures.
+
+The TeX comparison built all three books into separate full/minimal output
+directories and passed strict log checks. Each pair had identical PDF and
+extracted-text SHA-256 values, and minimal recorder files referenced no files
+from the original TeX installation. Fresh rendering fixtures additionally
+exercised code glyph fallbacks, page breaks, and bibliography layout; these
+identified the explicit `tex-gyre-math` dependency, which cached fixture outputs
+had concealed. The complete test suite also passed with the isolated runtime
+selected. No textbook content or shared style changed.
+
+Docker and its daemon were unavailable locally. The pinned archive installer
+URL also returned an HTML challenge instead of its expected archive; checksum
+verification rejected it. The review therefore did not measure final image
+sizes or validate a fresh installation or native AMD64 execution. Image CI
+retains native architecture checks, full book validation, and rendering tests.
+The reviewed development image pin remains unchanged until the publication
+workflow validates a replacement.
+
+CI now separates source and Lean checks, prepares imported Mathlib dependencies
+through the existing CLI, and keys dependency caches by toolchain, lock, native
+architecture, and import set. Known independent changes avoid unrelated rendering
+or site checks; unknown inputs remain conservative. PDF consumers use a minimal
+image with its own input identity, while development and site work use the full
+image. Their builders share TeX layers and keep heavy independent stages ahead
+of shell customization. These are implemented boundaries; hosted CI savings
+remain to be measured after publication.
+
+Raw local measurements and temporary Rust sources remain under
+`build/performance-review-20261112/`, `build/rust-experiment/`, and
+`build/texlive-minimal/`. They are ignored, disposable outputs. Permanent
+regressions retain discovery, cancellation, source-preservation, cache selection,
+type-gate, and image identity contracts.
+
 ## Content-addressed builds and atomicity
 
 The incremental key uses committed paths, file modes, and Git object IDs for the

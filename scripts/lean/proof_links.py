@@ -195,11 +195,9 @@ def check_declarations(root: Path, proofs: list[dict[str, Any]]) -> list[str]:
     output.mkdir(parents=True, exist_ok=True)
     source = output / "ProofLinks.lean"
     template = Path(__file__).with_name("lean-proof-audit.lean")
-    lines = [template.read_text(encoding="utf-8").rstrip(), ""]
-    lines.extend(f"run_cmd auditProof `{entry['declaration']}" for entry in proofs)
-    source.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    source.write_text(template.read_text(encoding="utf-8"), encoding="utf-8")
     result = subprocess.run(
-        ["lake", "env", "lean", str(source)],
+        ["lake", "env", "lean", "--run", str(source), *(entry["declaration"] for entry in proofs)],
         cwd=root / "lean",
         text=True,
         capture_output=True,
@@ -217,7 +215,7 @@ def check_root_imports(root: Path, modules: set[str], source_texts: dict[Path, s
     if root_module.is_file():
         imported = set(
             re.findall(
-                r"(?m)^import Textbooks\.([A-Za-z0-9_]+)\.All$",
+                r"(?m)^public import Textbooks\.([A-Za-z0-9_]+)\.All$",
                 source_texts[root_module],
             )
         )

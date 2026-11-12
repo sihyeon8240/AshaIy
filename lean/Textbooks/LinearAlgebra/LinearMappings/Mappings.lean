@@ -1,4 +1,8 @@
-import Mathlib.Logic.Function.Basic
+module
+
+public import Mathlib.Logic.Function.Basic
+
+public section
 
 namespace LinearAlgebra.LinearMappings
 
@@ -6,6 +10,7 @@ namespace LinearAlgebra.LinearMappings
 abbrev Mapping (S T : Type*) := S → T
 
 /-- Definition: a two-sided inverse reverses a mapping in both directions. -/
+@[expose]
 def HasInverse {S T : Type*} (f : S → T) : Prop :=
   ∃ g : T → S, Function.LeftInverse g f ∧ Function.RightInverse g f
 

@@ -1,4 +1,8 @@
-import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.LegendreSymbol
+module
+
+public import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.LegendreSymbol
+
+public section
 
 namespace ElementaryNumberTheory.TheQuadraticReciprocityLaw
 

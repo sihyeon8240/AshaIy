@@ -1,4 +1,11 @@
-import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.DigitTests
+module
+
+public import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.DigitTests
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.TheTheoryOfCongruences
 

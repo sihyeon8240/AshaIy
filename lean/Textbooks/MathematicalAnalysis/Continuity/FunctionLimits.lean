@@ -1,4 +1,11 @@
-import Textbooks.MathematicalAnalysis.SequencesAndSeries.SpecialSequences
+module
+
+public import Textbooks.MathematicalAnalysis.SequencesAndSeries.SpecialSequences
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace MathematicalAnalysis.Continuity
 

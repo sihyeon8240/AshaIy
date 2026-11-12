@@ -1,4 +1,8 @@
-import Textbooks.LinearAlgebra.Determinants.Multiplicativity
+module
+
+public import Textbooks.LinearAlgebra.Determinants.Multiplicativity
+
+public section
 
 namespace LinearAlgebra.Determinants
 

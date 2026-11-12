@@ -1,5 +1,11 @@
-import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.Mobius
-import Mathlib.NumberTheory.ArithmeticFunction.Zeta
+module
+
+public import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.Mobius
+public import Mathlib.NumberTheory.ArithmeticFunction.Zeta
+
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.NumberTheoreticFunctions
 
