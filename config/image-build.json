@@ -15,7 +15,11 @@
     ".devcontainer/generated/lean.env",
     ".devcontainer/generated/python.env",
     ".devcontainer/generated/pdf.env",
-    ".devcontainer/generated/ruby.env"
+    ".devcontainer/generated/ruby.env",
+    ".devcontainer/generated/Gemfile",
+    "config/Gemfile.lock",
+    ".github/requirements-ci.txt",
+    "scripts/toolchain/inventory.py"
   ],
   "platforms": [
     {

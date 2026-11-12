@@ -16,6 +16,7 @@ if __package__ in (None, ""):
 from scripts.books.book_manifest import normalize_manifest
 from scripts.repository.config.ignore_patterns import rendered_ignore_consumers
 from scripts.repository.config.json_config import parse_json, read_json
+from scripts.repository.config.python_dependencies import requirements as python_requirements
 from scripts.repository.config.repository_config import (
     IMAGE_PATH,
     ROOT,
@@ -98,6 +99,18 @@ def rendered_toolchain_groups(root: Path, toolchain: dict[str, str]) -> dict[Pat
     }
 
 
+def validate_ruby_lock(root: Path, toolchain: dict[str, str]) -> None:
+    lock = read_text(root / "config/Gemfile.lock")
+    jekyll = re.escape(toolchain["JEKYLL_VERSION"])
+    bundler = re.escape(toolchain["BUNDLER_VERSION"])
+    if (
+        not re.search(rf"(?m)^  jekyll \(= {jekyll}\)$", lock)
+        or not re.search(rf"(?m)^    jekyll \({jekyll}\)$", lock)
+        or not re.search(rf"BUNDLED WITH\n +{bundler}\n\Z", lock)
+    ):
+        raise ValueError("config/Gemfile.lock differs from toolchain pins; refresh the Ruby lock and check again")
+
+
 def rendered_issue_forms(root: Path, books: list[dict]) -> dict[Path, str]:
     updates = {}
     for name in ("mathematical-error", "typo"):
@@ -170,16 +183,7 @@ def rendered_consumers(root: Path = ROOT, *, image: str | None = None) -> dict[P
         rf'\g<1>"{toolchain["PYTHON_SERIES"]}"',
         pyproject,
     )
-    requirements = (
-        f"PyYAML=={toolchain['PYYAML_VERSION']}\nruff=={toolchain['RUFF_VERSION']}\n"
-        f"coverage=={toolchain['COVERAGE_VERSION']}\n"
-        f"hypothesis=={toolchain['HYPOTHESIS_VERSION']}\n"
-        f"playwright=={toolchain['PLAYWRIGHT_VERSION']}\n"
-        f"ty=={toolchain['TY_VERSION']}\n"
-        f"yamllint=={toolchain['YAMLLINT_VERSION']}\n"
-        f"djlint=={toolchain['DJLINT_VERSION']}\n"
-        f"check-jsonschema=={toolchain['CHECK_JSONSCHEMA_VERSION']}\n"
-    )
+    requirements = python_requirements(root, toolchain)
     authoring = load_authoring(root)
     ignore_updates = rendered_ignore_consumers(root)
     settings_path = root / ".vscode/settings.json"
@@ -201,6 +205,10 @@ def rendered_consumers(root: Path = ROOT, *, image: str | None = None) -> dict[P
         **ignore_updates,
         **rendered_validation_consumers(root),
         **rendered_toolchain_groups(root, toolchain),
+        root / ".devcontainer/generated/Gemfile": (
+            '# Generated from config/toolchain.env; do not edit.\nsource "https://rubygems.org"\n'
+            f'gem "jekyll", "= {toolchain["JEKYLL_VERSION"]}"\n'
+        ),
         **rendered_issue_forms(root, books),
         root / "common/templates/formalization-versions.tex": formalization_versions(root, toolchain["LEAN_VERSION"]),
         devcontainer: dev_text,
@@ -215,6 +223,8 @@ def rendered_consumers(root: Path = ROOT, *, image: str | None = None) -> dict[P
 def synchronize(*, root: Path = ROOT, check: bool = False) -> list[Path]:
     with source_updates(root, check=check):
         updates = rendered_consumers(root)
+        if check:
+            validate_ruby_lock(root, load_toolchain(root / "config/toolchain.env"))
         return changed_files(updates) if check else write_updates(updates)
 
 

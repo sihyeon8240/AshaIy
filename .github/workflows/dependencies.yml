@@ -1,0 +1,27 @@
+name: Report toolchain updates
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 1 * *'
+permissions:
+  contents: read
+jobs:
+  report:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - id: config
+        run: ./scripts/repository/config/export_config.sh
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: ${{ steps.config.outputs.python }}
+      - name: Read upstream releases without changing pins
+        run: python3 scripts/toolchain/dependencies.py
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: toolchain-update-report
+          path: build/dependencies/report.json
+          if-no-files-found: error
+          retention-days: 90
