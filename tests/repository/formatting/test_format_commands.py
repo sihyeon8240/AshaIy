@@ -585,7 +585,7 @@ class FormatTexTests(unittest.TestCase):
             self.assertIn("1 cached", result.stdout)
             self.assertEqual(len(capture.read_text().splitlines()), 4)
 
-            current = next((root / "cache").iterdir())
+            current = next(path for path in (root / "cache").iterdir() if path.is_dir())
             obsolete = root / "cache" / ("0" * 64)
             obsolete.mkdir()
             (obsolete / "entry").write_text("old")

@@ -20,6 +20,14 @@ ROOT = Path(__file__).resolve().parents[3]
 IMAGE = "ghcr.io/example/toolchain@sha256:" + "a" * 64
 
 
+def setUpModule() -> None:
+    temporary = tempfile.TemporaryDirectory()
+    unittest.addModuleCleanup(temporary.cleanup)
+    environment = patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(Path(temporary.name) / "summary.md")})
+    environment.start()
+    unittest.addModuleCleanup(environment.stop)
+
+
 def pull_request(head: str = "head") -> dict:
     return {
         "number": 7,

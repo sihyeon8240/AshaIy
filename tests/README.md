@@ -51,6 +51,7 @@ Use `support/fixtures.py` builders for valid fixture setup; keep malformed recor
 and expected results explicit. Register cleanup immediately, start long-lived
 processes in new sessions, bound waits, and clean process groups before their
 temporary directories.
+Tests that write GitHub job summaries must use their own temporary summary file.
 `support/workflows.py` evaluates the workflow expressions used by tests; it does
 not emulate Actions scheduling or implicit status checks.
 
