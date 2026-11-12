@@ -5,16 +5,19 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import re
+import shutil
 import signal
 import sys
+import tempfile
 import time
 import unittest
+from contextlib import closing
 from pathlib import Path
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from scripts.repository.processes import ProcessRunner, run_parallel, worker_count
+from scripts.repository.processes import ProcessRunner, iter_parallel, worker_count
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -80,27 +83,43 @@ def run_tests(directory: str, pattern: str, *, jobs: int | None = None, root: Pa
     modules = test_modules(suite)
     started = time.monotonic()
 
-    def execute(module: str, runner: ProcessRunner):
-        return module, runner.run([sys.executable, str(Path(__file__).resolve()), "--module", module], cwd=root)
-
-    results = run_parallel(sorted(modules, key=lambda name: -modules[name]), execute, jobs=count)
     failed = skipped = 0
-    for module, result in results:
-        output = result.stdout.decode(errors="replace")
-        counts = re.findall(r"^Ran (\d+) tests? in ", output, re.MULTILINE)
-        complete = bool(counts) and int(counts[-1]) == modules[module]
-        if result.returncode or not complete:
-            failed += 1
-            if not complete:
-                output += f"\nTest count differs from discovery: expected {modules[module]}.\n"
-            print(f"\n==> Failed: {module}\n{output}", file=sys.stderr)
-        else:
-            for line in output.splitlines():
-                if " ... skipped " in line:
-                    print(line)
-        match = re.search(r"\bskipped=(\d+)", output)
-        if match:
-            skipped += int(match[1])
+    with tempfile.TemporaryDirectory(prefix="test-logs-") as temporary:
+
+        def execute(module: str, runner: ProcessRunner):
+            log = Path(temporary) / f"{module}.log"
+            with log.open("wb") as output:
+                result = runner.run(
+                    [sys.executable, str(Path(__file__).resolve()), "--module", module], cwd=root, output=output
+                )
+            return module, result.returncode, log
+
+        selected = sorted(modules, key=lambda name: -modules[name])
+        with closing(iter_parallel(selected, execute, jobs=count)) as results:
+            for module, status, log in results:
+                actual = None
+                with log.open(encoding="utf-8", errors="replace") as output:
+                    for line in output:
+                        match = re.match(r"Ran (\d+) tests? in ", line)
+                        if match:
+                            actual = int(match[1])
+                        match = re.search(r"\bskipped=(\d+)", line)
+                        if match:
+                            skipped += int(match[1])
+                complete = actual == modules[module]
+                if status or not complete:
+                    failed += 1
+                    print(f"\n==> Failed: {module}", file=sys.stderr)
+                    with log.open(encoding="utf-8", errors="replace") as output:
+                        shutil.copyfileobj(output, sys.stderr)
+                    if not complete:
+                        print(f"Test count differs from discovery: expected {modules[module]}.", file=sys.stderr)
+                else:
+                    with log.open(encoding="utf-8", errors="replace") as output:
+                        for line in output:
+                            if " ... skipped " in line:
+                                print(line.rstrip())
+                log.unlink()
     print(
         f"Ran {sum(modules.values())} tests in {time.monotonic() - started:.3f}s "
         f"({len(modules)} modules, {count} workers; {skipped} skipped)"

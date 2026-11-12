@@ -250,9 +250,7 @@ def publish(load_candidate: Callable, *, policy: str, max_bytes: int) -> None:
     release = f"{name}:{tag}"
     image = published_image(name, tag)
     if image is None:
-        artifacts = github_artifacts.api(f"repos/{repository}/actions/runs/{run_id}/artifacts?per_page=100")[
-            "artifacts"
-        ]
+        artifacts = github_artifacts.collection(f"repos/{repository}/actions/runs/{run_id}/artifacts", "artifacts")
         candidates = {
             artifact["name"]: artifact
             for artifact in artifacts

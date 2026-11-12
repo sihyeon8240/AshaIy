@@ -168,7 +168,9 @@ def restore(expected: dict, directory: Path, *, diagnostics: list[str] | None = 
                 if not branch or run.get("head_branch") != branch:
                     continue
                 run_expected = {**expected, "validation_sha": head}
-            artifacts = api(f"repos/{repository}/actions/runs/{run['id']}/artifacts?per_page=100")["artifacts"]
+            artifacts = github_artifacts.collection(
+                f"repos/{repository}/actions/runs/{run['id']}/artifacts", "artifacts", fetch=api
+            )
             for artifact in artifacts:
                 if (
                     artifact["name"] != f"{expected['book']}-verified-build"

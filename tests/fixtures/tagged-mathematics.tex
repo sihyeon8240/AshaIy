@@ -1,0 +1,31 @@
+\DocumentMetadata{lang=en-US,pdfversion=2.0,tagging=on}
+\documentclass[11pt,oneside]{book}
+\usepackage{textbook}
+\addbibresource{tagged-mathematics.bib}
+
+\begin{document}
+\chapter{Tagged mathematics specimen}
+\section{Statements, code and references}
+
+This experimental rendering specimen exercises structural tagging. It does not
+claim PDF/UA conformance or certify mathematical accessibility.
+
+\begin{theorem}
+  Suppose $n \in \N$. Then $n+0=n$.
+\end{theorem}
+\begin{proof}
+  Adding zero preserves the natural number.
+  \begin{lean}
+    -- A typesetting specimen, excluded from textbook proof coverage.
+    example (n : Nat) : n + 0 = n := by
+      exact Nat.add_zero n
+  \end{lean}
+\end{proof}
+
+\[
+  \sum_{k=0}^{n} k = \frac{n(n+1)}{2}.
+\]
+
+The bibliography is also part of this specimen~\cite{specimen}.
+\printbibliography
+\end{document}

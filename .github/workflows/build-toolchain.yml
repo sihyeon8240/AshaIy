@@ -177,6 +177,18 @@ jobs:
             cd "$workspace"
             lake exe cache --help
           '
+      - name: Export the installed package inventory
+        run: |
+          mkdir -p build/toolchain-inventory
+          docker run --rm "$BUILD_TAG" cat /usr/local/share/ashaiy/inventory.json \
+            > "build/toolchain-inventory/$IMAGE_TARGET-$ARCH.json"
+      - name: Preserve the tested package inventory
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: toolchain-inventory-${{ inputs.target }}-${{ matrix.arch }}
+          path: build/toolchain-inventory/
+          retention-days: 90
+          if-no-files-found: error
       - name: Validate every checked textbook with the candidate
         run: |
           mkdir -p build

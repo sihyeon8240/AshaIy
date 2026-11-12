@@ -19,6 +19,7 @@ import yaml
 from playwright.sync_api import sync_playwright
 
 from scripts.site.check_site_output import check as check_site_output
+from scripts.site.render_site import render
 from tests.site.test_site_generation import site_generator
 from tests.support.fixtures import copy_file
 
@@ -115,25 +116,17 @@ class SiteRenderingTests(unittest.TestCase):
     @classmethod
     def build(cls, source: Path, destination: Path, *, preview_config: bool = True) -> None:
         assert JEKYLL is not None
-        result = subprocess.run(
-            [
+        try:
+            render(
                 JEKYLL,
-                "build",
-                "--source",
-                str(source),
-                "--destination",
-                str(destination),
-                "--config",
-                (f"{source / '_config.yml'},{cls.config}" if preview_config else str(source / "_config.yml")),
-                "--disable-disk-cache",
-            ],
-            cwd=cls.workspace,
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-        if result.returncode:
-            raise AssertionError(result.stdout + result.stderr)
+                source,
+                destination,
+                config=f"{source / '_config.yml'},{cls.config}" if preview_config else str(source / "_config.yml"),
+                cwd=cls.workspace,
+                capture_output=True,
+            )
+        except subprocess.CalledProcessError as error:
+            raise AssertionError(error.stdout + error.stderr) from error
 
     def page(self, path: str) -> RenderedPage:
         return RenderedPage((self.destination / path).read_text(encoding="utf-8"))
@@ -290,6 +283,18 @@ return {
                     page.set_viewport_size({"width": width, "height": 1000})
                     for path in paths:
                         page.goto(f"http://127.0.0.1:{server_port}/math/{path}")
+                        if width == 375 and font_scale == 100:
+                            page.keyboard.press("Tab")
+                            self.assertEqual(page.locator(":focus").inner_text(), "Skip to content")
+                            page.keyboard.press("Enter")
+                            self.assertEqual(page.evaluate("location.hash"), "#main-content")
+                            if path.startswith("books/"):
+                                command = page.locator(".resource-list code").inner_text()
+                                self.assertEqual(
+                                    " ".join(command.split()), f"ashaiy book build --book {Path(path).stem}"
+                                )
+                                fallback = page.locator("object p a")
+                                self.assertTrue((fallback.get_attribute("href") or "").startswith("/math/pdf/"))
                         if font_scale != 100:
                             page.add_style_tag(content=f"html {{ font-size: {font_scale}%; }}")
                         page.evaluate("document.fonts.ready")

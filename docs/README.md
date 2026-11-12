@@ -15,6 +15,7 @@ walkthroughs in commits and code.
 | [Textbook writing](writing-guide.md) | LaTeX authoring and the presentation of mathematical prose and Lean code. |
 | [LaTeX macros](macros.md) | Macro declarations, generated packages, and formatting signatures. |
 | [Lean formalization](formalization.md) | Proof safety, prerequisites, Lean layout, proof links, and source correspondence. |
+| [Editor support](editors.md) | VS Code integration, terminal editing, LSP and SyncTeX path boundaries. |
 | [Developer workflow](developer-workflow.md) | Daily commands, branches, formatting, cleanup, and release preparation. |
 | [Maintainer guide](maintainer-guide.md) | Review, publication, recovery, CI reuse, and image operations. |
 | [Book registry and site](site-metadata.md) | Registry field semantics, generated pages, previews, and site validation. |

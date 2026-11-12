@@ -29,6 +29,31 @@ def api(endpoint: str, execute: Callable = command):
     return json.loads(execute("gh", "api", endpoint))
 
 
+def collection(endpoint: str, key: str, *, fetch: Callable | None = None, max_pages: int = 100) -> list[dict]:
+    """Read bounded collection pages without silently losing later artifacts."""
+    fetch = api if fetch is None else fetch
+    result = []
+    seen = set()
+    deadline = time.monotonic() + 120
+    separator = "&" if "?" in endpoint else "?"
+    for page in range(1, max_pages + 1):
+        if time.monotonic() >= deadline:
+            raise ValueError("GitHub collection exceeded its time budget")
+        batch = fetch(f"{endpoint}{separator}per_page=100&page={page}")[key]
+        if not isinstance(batch, list) or len(batch) > 100 or any(not isinstance(item, dict) for item in batch):
+            raise ValueError("invalid GitHub collection page")
+        for item in batch:
+            identifier = item.get("id")
+            if identifier is not None:
+                if identifier in seen:
+                    raise ValueError("duplicate GitHub collection identity")
+                seen.add(identifier)
+        result.extend(batch)
+        if len(batch) < 100:
+            return result
+    raise ValueError("GitHub collection exceeded its page budget")
+
+
 def checksum(data: bytes | Path) -> str:
     if isinstance(data, Path):
         with data.open("rb") as stream:

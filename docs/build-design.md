@@ -1,213 +1,121 @@
 # Automation design decisions
 
-This guide records the reasons for the automation boundaries and the evidence
-needed to change them as the collection grows. File ownership remains in
-[architecture](ARCHITECTURE.md), commands in the [developer workflow](developer-workflow.md),
-and operational reuse rules in the [maintainer guide](maintainer-guide.md).
+[Architecture](ARCHITECTURE.md) owns file boundaries, the
+[developer workflow](developer-workflow.md) owns commands, and the
+[maintainer guide](maintainer-guide.md) owns publication and recovery.
+This guide records decisions and the evidence needed to reconsider them.
 
-## Patterns and their responsibilities
+## Patterns and responsibilities
 
-| Pattern | Current implementation | Benefit and boundary |
+| Decision | Reason | Reconsider when |
 | --- | --- | --- |
-| Manifest-driven architecture | The book registry and ordered contents/module manifests generate assembly and configuration consumers. | Adding books follows the same rules without another dispatcher branch. Generated files are projections, with drift checks against their source. |
-| Facade and composition root | `scripts/ashaiy` and `scripts/cli/` coordinate specialized modules and external tools. | One supported interface owns selection and failure propagation; domain modules retain their validation rules. |
-| Functional core with imperative coordination | Parsers, validators, renderers, and input descriptions build values; generators and scripts install files or execute tools. | Plans can be validated before writes and compared without compiling a book. Filesystem effects remain explicit. |
-| Pipeline and lightweight Command | `Stage` holds a name and callable; `run_stages` invokes them in order and returns the completed prefix and first failure. | Invocation is separated from coordination with little machinery. Completion is scoped to one invocation. |
-| Adapter and Strategy | Shell/Python boundaries adapt latexmk, Lake, Git, Jekyll, Docker, and GitHub; strict YAML uses the native parser when available with a Python fallback. | Established systems own their specialist work while repository-specific contracts stay local. |
-| Invocation-scoped memoization | `SourceReads` and `MacroRepository` reuse source values while planning one operation. | Common manifests are parsed once; a later invocation sees edits. These are not persistent success caches or process-wide singletons. |
-| Bounded worker pool | `build_all.py` limits active book processes and checks logs independently. | Memory use follows the configured worker count. Failed books do not suppress independent results; cancellation reaps process groups. |
-| Guarded file updates | Source writers hold an advisory lock from reading through installation, check observed bytes, and replace individual files. | Cooperating writers avoid lost updates. Exception recovery preserves originals when restoration fails. |
-| Conservative dependency analysis | Git changes, book ownership, static TeX references, and shared-input policy select affected books. | Unknown inputs select broadly. Runtime recorder traces can supplement this policy without making absent inputs disappear. |
-| Layered build reuse | Per-book Git input digests seed latexmk state; verified artifacts separately bind the entire tree, image, environment, checksums, and CI provenance. | Incremental speed does not imply successful validation. Log checks remain mandatory. |
+| Ordered manifests generate assembly and configuration | Books add data instead of dispatcher branches; drift is checked | Metadata planning becomes a measured bottleneck |
+| Python facade, functional validation and explicit side effects | Specialist tools retain builds/proofs; plans can be inspected before writes | Another implementation demonstrates material end-to-end gains |
+| Small stages and adapters | Ordering, selection and failures are explicit | Persistent/distributed execution needs durable requests and input identity |
+| Invocation-scoped source reuse | Shared inputs are read once without stale process-wide success state | Measurements justify a stronger snapshot model |
+| Bounded workers with process-group cancellation | Concurrency and descendant lifetime stay controlled | A replacement preserves lifecycle guarantees and improves real workloads |
+| Temporary test logs and bounded queued work | Completed output does not grow parent memory with total logs | Different consumers need streaming output values |
+| Strict YAML plus semantic domain validation | Native parsing is fast; schemas alone cannot express all repository contracts | A replacement preserves duplicate/merge rules and source edits |
+| Conservative dependency analysis | Unknown and newly present optional inputs remain safe | A more precise model covers absence and fallback semantics |
+| Separate incremental caches and verified artifacts | Input/cache identity is not proof of successful validation | A remote result cache has complete input, environment and provenance contracts |
 
-The code has no general publish/subscribe Observer system. Direct callbacks in a
-pipeline and polling child processes do not create one. Add observers only when
-several independent consumers need events with explicit ordering, failure, and
-lifetime rules; current diagnostics and phase metrics do not need an event bus.
-
-Manifest loaders construct validated data, but the code does not need a GoF
-Factory Method or Abstract Factory hierarchy. Introduce one only when independent
-implementations must create interchangeable families of objects. Adding another
-textbook currently adds data, not another implementation family.
-
-`Stage` already expresses the central Command intent: encapsulating an invocation
-for an invoker. GoF Command does not require undo, serialization, or inheritance.
-Concrete request objects would become useful for a persistent queue or execution
-across processes. `BookInputs` deliberately describes cache inputs as immutable,
-JSON-serializable data; it is not an executable command or a complete hermetic
-build request. Saving completed stage names alone cannot safely resume work after
-inputs change. Re-execution or input-and-policy validation is still required.
-
-## Evidence for the current boundaries
-
-The October 2026 review used baseline commit
-`ff87320cd28fcf9f30c5cb264aa2ac427ef8a1c1`, Python 3.14.8, Linux ARM64,
-10 logical CPUs, and approximately 8 GiB RAM. Synthetic repositories exercised
-real manifest loading and generators with 100 sections per book. The following
-times are warm-filesystem medians of three local runs, not hosted CI timings or
-full textbook compilation costs.
-
-| Books | Sections | Impact planning, seconds | Site projection, seconds |
-| ---: | ---: | ---: | ---: |
-| 3 | 300 | 0.032 | 0.030 |
-| 10 | 1,000 | 0.103 | 0.099 |
-| 30 | 3,000 | 0.315 | 0.304 |
-| 60 | 6,000 | 0.639 | 0.611 |
-
-At 60 books and 400 sections per book, planning took 1.960 seconds and site
-projection 1.910 seconds. This supports keeping the directory/manifest design
-for dozens of books; it does not predict Lean or TeX costs for 24,000 sections.
-
-| Experiment | Observation | Decision |
-| --- | --- | --- |
-| Native strict YAML parser | The 123 repository YAML inputs had equivalent results. A 60-book macro pass fell from 0.782 to 0.240 seconds; site projection from 0.603 to 0.263 seconds. | Use the library's native parser with the existing duplicate/merge rules and a Python fallback. Reuse shared macro inputs within a plan. |
-| Generic metadata validation | JSON Schema alone differed from domain validation on 6 of 99 cases, including duplicate identities and integer/version rules. | Keep schemas for editor assistance and domain validators for full semantics. |
-| YAML round-trip editing | The candidate preserved semantics in all seven fixtures but changed outside-target text in two. | Retain targeted release edits; a parser replacement must satisfy source-preservation contracts. |
-| Atomic writes and competing writers | A killed direct write left half a file. Replacement preserved the previous complete file, but replacement alone and write-only locks still lost competing updates. | Use same-filesystem replacement plus a read-plan-write lock and observed-byte checks. |
-| Ninja scheduler | Sixty controlled short tasks took 3.072 seconds with the current scheduler and 2.463 with Ninja. An interrupt experiment left an ignoring descendant alive with Ninja. | Retain the scheduler's lifecycle contract. These tasks did not measure textbook compilation throughput. |
-| Official artifact download Action | The pinned Action checked digests, but did not enforce the repository's custom expanded size/total deadline and cleanup policy. | Keep the shared bounded transfer layer used by PDF, image, and release reuse. |
-| Recorder-only dependency selection | A previous `.fls` trace covered existing inputs but missed a newly added optional override. | Keep conservative static and absence/fallback handling. Do not use a prior trace as the sole cache contract. |
-| Local content-addressed prototype | A source-comment edit changed the input action key while the reproducible PDF digest stayed identical. A corrupted output object was rejected. | Input identity and output identity are distinct. A remote result cache still needs a complete input model and provenance policy. |
-
-Three actual textbook builds at worker limits 1, 2, and 4 took approximately
-23.6, 17.0, and 10.4 seconds respectively, with summed process RSS samples of
-338, 604, and 897 MiB. Only three books were active, so the last case did not
-exercise four simultaneous compilers. Keep the worker count bounded and tune it
-against real book sizes and available memory; book count is not a concurrency
-setting.
-
-The implemented reproducibility check forced two builds of each of the three
-books into different output directories. Every strict log check passed and each
-book's PDF SHA-256 and extracted-text SHA-256 matched across runs. The environment
-used the pinned archive date, epoch `1789862400`, and the existing toolchain.
-Final PDFs also matched the baseline's extracted text and all-page 45 DPI
-grayscale raster output, checking that the automation changes preserved visible
-content at that resolution.
-This is evidence for that local environment, not a guarantee across architectures,
-toolchain revisions, arbitrary local assets, or all future TeX packages.
-
-Detailed experiments and raw measurements remain local under
-`build/design-review-20261027/`, including `REPORT.md`, the evidence archive,
-and `reproducibility-final/results.json`. They are disposable build outputs.
-Regression tests retain the important safety and input-selection contracts.
-
-## Runtime and toolchain review, November 2026
-
-The November 12 review used Linux ARM64, 10 available logical CPUs, Python
-3.14.10, and the installed pinned development tools. Local measurements below
-use warm filesystem caches; they do not predict hosted runner wall time.
-The final test suite contains 546 tests in 67 modules, with no skipped tests in
-this environment.
-
-| Change | Measured result | Decision |
-| --- | --- | --- |
-| Bounded Python test workers | Executing the same 546 tests took 42.18 seconds with one worker and a median of 13.70 with four. Serial ran once and parallel ran three times, using the same module order and child commands. | Retain Python orchestration with isolated whole-module workers, count checks, cleanup, and combined subprocess coverage. |
-| TeX formatting with an empty formatter cache | Checking the same 228 files took 27.85 seconds with one worker and 8.16 with four; reusing the cache took 0.21 seconds. Each cold case used a separate empty cache and ran once. | Use the bounded process runner for cache misses. Keep source observation, guarded writes, macro validation, and serialized cache pruning. |
-| Rust type checker | Seven alternating successful checks of the same `scripts/` and `tests/` trees had medians of 2.407 seconds for basedpyright and 0.089 for ty, about 27 times faster. | Replace basedpyright with pinned native ty wheels. Keep the active interpreter, configured Python target, and failure on warnings. |
-| Installed type-checker footprint | Basedpyright plus its Node wheel occupied 278.0 MiB; ty's executable and Python package occupied 27.6 MiB on ARM64. | Omit approximately 250 MiB from future development installations. This measures installed files, not compressed image layers. |
-| Minimal TeX package closure | An isolated runtime assembled from the pinned installed package database occupied about 252 MiB after rendering, versus 4,861.5 MiB for the full installation. | Use `scheme-minimal` plus the declared package roots, retaining tlmgr dependency resolution. This measures a local runtime, not a freshly built image. |
-
-A temporary Rust launcher and scheduler used rustc 1.99.1, an optimized static
-ARM64 musl binary of 530 kB, and the same Python test workers. The binary compiled
-in 0.35 seconds without third-party crates. With identical module order, its
-four-worker suite median was 13.76 seconds versus Python's 13.70; serial runs
-were 41.21 versus 42.18 seconds, each measured once. Launcher replacement alone
-does not justify migrating the test framework or CLI.
-
-Across 21 alternating runs, a native book-cache fingerprint prototype reduced
-the median from 31.82 to 3.51 milliseconds, and a Rust launcher handing off to
-the existing Python formatter reduced a cached check from 184.49 to 148.60
-milliseconds. Fingerprints matched for all three books, with additional hash
-vectors checked. These save about 28 and 36 milliseconds per invocation;
-the experiment does not establish full CLI compatibility. Keep the prototypes
-local and prioritize external-tool work, parallelism, and reuse over a new
-repository compiler dependency.
-
-The type-checker comparison first resolved diagnostics through explicit types
-and imports, without rule exclusions or a diagnostic baseline. Both tools then
-passed the repository and detected representative invalid returns, assignments,
-arguments, optional-member access, unresolved names, and list elements. The
-type-gate regression also exercises a source/test cross-module error through
-the actual quality-check entry point. These probes cover relevant contracts;
-they do not establish equivalence between the two type systems. Native binary
-wheels were available for both supported Linux architectures.
-
-The TeX comparison built all three books into separate full/minimal output
-directories and passed strict log checks. Each pair had identical PDF and
-extracted-text SHA-256 values, and minimal recorder files referenced no files
-from the original TeX installation. Fresh rendering fixtures additionally
-exercised code glyph fallbacks, page breaks, and bibliography layout; these
-identified the explicit `tex-gyre-math` dependency, which cached fixture outputs
-had concealed. The complete test suite also passed with the isolated runtime
-selected. No textbook content or shared style changed.
-
-Docker and its daemon were unavailable locally. The pinned archive installer
-URL also returned an HTML challenge instead of its expected archive; checksum
-verification rejected it. The review therefore did not measure final image
-sizes or validate a fresh installation or native AMD64 execution. Image CI
-retains native architecture checks, full book validation, and rendering tests.
-The reviewed development image pin remains unchanged until the publication
-workflow validates a replacement.
-
-CI now separates source and Lean checks, prepares imported Mathlib dependencies
-through the existing CLI, and keys dependency caches by toolchain, lock, native
-architecture, and import set. Known independent changes avoid unrelated rendering
-or site checks; unknown inputs remain conservative. PDF consumers use a minimal
-image with its own input identity, while development and site work use the full
-image. Their builders share TeX layers and keep heavy independent stages ahead
-of shell customization. These are implemented boundaries; hosted CI savings
-remain to be measured after publication.
-
-Raw local measurements and temporary Rust sources remain under
-`build/performance-review-20261112/`, `build/rust-experiment/`, and
-`build/texlive-minimal/`. They are ignored, disposable outputs. Permanent
-regressions retain discovery, cancellation, source-preservation, cache selection,
-type-gate, and image identity contracts.
+An event bus or factory hierarchy has no current consumer requirement. A new
+compiled launcher adds a toolchain to maintain; earlier measurements found no
+material test-suite gain. Keep shared configuration small and let consumers
+project their required formats rather than introduce a general configuration DSL.
 
 ## Content-addressed builds and atomicity
 
-The incremental key uses committed paths, file modes, and Git object IDs for the
-book and shared build directories. Committed `book.tex` is the generated
-publication-metadata projection, so changing another book's title or registry
-display order does not invalidate this book's incremental state. Shared scripts
-and configuration remain conservative inputs. Dirty source builds still work
-through latexmk; a committed Git fingerprint does not describe the dirty tree.
+Incremental keys bind committed paths, modes and Git objects. Generated
+`book.tex` projects publication metadata without invalidating every book for an
+unrelated registry record. Dirty local builds still use latexmk; committed keys
+do not describe uncommitted inputs. Verified reuse separately binds the full
+source tree, immutable image, environment, run/attempt and output checksums.
+Unknown TeX inputs select conservatively; old recorder traces are supplementary.
 
-A full content-addressed result system would need separate action descriptors and
-output blobs, declared tools/environment, negative dependencies, fallback search
-semantics, corruption checks, and controlled execution. `SOURCE_DATE_EPOCH` is
-part of that identity; an output digest alone cannot prove who built it or whether
-its log passed. Keep the existing full-tree/provenance gate for verified PDF
-reuse. Introduce a remote CAS or Bazel/Nix migration only after measuring enough
-repeated expensive identical work to justify this additional contract.
+Source updates use read-plan-write advisory locking, observed-byte comparisons,
+same-filesystem replacement and exception rollback. External editors do not join
+the lock. Individual replacements are atomic; multiple replacements are not a
+crash transaction. Regenerate after abrupt termination. If readers later require
+whole-directory coherence, compare immutable generations plus one reference
+switch, with each reader pinning a generation.
 
-Atomic replacement protects one filename's visibility. Advisory locking
-coordinates cooperating writers. Content comparisons detect observed external
-edits; external editors do not join the lock. Exception rollback provides
-recoverability. Optional file/directory `fsync` requests durability for important
-small source updates. None of these alone is a multi-file ACID transaction:
-`SIGKILL` between replacements can leave complete files from different generations.
-Regenerate and validate after such an interruption. If readers later require a
-coherent generated directory generation, use immutable generation directories
-and one reference switch, with readers pinning that generation once.
+## Reproducible measurements
+
+Run in the pinned development image:
+
+```sh
+python3 scripts/repository/benchmark.py
+python3 scripts/repository/benchmark.py --include-checks --repeats 3
+```
+
+The harness builds disposable 3/10/30/60-book repositories with 100 sections per
+book and exercises real planning, macro and site generators. It also measures
+64MiB of process output with file spooling. Optional checks compare one/four test
+workers and isolated cold/warm formatter caches. Reports and logs go under
+ignored `build/benchmarks/`; `--output` selects another location.
+
+Reports record revision, dirty state, interpreter/platform, wall/CPU time and
+20ms sampled process-tree RSS. RSS can double-count shared pages and miss short
+peaks. Synthetic manifests do not predict compilation of large textbooks. Cold
+formatter caches do not imply cold filesystem caches. Reproduce old published
+comparisons from their source revision; historical local-only experiments are
+supporting evidence, not a current performance contract.
+
+Use [workflow measurements](maintainer-guide.md#workflow-cost-and-dependency-reports)
+for checkout/provisioning, image transport, artifact sizes and cache usage.
+Separate typical edits from image candidates and compare repeated runs. A local
+image's installed size, directory usage and compressed archive size are distinct.
+Current PDF/dev image separation and minimal TeX closure avoid shipping Lean and
+browser tools to PDF-only jobs. Package inventories record actual resolved tools.
 
 ## Scaling CI from measurements
-
-Book matrix jobs now record preparation, verified-reuse lookup, incremental cache
-restore, image preparation, compilation, strict log checking, and artifact
-publication. Failed commands keep their exit codes. Interrupted phases remain
-incomplete in the report. See the
-[measurement procedure](maintainer-guide.md#build-measurements).
 
 Keep one book per job until a complete successful run selects at least 20 books
 and measured preparation plus image handling accounts for at least 30% of the
 measured job time. Then compare groups of 2–4 books per job. Adoption requires
-at least 20% less measured runner time with at most 5% worse overall wall time,
-while preserving book-level failures, artifact names, cancellation, and verified
-provenance. These thresholds are an operating policy, not achieved savings.
+at least 20% less runner time with at most 5% worse overall wall time, preserving
+book failures, artifact identity, cancellation and verified provenance.
 
-The measurements start after checkout and exclude runner provisioning, queueing,
-the upstream shared-image job, and the telemetry upload itself. Combine them with
-GitHub job timestamps when evaluating full workflow costs. Hosted CI and cache
-eviction were not measured during the local review. The grouping evaluator
-recommends an experiment; it does not change the matrix or publication gates.
+Book phase reports start after checkout and contain nested stages; do not sum
+nested durations. The workflow collector includes all job timestamps and reports
+observed runner seconds separately from elapsed time and billing. Start delay
+includes dependency waits, not just runner queueing.
+
+Full-history source checkouts use `blob:none` filtering so ancestry and tags
+remain available without downloading every historical PDF blob. Snapshot
+checkout still needs current PDFs. Monitor history, cache churn and artifact
+bytes before moving snapshots to another store or changing retention. Candidate
+PDF bundles are currently downloaded per book; compare book-specific artifacts
+or aggregation only when transfer costs justify their added orchestration.
+Manual deployment retries remain available, including after unrelated pushes.
+
+## Optional authoring and accessibility features
+
+Keep macro declarations as the shared source for TeX packages and formatter
+signatures. Add chapter/section scaffolding only after recurring authoring errors
+justify it; preserve one source per logical section, stable labels and absent
+local-only presentation assets. Do not create empty Lean topics automatically.
+
+Displayed-code source links are an opt-in pilot under the
+[formalization policy](formalization.md#displayed-code-correspondence).
+They catch fragment drift, not mathematical meaning or proof completeness.
+Website search/filtering is conditional on a larger catalog. PDF tagging is a
+separate rendering experiment; strict compilation and visual quality alone do
+not establish accessible reading order, usable mathematical semantics or a
+PDF/UA conformance claim.
+
+Run the optional structural tagging experiment with:
+
+```sh
+python3 scripts/latex/tagging_probe.py --install-missing
+```
+
+Additional packages come from the pinned TeX archive into ignored
+`build/tagging-texmf/`, leaving the image and ordinary book builds unchanged.
+The specimen, PDF, strict-log result and tagging warnings are recorded under
+`build/tagging-probe/`. The current style can produce a tagged PDF, but tagpdf
+reports that MathML generation is unavailable without unicode-math or
+lua-unicode-math. This is an explicit boundary of the pilot, not a reason to
+suppress the warning or claim mathematical accessibility. A typography change
+requires a separate compatibility/assistive-technology study and shared checks.

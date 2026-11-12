@@ -33,6 +33,7 @@ jobs:
         run: |
           cp scripts/site/pages_current.sh "$RUNNER_TEMP/pages_current.sh"
           cp scripts/site/check_site_output.py "$RUNNER_TEMP/check_site_output.py"
+          cp scripts/site/render_site.py "$RUNNER_TEMP/render_site.py"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.snapshot_sha || 'generated-pdfs' }}
@@ -69,7 +70,11 @@ jobs:
       - name: Load repository configuration
         if: steps.eligible.outputs.current == 'true'
         id: config
-        run: ./scripts/repository/config/export_config.sh
+        run: |
+          ./scripts/repository/config/export_config.sh
+          # Older snapshot sources do not export the image digest separately.
+          image="$(cat config/container-image.txt)"
+          echo "image_digest=${image##*@sha256:}" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         if: steps.eligible.outputs.current == 'true'
         with:
@@ -89,12 +94,20 @@ jobs:
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
         id: pages
         if: steps.eligible.outputs.current == 'true'
-      - uses: actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697 # v1
+      - name: Preserve the renderer for older source snapshots
+        if: steps.eligible.outputs.current == 'true'
+        run: |
+          mkdir -p build/site-deploy
+          cp "$RUNNER_TEMP/render_site.py" build/site-deploy/render_site.py
+      - name: Render with the source revision's tested Jekyll
+        uses: ./.github/actions/run-toolchain
         if: steps.eligible.outputs.current == 'true'
         with:
-          source: site
-          destination: _site
-          build_revision: ${{ steps.source.outputs.sha }}
+          image: ${{ steps.config.outputs.image }}
+          digest: ${{ steps.config.outputs.image_digest }}
+          run: >-
+            PYTHONPATH=/workspace python3 build/site-deploy/render_site.py --destination _site
+            --base-path '${{ steps.pages.outputs.base_path }}'
       - name: Prepare PDF destination
         if: steps.eligible.outputs.current == 'true'
         run: sudo install -d -o "$(id -u)" -g "$(id -g)" _site/pdf

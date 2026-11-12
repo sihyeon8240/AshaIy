@@ -8,8 +8,10 @@ import sys
 import tempfile
 import time
 import unittest
+from contextlib import closing
 from pathlib import Path
 
+from scripts.repository.processes import ProcessRunner, iter_parallel
 from scripts.repository.test_runner import run_tests
 from tests.support.fixtures import stop_process_group
 
@@ -17,6 +19,28 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class ParallelCommandsTests(unittest.TestCase):
+    def test_bounded_submission_preserves_order_and_accepts_none_items(self) -> None:
+        submitted = []
+
+        def items():
+            for value in [None, *range(100)]:
+                submitted.append(value)
+                yield value
+
+        with closing(iter_parallel(items(), lambda value, runner: value, jobs=2)) as results:
+            self.assertIsNone(next(results))
+            self.assertEqual(len(submitted), 4)
+            self.assertEqual(list(results), list(range(100)))
+
+    def test_large_output_can_be_written_without_retaining_result_bytes(self) -> None:
+        with tempfile.TemporaryFile() as output:
+            result = ProcessRunner().run(
+                [sys.executable, "-c", "import sys; sys.stdout.buffer.write(b'x' * 2097152)"], output=output
+            )
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual(result.stdout, b"")
+            self.assertEqual(output.tell(), 2097152)
+
     def test_custom_discovery_executes_function_cases_once(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

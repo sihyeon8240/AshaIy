@@ -5,6 +5,22 @@ and configuration boundaries; [Contributing](CONTRIBUTING.md#validation-by-chang
 owns required checks; the [maintainer guide](maintainer-guide.md) owns publication
 and recovery.
 
+## Common tasks
+
+| Task | Command inside the container |
+| --- | --- |
+| Verify setup | `ashaiy doctor env` |
+| Build and strictly check one book | `ashaiy book build --book <slug> --check --strict` |
+| Check repository structure | `ashaiy check source` |
+| Run automation tests | `ashaiy test` |
+| Check Lean proofs and linked displays | `ashaiy lean check` |
+| Refresh generated sources | `ashaiy generated generate` |
+| Refresh canonical configuration consumers | `ashaiy config generate` |
+| Preview the site | `ashaiy site serve` |
+
+Choose pre-review checks from the [validation matrix](CONTRIBUTING.md#validation-by-change-category).
+Use the [editor guide](editors.md) for VS Code and terminal-based editing.
+
 ## Development environment
 
 Follow the [container quick start](../README.md#quick-start). Development uses

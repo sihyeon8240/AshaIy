@@ -15,6 +15,24 @@ from scripts.ci import github_artifacts as artifacts
 
 
 class ArtifactDownloadTests(unittest.TestCase):
+    def test_collection_finds_later_items_and_rejects_repeated_pages(self):
+        first = [{"id": index} for index in range(100)]
+        second = [{"id": 100, "name": "target"}]
+        with patch.object(artifacts, "api", side_effect=[{"artifacts": first}, {"artifacts": second}]) as fetch:
+            result = artifacts.collection("repos/example/actions/runs/1/artifacts", "artifacts")
+            self.assertEqual(result[-1]["name"], "target")
+            self.assertIn("page=2", fetch.call_args.args[0])
+        with (
+            patch.object(artifacts, "api", return_value={"artifacts": first}),
+            self.assertRaisesRegex(ValueError, "duplicate"),
+        ):
+            artifacts.collection("runs/1/artifacts", "artifacts")
+        with (
+            patch.object(artifacts, "api", return_value={"artifacts": first}),
+            self.assertRaisesRegex(ValueError, "page budget"),
+        ):
+            artifacts.collection("runs/1/artifacts", "artifacts", max_pages=1)
+
     def test_retry_discards_partial_response_and_verifies_complete_digest(self):
         data = b"complete archive"
         artifact = {

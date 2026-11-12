@@ -119,7 +119,8 @@ class LeanAuditTests(unittest.TestCase):
             probe = root / "Audit.lean"
             probe.write_text((ROOT / "scripts/lean/lean-proof-audit.lean").read_text())
             return subprocess.run(
-                [self.lean, "--run", str(probe), *([case.proof] if case.proof else [])],
+                [self.lean, "--run", str(probe)],
+                input=case.proof + "\n" if case.proof else "",
                 cwd=root,
                 env=environment,
                 capture_output=True,

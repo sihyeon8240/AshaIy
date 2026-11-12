@@ -20,6 +20,26 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class ConfigurationTests(unittest.TestCase):
+    def test_ruby_pin_updates_generate_manifest_before_requiring_lock_refresh(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.make_repository(root)
+            toolchain = root / "config/toolchain.env"
+            version = CONFIG.load_toolchain(toolchain)["JEKYLL_VERSION"]
+            toolchain.write_text(toolchain.read_text().replace(f"JEKYLL_VERSION={version}", "JEKYLL_VERSION=99.0.0"))
+            lock = root / "config/Gemfile.lock"
+            original = lock.read_bytes()
+            SYNC.synchronize(root=root)
+            self.assertIn('gem "jekyll", "= 99.0.0"', (root / ".devcontainer/generated/Gemfile").read_text())
+            self.assertEqual(lock.read_bytes(), original)
+            with self.assertRaisesRegex(ValueError, "refresh the Ruby lock"):
+                SYNC.synchronize(root=root, check=True)
+            lock.write_text(lock.read_text().replace(f"jekyll (= {version})", "jekyll (= 99.0.0)"))
+            with self.assertRaisesRegex(ValueError, "refresh the Ruby lock"):
+                SYNC.synchronize(root=root, check=True)
+            lock.write_text(lock.read_text().replace(f"jekyll ({version})", "jekyll (99.0.0)"))
+            self.assertEqual(SYNC.synchronize(root=root, check=True), [])
+
     def test_cache_mount_synchronization_preserves_other_mounts_and_rotates_lean(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -67,6 +87,7 @@ class ConfigurationTests(unittest.TestCase):
         copy_validation_configuration(root)
         (root / ".vscode").mkdir(exist_ok=True)
         shutil.copy(ROOT / ".vscode/settings.json", root / ".vscode/settings.json")
+        shutil.copy(ROOT / "config/schema-associations.json", root / "config/schema-associations.json")
         for relative in (
             "scripts",
             "config/schemas",
@@ -85,6 +106,8 @@ class ConfigurationTests(unittest.TestCase):
             "config/ignore-patterns.yml",
             "config/image-build.json",
             "config/authoring.json",
+            "config/python-dependencies.txt",
+            "config/Gemfile.lock",
             "config/validation-patterns.json",
             "config/schemas/books.schema.json",
             "config/schemas/chapters.schema.json",

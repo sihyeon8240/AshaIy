@@ -10,6 +10,7 @@ image_name="${image%@*}"
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
   {
     echo "image=${image}"
+    echo "image_digest=${image##*@sha256:}"
     echo "image_name=${image_name}"
     echo "python=${PYTHON_VERSION}"
     echo "texlive_year=${TEXLIVE_YEAR}"

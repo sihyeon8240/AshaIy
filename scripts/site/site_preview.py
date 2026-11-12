@@ -19,6 +19,7 @@ if __package__ in (None, ""):
 
 from scripts.books.book_manifest import load_manifest
 from scripts.site.check_site_output import check as check_output
+from scripts.site.render_site import render as render_site
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -70,19 +71,7 @@ def build() -> Path:
 
 
 def render(jekyll: str, destination: Path, pdfs: dict[str, Path]) -> None:
-    subprocess.run(
-        [
-            jekyll,
-            "build",
-            "--source",
-            "site",
-            "--destination",
-            str(destination),
-            "--disable-disk-cache",
-        ],
-        cwd=ROOT,
-        check=True,
-    )
+    render_site(jekyll, ROOT / "site", destination, cwd=ROOT)
     pdf_directory = destination / "pdf"
     pdf_directory.mkdir(parents=True, exist_ok=True)
     for slug, source in pdfs.items():

@@ -87,8 +87,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates g++ make ruby ruby-dev \
   && rm -rf /var/lib/apt/lists/*
 COPY --chmod=0644 .devcontainer/generated/ruby.env /tmp/ruby.env
+COPY --chmod=0644 .devcontainer/generated/Gemfile /tmp/Gemfile
+COPY --chmod=0644 config/Gemfile.lock /tmp/Gemfile.lock
 RUN set -a && . /tmp/ruby.env && set +a \
-  && gem install --no-document "bundler:${BUNDLER_VERSION}" "jekyll:${JEKYLL_VERSION}"
+  && gem install --no-document "bundler:${BUNDLER_VERSION}" \
+  && cd /tmp && BUNDLE_FROZEN=true bundle install
 
 FROM debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2 AS lean-toolchain
 ENV ELAN_HOME=/usr/local/elan
@@ -128,6 +131,8 @@ COPY --chmod=0755 scripts/toolchain/check_toolchain.sh /workspace/scripts/toolch
 RUN set -a && . /workspace/config/toolchain.env && set +a \
   && lualatex --version | head -n1 | grep -F "TeX Live ${TEXLIVE_YEAR}" \
   && ./scripts/toolchain/check_toolchain.sh pdf
+COPY --chmod=0644 scripts/toolchain/inventory.py /usr/local/bin/ashaiy-inventory.py
+RUN python3 /usr/local/bin/ashaiy-inventory.py --output /usr/local/share/ashaiy/inventory.json
 ENTRYPOINT []
 CMD ["/bin/bash"]
 
@@ -145,17 +150,11 @@ COPY --chmod=0644 config/toolchain.env /workspace/config/toolchain.env
 COPY --from=ruby-tools /var/lib/gems /var/lib/gems
 COPY --from=ruby-tools /usr/local/bin/ /usr/local/bin/
 COPY --chmod=0644 .devcontainer/generated/python.env /tmp/python.env
+COPY --chmod=0644 .github/requirements-ci.txt /tmp/requirements-ci.txt
 RUN set -a && . /tmp/python.env && set +a \
   && python3 -m pip install \
     --disable-pip-version-check --no-cache-dir --only-binary=:all: \
-    "PyYAML==${PYYAML_VERSION}" \
-    "playwright==${PLAYWRIGHT_VERSION}" \
-    "hypothesis==${HYPOTHESIS_VERSION}" \
-    "coverage==${COVERAGE_VERSION}" \
-    "ty==${TY_VERSION}" \
-    "yamllint==${YAMLLINT_VERSION}" \
-    "djlint==${DJLINT_VERSION}" \
-    "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}"
+    --requirement /tmp/requirements-ci.txt
 COPY --from=tool-downloader --chmod=0755 /out/bin/ruff /out/bin/shfmt \
     /out/bin/latexindent /out/bin/shellcheck /out/bin/gh /usr/local/bin/
 ARG BASEDEVCONTAINER_SHELL_COMMIT=08ecc2ae6dcda53eb59a7edd8246682f3e0a4238
@@ -184,4 +183,5 @@ RUN curl -fsSL -o /root/.zshrc \
       /root/.oh-my-zsh/custom/themes/powerlevel10k/.git \
   && usermod --shell /bin/zsh root
 RUN ./scripts/toolchain/check_toolchain.sh
+RUN python3 /usr/local/bin/ashaiy-inventory.py --output /usr/local/share/ashaiy/inventory.json
 CMD ["/bin/zsh"]

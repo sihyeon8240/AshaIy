@@ -130,8 +130,10 @@ PDF rebuilds, so the workflow and its source scripts remain compatible.
 
 Pages uses the immutable `snapshot_sha` and its recorded source. Deployment jobs
 queue; guards preserved before loading that source check for supersession before
-rendering and immediately before deployment. The artifact checker validates
-rendered links and PDF bytes before upload. Remote/ref failures stop deployment:
+rendering and immediately before deployment. Previews, browser fixtures, and deployment share the production Jekyll renderer.
+Pages uses the source revision's pinned development image and rejects a Jekyll
+version mismatch; its renderer is preserved before checking out older snapshots.
+The artifact checker validates rendered links and PDF bytes before upload. Remote/ref failures stop deployment:
 restore access or repair the ref, then retry. Main and the snapshot ref are not
 locked as one transaction. Versioned release packages are independent.
 
@@ -171,7 +173,8 @@ saving. Use pruning locally only without concurrent formatter runs.
 PDF reuse, image candidates, and release retries share bounded, file-based
 downloads in [`github_artifacts.py`](../scripts/ci/github_artifacts.py): progress,
 disk-space, size, timeout/retry, provenance, and GitHub digest checks. Domain
-modules validate their own archive contents.
+modules validate their own archive contents. Shared collection queries follow
+pages within time and page budgets, rejecting duplicate identities.
 
 After a merge, each affected PDF job first looks for a successful `build.yml`
 PR run, or an exact-pin dispatch, for the merged PR's head in this repository.
@@ -430,3 +433,49 @@ For package updates, change `config/toolchain.env` first and regenerate
 `.github/requirements-ci.txt` with `ashaiy config generate`; update tool binary checksums
 for both architectures when their versions change. Validate dependency updates
 with the complete suites required by the contributing guide.
+
+## Workflow cost and dependency reports
+
+Run the reproducible local harness in [build design](build-design.md#reproducible-measurements).
+Collect complete hosted runs with an authenticated read-only GitHub CLI:
+
+```sh
+python3 scripts/ci/workflow_metrics.py --repository sihyeon8240/AshaIy --run-id <id> <id>
+python3 scripts/toolchain/dependencies.py
+```
+
+The first report includes all job pages, observed runner/wall seconds, incomplete
+jobs, stored artifact bytes and repository cache usage. Wall time starts at the
+selected attempt, excluding gaps before reruns. Queue time is available only for
+jobs with creation timestamps; retained artifacts can span multiple attempts.
+Group runs by change category and collect repeated samples before changing
+grouping or retention.
+The second reports upstream releases without editing pins; unavailable lookups
+remain explicit. The monthly **Report toolchain updates** workflow retains this
+report as an artifact and never creates commits, PRs or publication changes.
+Python/base-image and TeX archive changes remain deliberate coordinated updates.
+
+`config/toolchain.env` owns top-level Python and Ruby tool pins.
+`config/python-dependencies.txt` owns reviewed Python transitive versions;
+`ashaiy config generate` projects both into `.github/requirements-ci.txt`, the
+installation/cache input for CI and the development image. To refresh:
+
+```sh
+python3 scripts/toolchain/dependencies.py --refresh-python
+ashaiy config generate
+bundle lock --gemfile .devcontainer/generated/Gemfile --lockfile config/Gemfile.lock
+```
+
+Review the closure and Ruby checksums, keep both Linux architectures in the Ruby
+lock, and run the shared-dependency validation. Cross-platform installation is
+validated by native image jobs; a local resolution is not a substitute.
+Builds use the frozen Ruby lock and binary-only Python packages. The image pin
+continues to change only after image validation/publication.
+
+Each PDF/dev image records `/usr/local/share/ashaiy/inventory.json` with Debian,
+Python, Ruby, TeX and available Lean versions. Python RECORD digests identify
+installed wheel manifests; inventories complement the image digest and do not
+promise byte-identical future apt rebuilds. Image CI preserves per-target and
+per-architecture inventories for comparison. Large raw records remain artifacts,
+not committed output. apt snapshot pinning and alternate snapshot storage remain
+conditional on measured rebuild/security/retention requirements.

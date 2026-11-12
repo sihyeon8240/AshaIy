@@ -7,6 +7,7 @@ import argparse
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,7 @@ if __package__ in (None, ""):
 from scripts.books.book_manifest import load_manifest
 from scripts.books.contents_manifest import load_book_contents
 from scripts.latex.latex_scan import command_arguments, theorem_label_groups
+from scripts.lean.displayed_code import validate_displayed_code
 from scripts.lean.lean_source import escape_hatch_lines
 from scripts.lean.lean_source import imports as module_imports
 from scripts.lean.proof_index import load_proof_index
@@ -193,16 +195,18 @@ def validate_index(root: Path = ROOT) -> tuple[list[str], list[dict[str, Any]]]:
 def check_declarations(root: Path, proofs: list[dict[str, Any]]) -> list[str]:
     output = root / "build" / "lean-links"
     output.mkdir(parents=True, exist_ok=True)
-    source = output / "ProofLinks.lean"
     template = Path(__file__).with_name("lean-proof-audit.lean")
-    source.write_text(template.read_text(encoding="utf-8"), encoding="utf-8")
-    result = subprocess.run(
-        ["lake", "env", "lean", "--run", str(source), *(entry["declaration"] for entry in proofs)],
-        cwd=root / "lean",
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    with tempfile.TemporaryDirectory(prefix="audit-", dir=output) as temporary:
+        source = Path(temporary) / "ProofLinks.lean"
+        source.write_text(template.read_text(encoding="utf-8"), encoding="utf-8")
+        result = subprocess.run(
+            ["lake", "env", "lean", "--run", str(source)],
+            input="".join(entry["declaration"] + "\n" for entry in proofs),
+            cwd=root / "lean",
+            text=True,
+            capture_output=True,
+            check=False,
+        )
     if result.returncode == 0:
         return []
     diagnostic = "\n".join(part for part in (result.stdout, result.stderr) if part).strip()
@@ -336,6 +340,7 @@ def main() -> int:
 def check_proof_links(root: Path = ROOT, *, verify_declarations: bool = False) -> int:
     errors, proofs = validate_index(root)
     errors.extend(validate_import_boundaries(root))
+    errors.extend(validate_displayed_code(root))
     if verify_declarations and not errors:
         errors.extend(check_declarations(root, proofs))
     if errors:

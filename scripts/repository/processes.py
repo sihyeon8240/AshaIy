@@ -7,10 +7,12 @@ import signal
 import subprocess
 import threading
 import time
-from collections.abc import Callable, Iterable
+from collections import deque
+from collections.abc import Callable, Generator, Iterable
 from concurrent.futures import ThreadPoolExecutor
+from itertools import islice
 from pathlib import Path
-from typing import TypeVar
+from typing import BinaryIO, TypeVar
 
 Item = TypeVar("Item")
 Result = TypeVar("Result")
@@ -35,6 +37,7 @@ class ProcessRunner:
         cwd: Path | None = None,
         env: dict[str, str] | None = None,
         stderr: int | None = subprocess.STDOUT,
+        output: BinaryIO | None = None,
     ) -> subprocess.CompletedProcess[bytes]:
         with self.lock:
             if self.cancelled:
@@ -43,14 +46,14 @@ class ProcessRunner:
                 command,
                 cwd=cwd,
                 env=env,
-                stdout=subprocess.PIPE,
+                stdout=subprocess.PIPE if output is None else output,
                 stderr=stderr,
                 start_new_session=True,
             )
             self.processes.add(process)
         try:
-            output, errors = process.communicate()
-            return subprocess.CompletedProcess(command, process.returncode, output, errors)
+            captured, errors = process.communicate()
+            return subprocess.CompletedProcess(command, process.returncode, captured or b"", errors)
         finally:
             with self.lock:
                 self.processes.discard(process)
@@ -84,9 +87,9 @@ class ProcessRunner:
             process.wait()
 
 
-def run_parallel(
+def iter_parallel(
     items: Iterable[Item], operation: Callable[[Item, ProcessRunner], Result], *, jobs: int | None = None
-) -> list[Result]:
+) -> Generator[Result, None, None]:
     runner = ProcessRunner()
 
     def interrupted(signum, frame) -> None:
@@ -95,11 +98,17 @@ def run_parallel(
     signals = (signal.SIGHUP, signal.SIGINT, signal.SIGTERM)
     previous = {sig: signal.signal(sig, interrupted) for sig in signals}
     try:
-        with ThreadPoolExecutor(max_workers=worker_count(jobs)) as executor:
-            futures = []
+        count = worker_count(jobs)
+        with ThreadPoolExecutor(max_workers=count) as executor:
+            futures = deque()
+            pending = iter(items)
             try:
-                futures = [executor.submit(operation, item, runner) for item in items]
-                return [future.result() for future in futures]
+                for item in islice(pending, count * 2):
+                    futures.append(executor.submit(operation, item, runner))
+                while futures:
+                    yield futures.popleft().result()
+                    for item in islice(pending, 1):
+                        futures.append(executor.submit(operation, item, runner))
             except BaseException:
                 for sig in signals:
                     signal.signal(sig, signal.SIG_IGN)
@@ -110,3 +119,9 @@ def run_parallel(
     finally:
         for sig, handler in previous.items():
             signal.signal(sig, handler)
+
+
+def run_parallel(
+    items: Iterable[Item], operation: Callable[[Item, ProcessRunner], Result], *, jobs: int | None = None
+) -> list[Result]:
+    return list(iter_parallel(items, operation, jobs=jobs))

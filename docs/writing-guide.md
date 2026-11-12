@@ -59,6 +59,9 @@ Use meaningful ASCII slugs: preserve mathematical identifiers
 and exponents (for example, `functions-of-class-l2` and `the-number-e`) instead
 of deriving a lossy slug from rendered title text.
 
+When slug initials collide with an existing label prefix, pass
+`--label-prefix <prefix>` to `ashaiy book new`. Existing book labels stay stable.
+
 For `config/books.yml` edits, follow the
 [registry synchronization steps](site-metadata.md#registry-fields), including
 configuration and assembly generation. Optional frontmatter overrides follow

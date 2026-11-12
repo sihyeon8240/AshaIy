@@ -152,7 +152,9 @@ def restore(arch: str, image: str) -> bool:
         for run in runs:
             if not eligible_run(run, repository, head):
                 continue
-            artifacts = api(f"repos/{repository}/actions/runs/{run['id']}/artifacts?per_page=100")["artifacts"]
+            artifacts = github_artifacts.collection(
+                f"repos/{repository}/actions/runs/{run['id']}/artifacts", "artifacts", fetch=api
+            )
             # Both architectures must survive; never promote half of a candidate.
             candidates = {
                 artifact["name"]: artifact
