@@ -105,6 +105,7 @@ config/image-build.json    -> image input detection, tag hashing, build matrix, 
 config/texlive.profile     -> minimal TeX Live installation policy
 config/texlive-packages.txt -> TeX runtime packages and resolved dependencies
 config/authoring.json      -> CLI/editor shell formatting and unittest discovery
+config/schema-associations.json -> CLI schema targets and generated editor associations
 config/validation-patterns.json -> Python validation and synchronized shell/schema expressions
 config/books.yml           -> VS Code task and GitHub issue-form book choices
 .vscode/extensions.json   -> devcontainer extension installation
@@ -270,8 +271,9 @@ pattern, Lean dependency boundary, build scripts, automation, and CI are reviewe
 interfaces. Keep consumers, tests, and documentation aligned with their current
 contracts. Preserve independent book ownership and review interface changes explicitly.
 
-Repository JSON rejects duplicate keys and nonstandard numeric constants. Editor JSON
-schema associations and YAML schema associations also drive CLI validation.
+Repository JSON rejects duplicate keys and nonstandard numeric constants.
+`config/schema-associations.json` owns CLI schema targets and the synchronized
+VS Code JSON/YAML associations. Domain parsers retain full semantic validation.
 
 Repository YAML requires unique mapping keys and integer schema versions.
 Book, contents, and proof metadata field names must be strings. Anchors

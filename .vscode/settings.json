@@ -155,6 +155,10 @@
     ],
     "./config/schemas/latexindent.schema.json": [
       "/config/latexindent.yaml"
+    ],
+    "./config/schemas/proofs.schema.json": [
+      "/books/*/chapters/*/proofs.yml",
+      "/books/*/appendices/*/proofs.yml"
     ]
   },
   "ruff.configuration": "${workspaceFolder}/config/pyproject.toml",

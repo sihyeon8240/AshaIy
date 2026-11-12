@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Textbook proof index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["proofs"],
+  "properties": {
+    "proofs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "declaration"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "declaration": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

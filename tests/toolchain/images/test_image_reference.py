@@ -67,6 +67,7 @@ class ConfigurationTests(unittest.TestCase):
         copy_validation_configuration(root)
         (root / ".vscode").mkdir(exist_ok=True)
         shutil.copy(ROOT / ".vscode/settings.json", root / ".vscode/settings.json")
+        shutil.copy(ROOT / "config/schema-associations.json", root / "config/schema-associations.json")
         for relative in (
             "scripts",
             "config/schemas",

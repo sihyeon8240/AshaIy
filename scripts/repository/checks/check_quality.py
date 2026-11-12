@@ -12,6 +12,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from scripts.repository.config.json_config import read_json
+from scripts.repository.config.schema_associations import load_associations
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -23,10 +24,8 @@ def run(root: Path, *arguments: str) -> int:
 
 
 def check_schemas(root: Path, files: set[Path]) -> int:
-    # Reuse the editor's schema associations so CLI coverage cannot drift.
-    settings = read_json(root / ".vscode/settings.json")
-    associations = list(settings["yaml.schemas"].items())
-    associations.extend((item["url"], item["fileMatch"]) for item in settings.get("json.schemas", []))
+    data = load_associations(root)
+    associations = [*data["yaml"].items(), *data["json"].items()]
     for schema, patterns in associations:
         targets = sorted(
             {

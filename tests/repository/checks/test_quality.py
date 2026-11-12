@@ -20,13 +20,29 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class SchemaQualityTests(unittest.TestCase):
+    def test_proof_schema_rejects_unknown_fields_without_editor_settings(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            schema = Path("config/schemas/proofs.schema.json")
+            copy_file(ROOT / schema, root / schema)
+            (root / "config/schema-associations.json").write_text(
+                json.dumps({"schema_version": 1, "yaml": {str(schema): ["/books/*/chapters/*/proofs.yml"]}, "json": {}})
+            )
+            shard = Path("books/sample/chapters/topic/proofs.yml")
+            (root / shard).parent.mkdir(parents=True)
+            (root / shard).write_text("proofs: [{id: 's:thm:x', declaration: Sample.Topic.x, book: sample}]\n")
+            self.assertNotEqual(check_schemas(root, {schema, shard}), 0)
+            (root / shard).write_text("proofs: [{id: 's:thm:x', declaration: Sample.Topic.x}]\n")
+            self.assertEqual(check_schemas(root, {schema, shard}), 0)
+
     def test_type_gate_checks_both_source_trees_and_rejects_cross_module_errors(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             for directory in ("scripts", "tests", "config", ".vscode"):
                 (root / directory).mkdir()
             copy_file(ROOT / "config/pyproject.toml", root / "config/pyproject.toml")
-            (root / ".vscode/settings.json").write_text('{"yaml.schemas": {}}\n')
+            (root / "config").mkdir(exist_ok=True)
+            (root / "config/schema-associations.json").write_text('{"schema_version": 1, "yaml": {}, "json": {}}\n')
             (root / "scripts/__init__.py").touch()
             (root / "tests/__init__.py").touch()
             source = root / "scripts/example.py"
@@ -50,20 +66,16 @@ class SchemaQualityTests(unittest.TestCase):
     def test_json_editor_associations_also_validate_cli_configuration(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            (root / ".vscode").mkdir()
+            (root / "config").mkdir(exist_ok=True)
             (root / "config/schemas").mkdir(parents=True)
             schema = Path("config/schemas/authoring.schema.json")
             copy_file(ROOT / schema, root / schema)
-            (root / ".vscode/settings.json").write_text(
+            (root / "config/schema-associations.json").write_text(
                 json.dumps(
                     {
-                        "yaml.schemas": {},
-                        "json.schemas": [
-                            {
-                                "url": str(schema),
-                                "fileMatch": ["/config/authoring.json"],
-                            }
-                        ],
+                        "schema_version": 1,
+                        "yaml": {},
+                        "json": {str(schema): ["/config/authoring.json"]},
                     }
                 )
             )
@@ -98,9 +110,15 @@ class SchemaQualityTests(unittest.TestCase):
     ):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / ".vscode").mkdir()
-            (root / ".vscode/settings.json").write_text(
-                json.dumps({"yaml.schemas": {"config/schemas/modules.schema.json": ["/lean/Textbooks/**/modules.yml"]}})
+            (root / "config").mkdir(exist_ok=True)
+            (root / "config/schema-associations.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "yaml": {"config/schemas/modules.schema.json": ["/lean/Textbooks/**/modules.yml"]},
+                        "json": {},
+                    }
+                )
             )
             schema = Path("config/schemas/modules.schema.json")
             (root / schema).parent.mkdir(parents=True)
@@ -116,8 +134,8 @@ class SchemaQualityTests(unittest.TestCase):
     def test_invalid_schema_is_rejected_without_matching_manifests(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / ".vscode").mkdir()
-            (root / ".vscode/settings.json").write_text('{"yaml.schemas": {}}\n')
+            (root / "config").mkdir(exist_ok=True)
+            (root / "config/schema-associations.json").write_text('{"schema_version": 1, "yaml": {}, "json": {}}\n')
             schema = Path("config/schemas/invalid.schema.json")
             (root / schema).parent.mkdir(parents=True)
             (root / schema).write_text('{"type": "invalid"}\n')

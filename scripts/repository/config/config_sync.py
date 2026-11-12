@@ -25,6 +25,7 @@ from scripts.repository.config.repository_config import (
     load_image_build,
     load_toolchain,
 )
+from scripts.repository.config.schema_associations import editor_associations
 from scripts.repository.config.validation_patterns import validation_pattern
 from scripts.repository.config.validation_sync import rendered_validation_consumers
 from scripts.repository.file_updates import changed_files, source_updates, write_updates
@@ -183,6 +184,7 @@ def rendered_consumers(root: Path = ROOT, *, image: str | None = None) -> dict[P
     ignore_updates = rendered_ignore_consumers(root)
     settings_path = root / ".vscode/settings.json"
     settings = parse_json(ignore_updates[settings_path])
+    settings.update(editor_associations(root))
     settings["shfmt.executableArgs"] = authoring["shell_args"]
     settings["[shellscript]"]["editor.tabSize"] = int(authoring["shell_args"][3])
     settings["python.testing.unittestArgs"] = [
