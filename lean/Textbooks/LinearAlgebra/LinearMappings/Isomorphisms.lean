@@ -1,5 +1,9 @@
-import Textbooks.LinearAlgebra.LinearMappings.Composition
-import Textbooks.LinearAlgebra.LinearMappings.RankNullity
+module
+
+public import Textbooks.LinearAlgebra.LinearMappings.Composition
+public import Textbooks.LinearAlgebra.LinearMappings.RankNullity
+
+public section
 
 namespace LinearAlgebra.LinearMappings
 

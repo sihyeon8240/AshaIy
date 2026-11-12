@@ -1,6 +1,13 @@
-import Textbooks.MathematicalAnalysis.SequencesAndSeries.MonotoneSequences
-import Textbooks.MathematicalAnalysis.SequencesAndSeries.Subsequences
-import Mathlib.Topology.Instances.EReal.Lemmas
+module
+
+public import Textbooks.MathematicalAnalysis.SequencesAndSeries.MonotoneSequences
+public import Textbooks.MathematicalAnalysis.SequencesAndSeries.Subsequences
+public import Mathlib.Topology.Instances.EReal.Lemmas
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace MathematicalAnalysis.SequencesAndSeries
 

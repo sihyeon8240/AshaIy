@@ -1,7 +1,11 @@
-import Textbooks.LinearAlgebra.LinearMappings.RankNullity
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.ScalarProducts
-import Mathlib.LinearAlgebra.Dual.Basis
-import Mathlib.LinearAlgebra.Projection
+module
+
+public import Textbooks.LinearAlgebra.LinearMappings.RankNullity
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.ScalarProducts
+public import Mathlib.LinearAlgebra.Dual.Basis
+public import Mathlib.LinearAlgebra.Projection
+
+public section
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 
@@ -53,6 +57,7 @@ theorem scalarProduct_bijective [Module.Finite K V] (B : LinearMap.BilinForm K V
   exact sub_eq_zero.mpr (congrArg (fun φ : Module.Dual K V => φ w) hxy)
 
 /-- Definition: the scalar-product representation isomorphism sends `v` to `B v`. -/
+@[expose]
 noncomputable def scalarProductEquiv [Module.Finite K V] (B : LinearMap.BilinForm K V)
     (hB : B.SeparatingLeft) : V ≃ₗ[K] Module.Dual K V :=
   LinearEquiv.ofBijective B (scalarProduct_bijective B hB)

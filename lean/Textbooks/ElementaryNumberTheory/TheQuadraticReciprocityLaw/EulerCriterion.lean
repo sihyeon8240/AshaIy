@@ -1,6 +1,13 @@
-import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.Applications
-import Textbooks.ElementaryNumberTheory.FermatsTheorem.QuadraticCongruences
-import Mathlib.NumberTheory.LegendreSymbol.Basic
+module
+
+public import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.Applications
+public import Textbooks.ElementaryNumberTheory.FermatsTheorem.QuadraticCongruences
+public import Mathlib.NumberTheory.LegendreSymbol.Basic
+
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.LinearCombination
+
+public section
 
 namespace ElementaryNumberTheory.TheQuadraticReciprocityLaw
 

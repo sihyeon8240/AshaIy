@@ -1,7 +1,14 @@
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.IntegralValues
-import Textbooks.MathematicalAnalysis.Differentiation.MeanValue
-import Textbooks.MathematicalAnalysis.Differentiation.DerivativeAlgebra
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.ContinuousIntegrability
+module
+
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.IntegralValues
+public import Textbooks.MathematicalAnalysis.Differentiation.MeanValue
+public import Textbooks.MathematicalAnalysis.Differentiation.DerivativeAlgebra
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.ContinuousIntegrability
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace MathematicalAnalysis.TheRiemannStieltjesIntegral
 

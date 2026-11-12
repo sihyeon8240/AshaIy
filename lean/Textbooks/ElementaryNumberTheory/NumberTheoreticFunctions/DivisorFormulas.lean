@@ -1,5 +1,12 @@
-import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.PrimeExponents
-import Mathlib.Data.Finsupp.Interval
+module
+
+public import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.PrimeExponents
+public import Mathlib.Data.Finsupp.Interval
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.NumberTheoreticFunctions
 

@@ -1,5 +1,9 @@
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.GramSchmidt
-import Mathlib.Analysis.InnerProductSpace.Symmetric
+module
+
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.GramSchmidt
+public import Mathlib.Analysis.InnerProductSpace.Symmetric
+
+public section
 
 namespace LinearAlgebra.SymmetricHermitianAndUnitaryOperators
 

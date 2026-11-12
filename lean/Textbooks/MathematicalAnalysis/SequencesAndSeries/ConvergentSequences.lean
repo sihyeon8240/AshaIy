@@ -1,6 +1,13 @@
-import Textbooks.MathematicalAnalysis.BasicTopology.MetricSpaces
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
+module
+
+public import Textbooks.MathematicalAnalysis.BasicTopology.MetricSpaces
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+
 import Mathlib.Tactic.Positivity
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace MathematicalAnalysis.SequencesAndSeries
 

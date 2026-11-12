@@ -1,6 +1,13 @@
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.Subintervals
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.ContinuousIntegrability
-import Textbooks.MathematicalAnalysis.Differentiation.DerivativeLimits
+module
+
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.Subintervals
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.ContinuousIntegrability
+public import Textbooks.MathematicalAnalysis.Differentiation.DerivativeLimits
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace MathematicalAnalysis.TheRiemannStieltjesIntegral
 

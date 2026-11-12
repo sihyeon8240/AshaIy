@@ -1,6 +1,10 @@
-import Textbooks.LinearAlgebra.Determinants.Characterization
-import Textbooks.LinearAlgebra.Determinants.LaplaceExpansion
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+module
+
+public import Textbooks.LinearAlgebra.Determinants.Characterization
+public import Textbooks.LinearAlgebra.Determinants.LaplaceExpansion
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+
+public section
 
 namespace LinearAlgebra.Determinants
 

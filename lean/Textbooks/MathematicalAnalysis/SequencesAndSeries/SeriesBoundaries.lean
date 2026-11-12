@@ -1,5 +1,13 @@
-import Textbooks.MathematicalAnalysis.SequencesAndSeries.RootRatioTests
-import Textbooks.MathematicalAnalysis.SequencesAndSeries.CondensationTest
+module
+
+public import Textbooks.MathematicalAnalysis.SequencesAndSeries.RootRatioTests
+public import Textbooks.MathematicalAnalysis.SequencesAndSeries.CondensationTest
+
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.NormNum
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace MathematicalAnalysis.SequencesAndSeries
 

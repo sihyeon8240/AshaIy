@@ -1,4 +1,11 @@
-import Textbooks.MathematicalAnalysis.SequencesAndSeries.RootRatioTests
+module
+
+public import Textbooks.MathematicalAnalysis.SequencesAndSeries.RootRatioTests
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace MathematicalAnalysis.SequencesAndSeries
 

@@ -1,5 +1,9 @@
-import Mathlib.Analysis.Convex.Basic
-import Mathlib.Basic.Real.Basic
+module
+
+public import Mathlib.Analysis.Convex.Basic
+public import Mathlib.Basic.Real.Basic
+
+public section
 
 namespace LinearAlgebra.LinearMappings
 

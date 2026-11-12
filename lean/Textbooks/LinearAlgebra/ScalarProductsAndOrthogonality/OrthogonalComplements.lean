@@ -1,6 +1,10 @@
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.GramSchmidt
-import Mathlib.LinearAlgebra.Basis.Prod
-import Mathlib.LinearAlgebra.Projection
+module
+
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.GramSchmidt
+public import Mathlib.LinearAlgebra.Basis.Prod
+public import Mathlib.LinearAlgebra.Projection
+
+public section
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 

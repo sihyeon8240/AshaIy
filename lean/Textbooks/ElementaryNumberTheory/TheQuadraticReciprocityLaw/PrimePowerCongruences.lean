@@ -1,4 +1,12 @@
-import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.LegendreSymbol
+module
+
+public import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.LegendreSymbol
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.NormNum
+
+public section
 
 namespace ElementaryNumberTheory.TheQuadraticReciprocityLaw
 

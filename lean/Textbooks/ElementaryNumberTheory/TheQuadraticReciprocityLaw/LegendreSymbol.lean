@@ -1,4 +1,10 @@
-import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.EulerCriterion
+module
+
+public import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.EulerCriterion
+
+import Mathlib.Tactic.NormNum
+
+public section
 
 namespace ElementaryNumberTheory.TheQuadraticReciprocityLaw
 

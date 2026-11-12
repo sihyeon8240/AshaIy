@@ -1,7 +1,16 @@
-import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.Parametrization
-import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.LegendreSymbol
+module
+
+public import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.Parametrization
+public import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.LegendreSymbol
+
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.LinearCombination
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.NormNum
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace ElementaryNumberTheory.CertainNonlinearDiophantineEquations
 

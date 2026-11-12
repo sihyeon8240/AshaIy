@@ -1,5 +1,12 @@
-import Textbooks.LinearAlgebra.SymmetricHermitianAndUnitaryOperators.Adjoint
-import Textbooks.LinearAlgebra.LinearMappings.RankNullity
+module
+
+public import Textbooks.LinearAlgebra.SymmetricHermitianAndUnitaryOperators.Adjoint
+public import Textbooks.LinearAlgebra.LinearMappings.RankNullity
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace LinearAlgebra.SymmetricHermitianAndUnitaryOperators
 

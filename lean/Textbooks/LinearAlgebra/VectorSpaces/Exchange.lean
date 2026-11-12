@@ -8,7 +8,11 @@ Mathlib/LinearAlgebra/LinearIndependent/Lemmas.lean.
 https://www.apache.org/licenses/LICENSE-2.0
 -/
 
-import Textbooks.LinearAlgebra.VectorSpaces.Bases
+module
+
+public import Textbooks.LinearAlgebra.VectorSpaces.Bases
+
+public section
 
 namespace LinearAlgebra.VectorSpaces
 

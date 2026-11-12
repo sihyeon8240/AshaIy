@@ -1,4 +1,12 @@
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.HermitianProducts
+module
+
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.HermitianProducts
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.NormNum
+
+public section
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 
@@ -10,6 +18,7 @@ variable {𝕜 V : Type*} [RCLike 𝕜] [AddCommGroup V] [Module 𝕜 V]
 variable [C : InnerProductSpace.Core 𝕜 V]
 
 /-- Definition: length is the square root of the real diagonal, before any norm exists. -/
+@[expose]
 def formLength (v : V) : ℝ := Real.sqrt (re (C.inner v v))
 
 local instance : Inner 𝕜 V := C.toInner
@@ -85,7 +94,7 @@ theorem formLength_add_le (v w : V) :
   nlinarith
 
 /-- Definition: the standard normed group built using the preceding algebraic triangle proof. -/
-@[instance_reducible]
+@[instance_reducible, expose]
 def formNormedAddCommGroup : NormedAddCommGroup V :=
   AddGroupNorm.toNormedAddCommGroup
     { toFun := formLength (C := C)

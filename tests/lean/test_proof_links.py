@@ -302,7 +302,7 @@ class ProofLinkTests(unittest.TestCase):
         lean = self.root / "lean"
         module = lean / "Textbooks/Sample"
         module.mkdir(parents=True)
-        (lean / "Textbooks.lean").write_text("import Textbooks.Sample.All\n")
+        (lean / "Textbooks.lean").write_text("module\n\npublic import Textbooks.Sample.All\n")
         entry = module / "All.lean"
         for path, valid in (
             ("Start/WellOrdering.lean", True),
@@ -335,7 +335,7 @@ class ProofLinkTests(unittest.TestCase):
         lean = self.root / "lean"
         module = lean / "Textbooks/Sample"
         module.mkdir(parents=True)
-        (lean / "Textbooks.lean").write_text("import Textbooks.Sample.All\n", encoding="utf-8")
+        (lean / "Textbooks.lean").write_text("module\n\npublic import Textbooks.Sample.All\n", encoding="utf-8")
         (module / "All.lean").write_text("", encoding="utf-8")
         (module / "Chapter01").mkdir()
         (module / "Chapter01/Orphan.lean").write_text("", encoding="utf-8")
@@ -382,6 +382,9 @@ class ProofLinkTests(unittest.TestCase):
             (
                 "import «Textbooks».LinearAlgebra.All\n",
                 "public import Textbooks.«LinearAlgebra».All\n",
+                "module\nimport all Textbooks.LinearAlgebra.All\n",
+                "module\nmeta import Textbooks.LinearAlgebra.All\n",
+                "module\nmeta import all Textbooks.LinearAlgebra.All\n",
             )
         )
         for text in imports:

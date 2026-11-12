@@ -1,7 +1,11 @@
-import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.PrimitiveRoots
-import Mathlib.Algebra.Polynomial.Div
-import Mathlib.Algebra.Polynomial.Degree.Operations
-import Mathlib.Algebra.Field.ZMod
+module
+
+public import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.PrimitiveRoots
+public import Mathlib.Algebra.Polynomial.Div
+public import Mathlib.Algebra.Polynomial.Degree.Operations
+public import Mathlib.Algebra.Field.ZMod
+
+public section
 
 namespace ElementaryNumberTheory.PrimitiveRootsAndIndices
 

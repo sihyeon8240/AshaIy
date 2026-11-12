@@ -1,5 +1,13 @@
-import Textbooks.MathematicalAnalysis.Differentiation.MeanValue
-import Mathlib.Topology.Order.LeftRightNhds
+module
+
+public import Textbooks.MathematicalAnalysis.Differentiation.MeanValue
+public import Mathlib.Topology.Order.LeftRightNhds
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace MathematicalAnalysis.Differentiation
 

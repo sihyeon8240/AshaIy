@@ -1,5 +1,12 @@
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.QuadraticForms
-import Textbooks.LinearAlgebra.LinearMappings.KernelImage
+module
+
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.QuadraticForms
+public import Textbooks.LinearAlgebra.LinearMappings.KernelImage
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.NormNum
+
+public section
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 

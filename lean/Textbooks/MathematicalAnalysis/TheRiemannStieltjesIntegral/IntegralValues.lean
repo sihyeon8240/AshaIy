@@ -1,4 +1,12 @@
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.IntegrabilityOperations
+module
+
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.IntegrabilityOperations
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace MathematicalAnalysis.TheRiemannStieltjesIntegral
 
@@ -7,9 +15,11 @@ open Set BoxIntegral
 noncomputable section
 
 /-- Definition: the Riemann integral is the common Darboux value when integrable. -/
+@[expose]
 def riemannIntegral (I : Box Unit) (f : ℝ → ℝ) : ℝ := upperIntegral I f id
 
 /-- Definition: a tagged Riemann sum selects one point in each interval cell. -/
+@[expose]
 def taggedSum {I : Box Unit} (f : ℝ → ℝ) (P : Partition I) (τ : Box Unit → ℝ) : ℝ :=
   ∑ J ∈ P.val.boxes, f (τ J) * cellLength J
 

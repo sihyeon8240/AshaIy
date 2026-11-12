@@ -1,4 +1,8 @@
-import Textbooks.LinearAlgebra.VectorSpaces.Dimension
+module
+
+public import Textbooks.LinearAlgebra.VectorSpaces.Dimension
+
+public section
 
 namespace LinearAlgebra.VectorSpaces
 

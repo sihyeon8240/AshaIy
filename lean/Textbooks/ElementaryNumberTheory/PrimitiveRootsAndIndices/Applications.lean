@@ -1,5 +1,12 @@
-import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.PowerCongruences
-import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.Classification
+module
+
+public import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.PowerCongruences
+public import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.Classification
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.PrimitiveRootsAndIndices
 

@@ -1,4 +1,10 @@
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.FiniteDiscontinuities
+module
+
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.FiniteDiscontinuities
+
+import Mathlib.Tactic.NormNum
+
+public section
 
 namespace MathematicalAnalysis.TheRiemannStieltjesIntegral
 

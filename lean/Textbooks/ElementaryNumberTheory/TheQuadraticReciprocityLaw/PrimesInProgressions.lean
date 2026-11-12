@@ -1,5 +1,13 @@
-import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.SupplementaryLaws
-import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.SieveOfEratosthenes
+module
+
+public import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.SupplementaryLaws
+public import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.SieveOfEratosthenes
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.LinearCombination
+
+public section
 
 namespace ElementaryNumberTheory.TheQuadraticReciprocityLaw
 

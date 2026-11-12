@@ -1,5 +1,12 @@
-import Textbooks.MathematicalAnalysis.BasicTopology.MetricSpaces
-import Mathlib.Analysis.BoxIntegral.Partition.Additive
+module
+
+public import Textbooks.MathematicalAnalysis.BasicTopology.MetricSpaces
+public import Mathlib.Analysis.BoxIntegral.Partition.Additive
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace MathematicalAnalysis.TheRiemannStieltjesIntegral
 
@@ -9,13 +16,16 @@ noncomputable section
 
 /-- Definition: a nondegenerate real interval represented by a one-dimensional
 box in reversed coordinates, whose membership describes half-open ownership. -/
+@[expose]
 def intervalBox (a b : ℝ) (hab : a < b) : Box Unit :=
   ⟨fun _ => -b, fun _ => -a, fun _ => neg_lt_neg hab⟩
 
 /-- Definition: the half-open interval used only for disjoint partition ownership. -/
+@[expose]
 def halfOpenCell (I : Box Unit) : Set ℝ := Ico (-I.upper ()) (-I.lower ())
 
 /-- Definition: the closed subinterval on which Darboux extrema and tags are evaluated. -/
+@[expose]
 def cell (I : Box Unit) : Set ℝ := Icc (-I.upper ()) (-I.lower ())
 
 /-- Definition: a partition is a finite family of boxes whose half-open cells
@@ -24,15 +34,19 @@ abbrev Partition (I : Box Unit) := {P : Prepartition I // P.IsPartition}
 
 /-- Definition: refinement means that every cell of the finer partition lies
 in a cell of the coarser partition. -/
+@[expose]
 def Refines {I : Box Unit} (Q P : Partition I) : Prop := Q.val ≤ P.val
 
 /-- Definition: the Stieltjes increment on a cell is the change of its integrator. -/
+@[expose]
 def increment (α : ℝ → ℝ) (I : Box Unit) : ℝ := α (-I.lower ()) - α (-I.upper ())
 
 /-- Definition: the length of an interval cell. -/
+@[expose]
 def cellLength (I : Box Unit) : ℝ := I.upper () - I.lower ()
 
 /-- Definition: the mesh of a partition is the largest length of its cells. -/
+@[expose]
 def mesh {I : Box Unit} (P : Partition I) : ℝ :=
   P.val.boxes.sup' P.property.nonempty_boxes cellLength
 
@@ -77,6 +91,7 @@ theorem cell_mono {I J : Box Unit} (h : I ≤ J) : cell I ⊆ cell J := by
 
 /-- Definition: the increments as a finitely additive interval function.
 The generic interface supplies only finite subdivision bookkeeping. -/
+@[expose]
 def incrementAdditive (α : ℝ → ℝ) : BoxAdditiveMap Unit ℝ ⊤ :=
   BoxAdditiveMap.ofMapSplitAdd (increment α) ⊤ (by
     intro I _ i x hx
@@ -98,6 +113,7 @@ theorem sum_cellLengths {I : Box Unit} (P : Partition I) :
   simpa only [increment, cellLength, neg_sub_neg] using h
 
 /-- Definition: the common refinement consists of all nonempty intersections of cells. -/
+@[expose]
 def commonRefinement {I : Box Unit} (P Q : Partition I) : Partition I :=
   ⟨P.val ⊓ Q.val, P.property.inf Q.property⟩
 

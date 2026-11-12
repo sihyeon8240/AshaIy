@@ -1,4 +1,8 @@
-import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.DivisorFormulas
+module
+
+public import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.DivisorFormulas
+
+public section
 
 namespace ElementaryNumberTheory.NumberTheoreticFunctions
 

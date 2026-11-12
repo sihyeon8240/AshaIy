@@ -5,7 +5,11 @@ Authors: Kenny Lau, Chris Hughes, Anne Baanen
 
 Proofs adapted from Mathlib.LinearAlgebra.Matrix.Determinant.Basic.
 -/
-import Textbooks.LinearAlgebra.Determinants.Determinant
+module
+
+public import Textbooks.LinearAlgebra.Determinants.Determinant
+
+public section
 
 namespace LinearAlgebra.Determinants
 

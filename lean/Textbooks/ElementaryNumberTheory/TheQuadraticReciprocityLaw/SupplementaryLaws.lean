@@ -1,5 +1,11 @@
-import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.QuadraticReciprocity
+module
+
+public import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.QuadraticReciprocity
+
 import Mathlib.Tactic.IntervalCases
+import Mathlib.Tactic.NormNum
+
+public section
 
 namespace ElementaryNumberTheory.TheQuadraticReciprocityLaw
 

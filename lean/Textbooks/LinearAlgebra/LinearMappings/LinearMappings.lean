@@ -1,5 +1,11 @@
-import Textbooks.LinearAlgebra.Matrices.LinearEquations
-import Textbooks.LinearAlgebra.LinearMappings.Mappings
+module
+
+public import Textbooks.LinearAlgebra.Matrices.LinearEquations
+public import Textbooks.LinearAlgebra.LinearMappings.Mappings
+
+import Mathlib.Tactic.Abel
+
+public section
 
 namespace LinearAlgebra.LinearMappings
 
@@ -11,6 +17,7 @@ variable {K U V W : Type*} [Field K]
   [AddCommGroup W] [Module K W]
 
 /-- Definition: a map preserving vector addition and scalar multiplication. -/
+@[expose]
 def linearMapOf (f : V → W) (ha : ∀ x y, f (x + y) = f x + f y)
     (hs : ∀ (c : K) x, f (c • x) = c • f x) : V →ₗ[K] W where
   toFun := f

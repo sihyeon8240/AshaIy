@@ -1,5 +1,12 @@
-import Textbooks.ElementaryNumberTheory.FermatsTheorem.Fermat
-import Mathlib.Algebra.BigOperators.Intervals
+module
+
+public import Textbooks.ElementaryNumberTheory.FermatsTheorem.Fermat
+public import Mathlib.Algebra.BigOperators.Intervals
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.FermatsTheorem
 

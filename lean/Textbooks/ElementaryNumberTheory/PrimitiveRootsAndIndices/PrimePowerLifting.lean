@@ -1,7 +1,14 @@
-import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.PrimeRoots
-import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.DivisorFormulas
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.ZMod.Units
+module
+
+public import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.PrimeRoots
+public import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.DivisorFormulas
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.ZMod.Units
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.PrimitiveRootsAndIndices
 

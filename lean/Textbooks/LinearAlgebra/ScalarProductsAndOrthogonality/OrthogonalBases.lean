@@ -1,6 +1,10 @@
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.ScalarProducts
-import Textbooks.LinearAlgebra.VectorSpaces.DirectSums
-import Mathlib.LinearAlgebra.Basis.Fin
+module
+
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.ScalarProducts
+public import Textbooks.LinearAlgebra.VectorSpaces.DirectSums
+public import Mathlib.LinearAlgebra.Basis.Fin
+
+public section
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 

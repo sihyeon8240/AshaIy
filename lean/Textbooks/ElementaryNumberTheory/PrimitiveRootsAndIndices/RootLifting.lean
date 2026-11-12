@@ -1,4 +1,11 @@
-import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.CompositeRoots
+module
+
+public import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.CompositeRoots
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.PrimitiveRootsAndIndices
 

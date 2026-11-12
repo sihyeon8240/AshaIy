@@ -1,12 +1,20 @@
-import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.CoprimePowers
-import Mathlib.NumberTheory.PythagoreanTriples
+module
+
+public import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.CoprimePowers
+public import Mathlib.NumberTheory.PythagoreanTriples
+
 import Mathlib.Tactic.IntervalCases
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.NormNum
+
+public section
 
 namespace ElementaryNumberTheory.CertainNonlinearDiophantineEquations
 
 open DivisibilityTheoryInTheIntegers
 
 /-- Definition: a primitive Pythagorean triple has coprime legs, using the book's gcd. -/
+@[expose]
 def IsPrimitivePythagoreanTriple (x y z : ℤ) : Prop :=
   PythagoreanTriple x y z ∧ DivisibilityTheoryInTheIntegers.gcd x y = 1
 

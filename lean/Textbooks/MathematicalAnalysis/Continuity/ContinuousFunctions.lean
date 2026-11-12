@@ -1,5 +1,9 @@
-import Textbooks.MathematicalAnalysis.Continuity.FunctionLimits
-import Textbooks.MathematicalAnalysis.BasicTopology.CompactSets
+module
+
+public import Textbooks.MathematicalAnalysis.Continuity.FunctionLimits
+public import Textbooks.MathematicalAnalysis.BasicTopology.CompactSets
+
+public section
 
 namespace MathematicalAnalysis.Continuity
 

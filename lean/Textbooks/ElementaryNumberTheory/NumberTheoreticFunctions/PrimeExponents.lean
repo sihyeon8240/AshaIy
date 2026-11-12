@@ -1,10 +1,17 @@
-import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.Divisors
-import Mathlib.Data.Finsupp.Order
-import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
+module
+
+public import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.Divisors
+public import Mathlib.Data.Finsupp.Order
+public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
+
+import Mathlib.Tactic.Linarith
+
+public section
 
 namespace ElementaryNumberTheory.NumberTheoreticFunctions
 
 /-- Definition: the value of a finitely supported prime-exponent vector. -/
+@[expose]
 def factorValue (e : ℕ →₀ ℕ) : ℕ := e.prod (fun p k => p ^ k)
 
 /-- Definition: the prime multiplicities selected from the independently proved unique

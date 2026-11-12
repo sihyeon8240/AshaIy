@@ -1,4 +1,8 @@
-import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.CompositeRoots
+module
+
+public import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.CompositeRoots
+
+public section
 
 namespace ElementaryNumberTheory.PrimitiveRootsAndIndices
 

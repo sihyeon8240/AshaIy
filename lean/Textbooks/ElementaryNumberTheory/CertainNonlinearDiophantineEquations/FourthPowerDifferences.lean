@@ -1,4 +1,12 @@
-import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.FourthPowerSums
+module
+
+public import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.FourthPowerSums
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace ElementaryNumberTheory.CertainNonlinearDiophantineEquations
 

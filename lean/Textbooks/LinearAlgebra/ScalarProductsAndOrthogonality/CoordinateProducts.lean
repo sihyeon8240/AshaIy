@@ -1,7 +1,15 @@
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.BilinearMatrices
-import Textbooks.LinearAlgebra.VectorSpaces.DirectSums
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.BilinearMatrices
+public import Textbooks.LinearAlgebra.VectorSpaces.DirectSums
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
 import Mathlib.Tactic.FinCases
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.NormNum
+import Mathlib.Tactic.LinearCombination
+
+public section
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 

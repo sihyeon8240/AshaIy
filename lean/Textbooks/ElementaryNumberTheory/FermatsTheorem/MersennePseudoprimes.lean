@@ -1,4 +1,11 @@
-import Textbooks.ElementaryNumberTheory.FermatsTheorem.Pseudoprimes
+module
+
+public import Textbooks.ElementaryNumberTheory.FermatsTheorem.Pseudoprimes
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace ElementaryNumberTheory.FermatsTheorem
 

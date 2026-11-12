@@ -1,5 +1,9 @@
-import Textbooks.MathematicalAnalysis.Continuity.ContinuousFunctions
-import Textbooks.MathematicalAnalysis.BasicTopology.ConnectedSets
+module
+
+public import Textbooks.MathematicalAnalysis.Continuity.ContinuousFunctions
+public import Textbooks.MathematicalAnalysis.BasicTopology.ConnectedSets
+
+public section
 
 namespace MathematicalAnalysis.Continuity
 

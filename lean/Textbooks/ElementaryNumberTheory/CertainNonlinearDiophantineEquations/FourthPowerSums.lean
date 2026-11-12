@@ -1,4 +1,12 @@
-import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.FourthPowerNormalization
+module
+
+public import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.FourthPowerNormalization
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.NormNum
+
+public section
 
 namespace ElementaryNumberTheory.CertainNonlinearDiophantineEquations
 

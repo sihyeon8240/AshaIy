@@ -1,8 +1,13 @@
-import Mathlib.Algebra.Field.Subfield.Defs
-import Mathlib.Basic.Complex.Basic
-import Mathlib.LinearAlgebra.LinearIndependent.Defs
-import Mathlib.Algebra.BigOperators.Fin
+module
+
+public import Mathlib.Algebra.Field.Subfield.Defs
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.LinearAlgebra.LinearIndependent.Defs
+public import Mathlib.Algebra.BigOperators.Fin
+
 import Mathlib.Tactic.Abel
+
+public section
 
 namespace LinearAlgebra.VectorSpaces
 
@@ -61,6 +66,7 @@ theorem scalar_smul_zero (c : K) : c • (0 : V) = 0 := by
 
 /-- Definition: a subspace is a set closed under addition and scalar multiplication,
 containing zero; the structure provides the induced vector space. -/
+@[expose]
 def subspaceOfClosed (W : Set V) (h0 : (0 : V) ∈ W)
     (ha : ∀ u ∈ W, ∀ v ∈ W, u + v ∈ W)
     (hs : ∀ (c : K) v, v ∈ W → c • v ∈ W) : Submodule K V where
@@ -70,6 +76,7 @@ def subspaceOfClosed (W : Set V) (h0 : (0 : V) ∈ W)
   smul_mem' := hs
 
 /-- Definition: a finite linear combination. -/
+@[expose]
 def linearCombination {ι : Type*} [Fintype ι] (v : ι → V) (a : ι → K) : V :=
   ∑ i, a i • v i
 
@@ -97,10 +104,12 @@ theorem generatedSubspace_eq_span {ι : Type*} [Fintype ι] (v : ι → V) :
   exact (Submodule.mem_span_range_iff_exists_fun K).symm
 
 /-- Definition: a family generates the entire space. -/
+@[expose]
 def Generates {ι : Type*} [Fintype ι] (v : ι → V) : Prop :=
   ∀ x : V, ∃ a : ι → K, linearCombination v a = x
 
 /-- Definition: the bilinear dot product on `Kⁿ`. -/
+@[expose]
 def dotProduct {n : ℕ} (a b : CoordinateSpace K n) : K := ∑ i, a i * b i
 
 /-- Definition: perpendicularity for the bilinear dot product. -/

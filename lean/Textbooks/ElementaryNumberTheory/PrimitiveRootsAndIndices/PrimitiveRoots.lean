@@ -1,4 +1,8 @@
-import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.Orders
+module
+
+public import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.Orders
+
+public section
 
 namespace ElementaryNumberTheory.PrimitiveRootsAndIndices
 
@@ -14,6 +18,7 @@ theorem pow_injective_fin {G : Type*} [Group G] (r : G) (hr : 0 < orderOf r) :
   simpa only [Nat.ModEq, Nat.mod_eq_of_lt i.isLt, Nat.mod_eq_of_lt j.isLt] using he
 
 /-- Theorem: a full-order element's powers enumerate a finite group exactly once. -/
+@[expose]
 noncomputable def powersEquiv {G : Type*} [Group G] [Fintype G] (r : G)
     (hr : orderOf r = Fintype.card G) : Fin (orderOf r) ≃ G := by
   have hp : 0 < orderOf r := hr ▸ Fintype.card_pos
@@ -23,6 +28,7 @@ noncomputable def powersEquiv {G : Type*} [Group G] [Fintype G] (r : G)
   exact Equiv.ofBijective (fun i => r ^ i.val) hsurj
 
 /-- Theorem: the powers of a primitive root enumerate all reduced residue classes. -/
+@[expose]
 noncomputable def primitiveRootEquiv (n : ℕ) [NeZero n] (r : (ZMod n)ˣ)
     (hr : IsPrimitiveRoot r (Nat.totient n)) : Fin (orderOf r) ≃ (ZMod n)ˣ := by
   apply powersEquiv r

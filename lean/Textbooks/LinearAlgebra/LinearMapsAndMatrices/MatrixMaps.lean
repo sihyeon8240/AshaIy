@@ -1,6 +1,10 @@
-import Textbooks.LinearAlgebra.Matrices.Multiplication
-import Textbooks.LinearAlgebra.LinearMappings.Isomorphisms
-import Mathlib.LinearAlgebra.Matrix.ToLin
+module
+
+public import Textbooks.LinearAlgebra.Matrices.Multiplication
+public import Textbooks.LinearAlgebra.LinearMappings.Isomorphisms
+public import Mathlib.LinearAlgebra.Matrix.ToLin
+
+public section
 
 namespace LinearAlgebra.LinearMapsAndMatrices
 

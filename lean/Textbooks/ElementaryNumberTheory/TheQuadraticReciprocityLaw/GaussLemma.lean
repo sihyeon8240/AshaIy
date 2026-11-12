@@ -1,5 +1,11 @@
-import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.LegendreSymbol
-import Mathlib.Data.ZMod.ValMinAbs
+module
+
+public import Textbooks.ElementaryNumberTheory.TheQuadraticReciprocityLaw.LegendreSymbol
+public import Mathlib.Data.ZMod.ValMinAbs
+
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.TheQuadraticReciprocityLaw
 
@@ -8,9 +14,11 @@ open scoped BigOperators
 variable {p : ℕ} [Fact p.Prime]
 
 /-- Definition: the positive representatives in the lower half of the residue system. -/
+@[expose]
 def halfResidues (p : ℕ) : Finset ℕ := Finset.Ico 1 (p / 2 + 1)
 
 /-- Definition: the number of multiples in the half-system whose remainders exceed p/2. -/
+@[expose]
 def gaussCount (p : ℕ) (a : ℤ) : ℕ :=
   ((halfResidues p).filter fun k : ℕ => p / 2 < ((a : ZMod p) * (k : ZMod p)).val).card
 

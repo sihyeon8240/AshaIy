@@ -1,7 +1,13 @@
-import Mathlib.Analysis.InnerProductSpace.Orthonormal
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Orthonormal
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.NormConstruction
+
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.NormConstruction
+import Mathlib.Tactic.Abel
+
+public section
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 
@@ -12,6 +18,7 @@ variable {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpac
 local notation "⟪" x ", " y "⟫" => inner 𝕜 x y
 
 /-- Definition: projection coefficient with Mathlib's conjugate-linear first argument. -/
+@[expose]
 noncomputable def innerComponent (v w : E) : 𝕜 := ⟪w, v⟫ / ⟪w, w⟫
 
 /-- Proposition: the norm is the nonnegative square root of the square of a vector. -/
@@ -103,6 +110,7 @@ theorem orthogonal_linearIndependent {ι : Type*} [Fintype ι] (u : ι → E)
   exact (mul_eq_zero.mp he.symm).resolve_right (inner_self_ne_zero.mpr (hn j))
 
 /-- Definition: the sum of the components in a finite perpendicular family. -/
+@[expose]
 noncomputable def orthogonalProjection {ι : Type*} [Fintype ι] (u : ι → E) (v : E) : E :=
   ∑ i, innerComponent (𝕜 := 𝕜) v (u i) • u i
 

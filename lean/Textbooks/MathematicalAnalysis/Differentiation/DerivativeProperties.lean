@@ -1,4 +1,11 @@
-import Textbooks.MathematicalAnalysis.Differentiation.MeanValue
+module
+
+public import Textbooks.MathematicalAnalysis.Differentiation.MeanValue
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace MathematicalAnalysis.Differentiation
 

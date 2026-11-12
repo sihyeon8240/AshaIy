@@ -1,5 +1,9 @@
-import Textbooks.ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem.Totient
-import Textbooks.ElementaryNumberTheory.DivisibilityTheoryInTheIntegers.LeastCommonMultiple
+module
+
+public import Textbooks.ElementaryNumberTheory.EulersGeneralizationOfFermatsTheorem.Totient
+public import Textbooks.ElementaryNumberTheory.DivisibilityTheoryInTheIntegers.LeastCommonMultiple
+
+public section
 
 namespace ElementaryNumberTheory.PrimitiveRootsAndIndices
 

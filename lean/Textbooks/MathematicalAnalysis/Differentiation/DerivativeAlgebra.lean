@@ -1,5 +1,11 @@
-import Textbooks.MathematicalAnalysis.Differentiation.DerivativeLimits
-import Mathlib.Algebra.Polynomial.Derivative
+module
+
+public import Textbooks.MathematicalAnalysis.Differentiation.DerivativeLimits
+public import Mathlib.Algebra.Polynomial.Derivative
+
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace MathematicalAnalysis.Differentiation
 

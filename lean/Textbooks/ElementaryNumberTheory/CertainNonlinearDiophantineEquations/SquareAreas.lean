@@ -1,5 +1,12 @@
-import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.FourthPowerDifferences
-import Mathlib.Data.Rat.Lemmas
+module
+
+public import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.FourthPowerDifferences
+public import Mathlib.Data.Rat.Lemmas
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.CertainNonlinearDiophantineEquations
 

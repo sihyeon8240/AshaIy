@@ -1,5 +1,9 @@
-import Textbooks.LinearAlgebra.VectorSpaces.Dimension
-import Textbooks.LinearAlgebra.Matrices.MatrixSpace
+module
+
+public import Textbooks.LinearAlgebra.VectorSpaces.Dimension
+public import Textbooks.LinearAlgebra.Matrices.MatrixSpace
+
+public section
 
 namespace LinearAlgebra.Matrices
 

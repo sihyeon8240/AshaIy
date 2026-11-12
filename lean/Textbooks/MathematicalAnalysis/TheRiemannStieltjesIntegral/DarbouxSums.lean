@@ -1,4 +1,10 @@
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.Partitions
+module
+
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.Partitions
+
+import Mathlib.Tactic.Linarith
+
+public section
 
 namespace MathematicalAnalysis.TheRiemannStieltjesIntegral
 
@@ -7,35 +13,43 @@ open Set BoxIntegral
 noncomputable section
 
 /-- Definition: the supremum of a function over a partition cell. -/
+@[expose]
 def cellSup (f : ℝ → ℝ) (I : Box Unit) : ℝ := sSup (f '' cell I)
 
 /-- Definition: the infimum of a function over a partition cell. -/
+@[expose]
 def cellInf (f : ℝ → ℝ) (I : Box Unit) : ℝ := sInf (f '' cell I)
 
 /-- Definition: the upper Darboux-Stieltjes sum. The identity integrator gives
 the upper Riemann sum. -/
+@[expose]
 def upperSum {I : Box Unit} (f α : ℝ → ℝ) (P : Partition I) : ℝ :=
   ∑ J ∈ P.val.boxes, cellSup f J * increment α J
 
 /-- Definition: the lower Darboux-Stieltjes sum. -/
+@[expose]
 def lowerSum {I : Box Unit} (f α : ℝ → ℝ) (P : Partition I) : ℝ :=
   ∑ J ∈ P.val.boxes, cellInf f J * increment α J
 
 /-- Definition: the upper Darboux-Stieltjes integral is the infimum of upper sums. -/
+@[expose]
 def upperIntegral (I : Box Unit) (f α : ℝ → ℝ) : ℝ :=
   sInf (range (upperSum (I := I) f α))
 
 /-- Definition: the lower Darboux-Stieltjes integral is the supremum of lower sums. -/
+@[expose]
 def lowerIntegral (I : Box Unit) (f α : ℝ → ℝ) : ℝ :=
   sSup (range (lowerSum (I := I) f α))
 
 /-- Definition: the Darboux integrability predicate records boundedness and equality
 of the integrals; results about Stieltjes integrators assume monotonicity explicitly. -/
+@[expose]
 def StieltjesIntegrable (I : Box Unit) (f α : ℝ → ℝ) : Prop :=
   Bornology.IsBounded (f '' Icc (-I.upper ()) (-I.lower ())) ∧
     lowerIntegral I f α = upperIntegral I f α
 
 /-- Definition: Riemann integrability is Stieltjes integrability for the identity integrator. -/
+@[expose]
 def RiemannIntegrable (I : Box Unit) (f : ℝ → ℝ) : Prop :=
   StieltjesIntegrable I f id
 

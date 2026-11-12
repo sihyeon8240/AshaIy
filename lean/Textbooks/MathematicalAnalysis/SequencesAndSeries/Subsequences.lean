@@ -1,5 +1,12 @@
-import Textbooks.MathematicalAnalysis.SequencesAndSeries.ConvergentSequences
-import Textbooks.MathematicalAnalysis.BasicTopology.SequentialCompactness
+module
+
+public import Textbooks.MathematicalAnalysis.SequencesAndSeries.ConvergentSequences
+public import Textbooks.MathematicalAnalysis.BasicTopology.SequentialCompactness
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace MathematicalAnalysis.SequencesAndSeries
 
@@ -9,6 +16,7 @@ open scoped Topology
 variable {X : Type*} [MetricSpace X]
 
 /-- Definition: a subsequential limit is the limit along a strictly increasing index map. -/
+@[expose]
 def subsequentialLimits (u : ℕ → X) : Set X :=
   {p | ∃ φ : ℕ → ℕ, StrictMono φ ∧ Tendsto (u ∘ φ) atTop (𝓝 p)}
 

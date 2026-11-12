@@ -1,6 +1,12 @@
-import Textbooks.MathematicalAnalysis.Continuity.ContinuousFunctions
-import Textbooks.MathematicalAnalysis.BasicTopology.ConnectedSets
-import Mathlib.Logic.Equiv.Set
+module
+
+public import Textbooks.MathematicalAnalysis.Continuity.ContinuousFunctions
+public import Textbooks.MathematicalAnalysis.BasicTopology.ConnectedSets
+public import Mathlib.Logic.Equiv.Set
+
+import Mathlib.Tactic.Linarith
+
+public section
 
 namespace MathematicalAnalysis.Continuity
 

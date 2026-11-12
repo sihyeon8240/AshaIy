@@ -1,5 +1,13 @@
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.ContinuousIntegrability
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.IntegrabilityOperations
+module
+
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.ContinuousIntegrability
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.IntegrabilityOperations
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace MathematicalAnalysis.TheRiemannStieltjesIntegral
 

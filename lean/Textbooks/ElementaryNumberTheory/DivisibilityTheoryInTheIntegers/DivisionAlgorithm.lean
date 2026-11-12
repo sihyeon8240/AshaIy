@@ -1,6 +1,15 @@
-import Mathlib.Data.Int.Order.Basic
-import Mathlib.Data.Nat.Find
+module
+
+public import Mathlib.Algebra.Group.Int.Defs
+public import Mathlib.Algebra.Order.Group.Unbundled.Abs
+public import Mathlib.Basic.ExistsUnique
+public import Mathlib.Data.PNat.Notation
+public import Mathlib.Data.Int.Order.Basic
+public import Mathlib.Data.Nat.Find
+
 import Mathlib.Tactic.Linarith
+
+public section
 
 namespace ElementaryNumberTheory.DivisibilityTheoryInTheIntegers
 

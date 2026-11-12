@@ -1,5 +1,9 @@
-import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.Indices
-import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.PrimeRoots
+module
+
+public import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.Indices
+public import Textbooks.ElementaryNumberTheory.PrimitiveRootsAndIndices.PrimeRoots
+
+public section
 
 namespace ElementaryNumberTheory.PrimitiveRootsAndIndices
 

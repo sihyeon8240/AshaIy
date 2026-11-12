@@ -1,6 +1,13 @@
-import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.LinearCongruences
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
+module
+
+public import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.LinearCongruences
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.TheTheoryOfCongruences
 

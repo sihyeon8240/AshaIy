@@ -1,7 +1,15 @@
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.FiniteDiscontinuities
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.IntegralValues
-import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.Subintervals
-import Textbooks.MathematicalAnalysis.SequencesAndSeries.ConvergentSequences
+module
+
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.FiniteDiscontinuities
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.IntegralValues
+public import Textbooks.MathematicalAnalysis.TheRiemannStieltjesIntegral.Subintervals
+public import Textbooks.MathematicalAnalysis.SequencesAndSeries.ConvergentSequences
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace MathematicalAnalysis.TheRiemannStieltjesIntegral
 

@@ -1,6 +1,10 @@
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.PositiveDefinite
-import Textbooks.LinearAlgebra.VectorSpaces.DirectSums
-import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
+module
+
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.PositiveDefinite
+public import Textbooks.LinearAlgebra.VectorSpaces.DirectSums
+public import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
+
+public section
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 

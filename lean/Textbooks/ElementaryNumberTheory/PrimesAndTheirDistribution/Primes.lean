@@ -1,15 +1,23 @@
-import Textbooks.ElementaryNumberTheory.DivisibilityTheoryInTheIntegers.GreatestCommonDivisor
-import Mathlib.Data.Nat.Prime.Defs
-import Mathlib.Algebra.BigOperators.Group.List.Basic
+module
+
+public import Textbooks.ElementaryNumberTheory.DivisibilityTheoryInTheIntegers.GreatestCommonDivisor
+public import Mathlib.Data.Nat.Prime.Defs
+public import Mathlib.Algebra.BigOperators.Group.List.Basic
+
+import Mathlib.Tactic.Linarith
+
+public section
 
 namespace ElementaryNumberTheory.PrimesAndTheirDistribution
 
 /-- Definition: a prime is a natural number greater than one with no divisors
 other than one and itself. Natural numbers represent the positive integers here. -/
+@[expose]
 def isPrime (p : ℕ) : Prop :=
   1 < p ∧ ∀ d : ℕ, d ∣ p → d = 1 ∨ d = p
 
 /-- Definition: a composite number is greater than one and is not prime. -/
+@[expose]
 def isComposite (n : ℕ) : Prop :=
   1 < n ∧ ¬isPrime n
 

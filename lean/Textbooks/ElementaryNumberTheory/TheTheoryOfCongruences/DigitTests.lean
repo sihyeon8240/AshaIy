@@ -1,9 +1,16 @@
-import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.Congruences
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+module
+
+public import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.Congruences
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.TheTheoryOfCongruences
 
 /-- Definition: evaluate a list of integer coefficients, least significant first. -/
+@[expose]
 def positionalValue (b : ℤ) : List ℤ → ℤ
 
   | [] => 0

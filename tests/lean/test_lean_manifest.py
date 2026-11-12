@@ -86,18 +86,18 @@ class LeanManifestTests(unittest.TestCase):
         self.manifest("Appendices/Background", ["Background"])
         outputs = expected_files(self.root)
         text = outputs[self.root / "lean/Textbooks/Sample/All.lean"]
-        imports = [line for line in text.splitlines() if line.startswith("import ")]
+        imports = [line for line in text.splitlines() if line.startswith("public import ")]
         self.assertEqual(
             imports,
             [
-                "import Textbooks.Sample.First.VectorSpaces",
-                "import Textbooks.Sample.First.Bases",
-                "import Textbooks.Sample.Second.Matrices",
-                "import Textbooks.Sample.Appendices.Background.Background",
+                "public import Textbooks.Sample.First.VectorSpaces",
+                "public import Textbooks.Sample.First.Bases",
+                "public import Textbooks.Sample.Second.Matrices",
+                "public import Textbooks.Sample.Appendices.Background.Background",
             ],
         )
         self.assertNotIn("import ", outputs[self.root / "lean/Textbooks/Empty/All.lean"])
-        self.assertIn("import Textbooks.Empty.All", outputs[self.root / "lean/Textbooks.lean"])
+        self.assertIn("public import Textbooks.Empty.All", outputs[self.root / "lean/Textbooks.lean"])
 
     def test_invalid_module_lists(self) -> None:
         for modules, diagnostic in [

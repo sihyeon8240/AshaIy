@@ -1,4 +1,11 @@
-import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.Congruences
+module
+
+public import Textbooks.ElementaryNumberTheory.TheTheoryOfCongruences.Congruences
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.TheTheoryOfCongruences
 
@@ -65,6 +72,7 @@ theorem exists_unique_linear_modEq (n a b : ℤ) (hn : n ≠ 0)
 
 /-- Definition: a modular inverse is an integer whose product with the given integer is
 congruent to one. -/
+@[expose]
 def IsModularInverse (n a u : ℤ) : Prop := a * u ≡ 1 [ZMOD n]
 
 /-- Corollary: a coprime integer admits a modular inverse. -/

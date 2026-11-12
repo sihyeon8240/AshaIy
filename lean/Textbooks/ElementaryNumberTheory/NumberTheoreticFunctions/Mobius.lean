@@ -1,4 +1,11 @@
-import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.DivisorFormulas
+module
+
+public import Textbooks.ElementaryNumberTheory.NumberTheoreticFunctions.DivisorFormulas
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.NormNum
+
+public section
 
 namespace ElementaryNumberTheory.NumberTheoreticFunctions
 

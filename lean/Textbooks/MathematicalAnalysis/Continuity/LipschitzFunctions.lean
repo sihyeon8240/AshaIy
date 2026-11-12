@@ -1,5 +1,12 @@
-import Textbooks.MathematicalAnalysis.Continuity.CompactContinuity
-import Mathlib.Topology.MetricSpace.Lipschitz
+module
+
+public import Textbooks.MathematicalAnalysis.Continuity.CompactContinuity
+public import Mathlib.Topology.MetricSpace.Lipschitz
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace MathematicalAnalysis.Continuity
 

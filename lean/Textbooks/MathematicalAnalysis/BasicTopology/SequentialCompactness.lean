@@ -1,5 +1,12 @@
-import Textbooks.MathematicalAnalysis.BasicTopology.CompactSets
-import Mathlib.Topology.Defs.Sequences
+module
+
+public import Textbooks.MathematicalAnalysis.BasicTopology.CompactSets
+public import Mathlib.Topology.Defs.Sequences
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Positivity
+
+public section
 
 namespace MathematicalAnalysis.BasicTopology
 

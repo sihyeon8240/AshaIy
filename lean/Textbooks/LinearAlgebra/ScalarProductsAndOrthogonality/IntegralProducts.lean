@@ -1,6 +1,13 @@
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.HermitianProducts
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Topology.ContinuousMap.Ordered
+module
+
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.HermitianProducts
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Topology.ContinuousMap.Ordered
+
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.NormNum
+
+public section
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 

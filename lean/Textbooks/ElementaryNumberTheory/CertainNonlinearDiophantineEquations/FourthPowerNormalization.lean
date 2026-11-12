@@ -1,4 +1,10 @@
-import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.Parametrization
+module
+
+public import Textbooks.ElementaryNumberTheory.CertainNonlinearDiophantineEquations.Parametrization
+
+import Mathlib.Tactic.Linarith
+
+public section
 
 namespace ElementaryNumberTheory.CertainNonlinearDiophantineEquations
 

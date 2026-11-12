@@ -1,5 +1,9 @@
-import Textbooks.LinearAlgebra.LinearMappings.KernelImage
-import Textbooks.LinearAlgebra.VectorSpaces.DirectSums
+module
+
+public import Textbooks.LinearAlgebra.LinearMappings.KernelImage
+public import Textbooks.LinearAlgebra.VectorSpaces.DirectSums
+
+public section
 
 namespace LinearAlgebra.LinearMappings
 

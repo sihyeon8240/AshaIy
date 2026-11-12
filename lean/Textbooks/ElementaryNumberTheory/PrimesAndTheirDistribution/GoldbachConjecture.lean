@@ -1,5 +1,12 @@
-import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.SieveOfEratosthenes
-import Mathlib.Algebra.BigOperators.Ring.Finset
+module
+
+public import Textbooks.ElementaryNumberTheory.PrimesAndTheirDistribution.SieveOfEratosthenes
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.PrimesAndTheirDistribution
 

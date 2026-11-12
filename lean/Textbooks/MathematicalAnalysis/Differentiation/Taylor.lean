@@ -1,7 +1,13 @@
-import Textbooks.MathematicalAnalysis.Differentiation.DerivativeAlgebra
-import Textbooks.MathematicalAnalysis.Differentiation.MeanValue
-import Mathlib.Algebra.Polynomial.Eval.Coeff
-import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+module
+
+public import Textbooks.MathematicalAnalysis.Differentiation.DerivativeAlgebra
+public import Textbooks.MathematicalAnalysis.Differentiation.MeanValue
+public import Mathlib.Algebra.Polynomial.Eval.Coeff
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace MathematicalAnalysis.Differentiation
 

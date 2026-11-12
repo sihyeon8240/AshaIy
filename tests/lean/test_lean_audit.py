@@ -33,6 +33,24 @@ class LeanSourceTests(unittest.TestCase):
         source = "-- import Fake\npublic import /- note -/ «Textbooks».«LinearAlgebra».All\n"
         self.assertEqual(imports(source), [("Textbooks.LinearAlgebra.All", 2)])
 
+    def test_module_import_modifiers_preserve_dependencies_and_source_lines(self) -> None:
+        source = (
+            "module\n\n"
+            "meta import Lean\n"
+            "import all Textbooks.Sample.First\n"
+            "meta import all Textbooks.Sample.Second\n"
+            "public meta import Mathlib.Tactic\n"
+        )
+        self.assertEqual(
+            imports(source),
+            [
+                ("Lean", 3),
+                ("Textbooks.Sample.First", 4),
+                ("Textbooks.Sample.Second", 5),
+                ("Mathlib.Tactic", 6),
+            ],
+        )
+
     def test_nested_comments_strings_and_quoted_identifiers_are_ignored(self) -> None:
         self.assertEqual(
             escape_hatch_lines(
@@ -50,6 +68,7 @@ class AuditCase:
     diagnostic: str | None = None
     in_root: bool = False
     external: str | None = None
+    private_import: bool = False
 
 
 @unittest.skipUnless(shutil.which("lake"), "the pinned Lean toolchain is required")
@@ -72,14 +91,19 @@ class LeanAuditTests(unittest.TestCase):
             environment = {**os.environ, "LEAN_PATH": str(root)}
             module = root / "Textbooks/Fixture.lean"
             module.parent.mkdir()
-            module.write_text("" if case.in_root else case.body)
+            body = "" if case.in_root else case.body
+            module.write_text("module\n\npublic section\n\n" + body)
             entry = root / "Textbooks.lean"
-            entry.write_text("import «Textbooks».«Fixture»\n" + (case.body if case.in_root else ""))
+            visibility = "" if case.private_import else "public "
+            entry.write_text(
+                f"module\n\n{visibility}import «Textbooks».«Fixture»\n\npublic section\n\n"
+                + (case.body if case.in_root else "")
+            )
             sources = [module, entry]
             if case.external is not None:
                 dependency = root / "External.lean"
-                dependency.write_text(case.external)
-                module.write_text("import External\n" + module.read_text())
+                dependency.write_text("module\n\npublic section\n\n" + case.external)
+                module.write_text("module\n\nimport External\n\npublic section\n\n" + body)
                 sources.insert(0, dependency)
             for source in sources:
                 compiled = subprocess.run(
@@ -93,12 +117,9 @@ class LeanAuditTests(unittest.TestCase):
                 if compiled.returncode != 0:
                     raise AssertionError(compiled.stdout + compiled.stderr)
             probe = root / "Audit.lean"
-            source = (ROOT / "scripts/lean/lean-proof-audit.lean").read_text()
-            if case.proof:
-                source += f"\nrun_cmd auditProof `{case.proof}\n"
-            probe.write_text(source)
+            probe.write_text((ROOT / "scripts/lean/lean-proof-audit.lean").read_text())
             return subprocess.run(
-                [self.lean, str(probe)],
+                [self.lean, "--run", str(probe), *([case.proof] if case.proof else [])],
                 cwd=root,
                 env=environment,
                 capture_output=True,
@@ -135,6 +156,18 @@ class LeanAuditTests(unittest.TestCase):
             AuditCase(
                 "private unfinished helper",
                 "private theorem unfinished : False := by sorry\n",
+                diagnostic="forbidden axiom sorryAx",
+            ),
+            AuditCase(
+                "axiom behind private import",
+                "private axiom fabricated : False\n",
+                private_import=True,
+                diagnostic="repository-defined axiom",
+            ),
+            AuditCase(
+                "unfinished proof behind private import",
+                "private theorem unfinished : False := by sorry\n",
+                private_import=True,
                 diagnostic="forbidden axiom sorryAx",
             ),
             AuditCase(

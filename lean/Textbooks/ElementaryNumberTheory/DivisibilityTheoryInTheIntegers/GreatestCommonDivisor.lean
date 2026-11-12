@@ -1,6 +1,13 @@
-import Mathlib.Data.Int.GCD
-import Textbooks.ElementaryNumberTheory.DivisibilityTheoryInTheIntegers.DivisionAlgorithm
+module
+
+public import Mathlib.Data.Int.GCD
+public import Textbooks.ElementaryNumberTheory.DivisibilityTheoryInTheIntegers.DivisionAlgorithm
+
+import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
+import Mathlib.Tactic.NormNum
+
+public section
 
 namespace ElementaryNumberTheory.DivisibilityTheoryInTheIntegers
 

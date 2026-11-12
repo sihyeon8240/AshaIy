@@ -1,7 +1,13 @@
-import Mathlib.Basic.Complex.Basic
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.LinearAlgebra.BilinearForm.Orthogonal
+public import Mathlib.LinearAlgebra.QuadraticForm.Basic
+
 import Mathlib.Tactic.Linarith
-import Mathlib.LinearAlgebra.BilinearForm.Orthogonal
-import Mathlib.LinearAlgebra.QuadraticForm.Basic
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace LinearAlgebra.ScalarProductsAndOrthogonality
 
@@ -12,6 +18,7 @@ abbrev ScalarProduct (K V : Type*) [Field K] [AddCommGroup V] [Module K V] :=
   {B : LinearMap.BilinForm K V // B.IsSymm}
 
 /-- Definition: vectors perpendicular to every member of a set. -/
+@[expose]
 def orthogonalSpace (B : LinearMap.BilinForm K V) (S : Set V) : Submodule K V where
   carrier := {w | ∀ v ∈ S, B v w = 0}
   zero_mem' := by
@@ -60,6 +67,7 @@ theorem separatingLeft_of_posDef {V : Type*} [AddCommGroup V] [Module ℝ V]
 def component (B : LinearMap.BilinForm K V) (v w : V) : K := B v w / B w w
 
 /-- Definition: projection onto the line through a vector. -/
+@[expose]
 def lineProjection (B : LinearMap.BilinForm K V) (v w : V) : V :=
   component B v w • w
 

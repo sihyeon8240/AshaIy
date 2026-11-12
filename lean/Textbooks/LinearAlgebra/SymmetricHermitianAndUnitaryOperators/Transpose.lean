@@ -1,4 +1,8 @@
-import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.DualSpaces
+module
+
+public import Textbooks.LinearAlgebra.ScalarProductsAndOrthogonality.DualSpaces
+
+public section
 
 namespace LinearAlgebra.SymmetricHermitianAndUnitaryOperators
 

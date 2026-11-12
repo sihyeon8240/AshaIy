@@ -1,5 +1,12 @@
-import Textbooks.ElementaryNumberTheory.DivisibilityTheoryInTheIntegers.GreatestCommonDivisor
-import Mathlib.Algebra.Order.Ring.Abs
+module
+
+public import Textbooks.ElementaryNumberTheory.DivisibilityTheoryInTheIntegers.GreatestCommonDivisor
+public import Mathlib.Algebra.Order.Ring.Abs
+
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+
+public section
 
 namespace ElementaryNumberTheory.DivisibilityTheoryInTheIntegers
 

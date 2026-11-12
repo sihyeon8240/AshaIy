@@ -1,10 +1,15 @@
-import Mathlib.Topology.MetricSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Topology.DerivedSet
-import Mathlib.Topology.Perfect
+module
+
+public import Mathlib.Topology.MetricSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Topology.DerivedSet
+public import Mathlib.Topology.Perfect
+
 import Mathlib.Tactic.Choose
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Push
+
+public section
 
 namespace MathematicalAnalysis.BasicTopology
 
