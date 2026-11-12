@@ -5,6 +5,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from typing import cast
 from unittest.mock import patch
 
 from scripts.lean import proof_links as MODULE
@@ -18,16 +19,9 @@ class ProofLinkTests(unittest.TestCase):
         records = []
         for order, entry in enumerate(entries, 1):
             slug = str(entry["slug"])
-            records.append(
-                book_record(
-                    **{
-                        "version": "0.1.0",
-                        "label_prefix": slug[:2],
-                        "order": order * 10,
-                        **entry,
-                    }
-                )
-            )
+            record = book_record(cast(str, entry["slug"]))
+            record.update({"version": "0.1.0", "label_prefix": slug[:2], "order": order * 10, **entry})
+            records.append(record)
             book = self.root / "books" / slug / "book.tex"
             book.parent.mkdir(parents=True, exist_ok=True)
             book.touch()

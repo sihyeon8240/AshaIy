@@ -59,7 +59,7 @@ def builtin_commands() -> dict[str, CommandSpec]:
         "sqrt cfrac chapter section subsection subsubsection part paragraph "
         "subparagraph caption footnote footnotetext".split()
     )
-    commands = {name: CommandSpec(script_atom=True) for name in symbols}
+    commands: dict[str, CommandSpec] = {name: CommandSpec(script_atom=True) for name in symbols}
     for name, count in (math_arguments | text_arguments).items():
         mode = "text" if name in text_arguments else "math"
         arguments = []

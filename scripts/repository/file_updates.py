@@ -7,7 +7,7 @@ import json
 import os
 import stat
 import tempfile
-from collections.abc import Iterator, Mapping
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
@@ -50,7 +50,7 @@ def read_source(path: Path, *, errors: str = "strict") -> str:
 
 
 @contextmanager
-def source_updates(root: Path, *, check: bool = False) -> Iterator[None]:
+def source_updates(root: Path, *, check: bool = False) -> Generator[None, None, None]:
     root = root.resolve()
     scope = _active.get()
     if check or (scope is not None and scope.root == root and scope.process == os.getpid()):

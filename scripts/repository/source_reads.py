@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
+from yaml.constructor import ConstructorError
 
 from scripts.repository.file_updates import read_source
 
@@ -19,7 +20,7 @@ class StrictLoader(yaml.SafeLoader):
         mapping = {}
         for key_node, value_node in node.value:
             if key_node.tag == "tag:yaml.org,2002:merge":
-                raise yaml.constructor.ConstructorError(
+                raise ConstructorError(
                     "while constructing a mapping",
                     node.start_mark,
                     "merge keys are unsupported; write each field explicitly",
@@ -29,14 +30,14 @@ class StrictLoader(yaml.SafeLoader):
             try:
                 duplicate = key in mapping
             except TypeError as error:
-                raise yaml.constructor.ConstructorError(
+                raise ConstructorError(
                     "while constructing a mapping",
                     node.start_mark,
                     "mapping keys must be scalar values",
                     key_node.start_mark,
                 ) from error
             if duplicate:
-                raise yaml.constructor.ConstructorError(
+                raise ConstructorError(
                     "while constructing a mapping",
                     node.start_mark,
                     f"duplicate key {key!r}",

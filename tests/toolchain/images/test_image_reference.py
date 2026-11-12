@@ -238,6 +238,7 @@ class ConfigurationTests(unittest.TestCase):
         original = SYNC.rendered_toolchain_groups(ROOT, toolchain)
         for key, groups in (
             ("RUFF_VERSION", ("tools",)),
+            ("TY_VERSION", ("python",)),
             ("PYYAML_VERSION", ("pdf", "python")),
             ("PYTHON_VERSION", ("pdf",)),
             ("GH_VERSION", ("tools",)),

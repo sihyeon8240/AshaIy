@@ -8,10 +8,18 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import TypedDict
 
 from tests.support.fixtures import copy_file, copy_validation_configuration
 
 ROOT = Path(__file__).resolve().parents[3]
+
+
+class PolicyFixture(TypedDict):
+    schema_version: int
+    policy_version: str
+    inputs: list[str]
+    platforms: list[dict[str, str]]
 
 
 class ImagePolicyTests(unittest.TestCase):
@@ -97,7 +105,7 @@ class ImagePolicyTests(unittest.TestCase):
             "repository/config/repository_config.py",
         ):
             copy_file(ROOT / "scripts" / name, self.root / "scripts" / name)
-        self.config = {
+        self.config: PolicyFixture = {
             "schema_version": 1,
             "policy_version": "native-multiarch-v1",
             "inputs": ["input.bin", "config/image-build.json"],

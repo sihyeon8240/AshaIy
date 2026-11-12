@@ -10,6 +10,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from typing import cast
 from unittest.mock import patch
 
 from scripts.ci import verified_build as BUILD
@@ -453,7 +454,8 @@ class VerifiedBuildTests(unittest.TestCase):
             with self.assertRaises(FileNotFoundError):
                 BUILD.record(self.expected, directory)
             for name, value in (("SOURCE_DATE_EPOCH", "1"), ("TEXINPUTS", "override:")):
-                (directory / BUILD.FILENAME).write_text(json.dumps({**self.expected["environment"], name: value}))
+                environment = cast(dict[str, str], self.expected["environment"])
+                (directory / BUILD.FILENAME).write_text(json.dumps({**environment, name: value}))
                 with self.assertRaisesRegex(ValueError, "environment differs"):
                     BUILD.record(self.expected, directory)
             self.assertFalse((directory / "verified-build.json").exists())

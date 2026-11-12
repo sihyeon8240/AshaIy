@@ -88,7 +88,7 @@ if [[ "$profile" == dev ]]; then
   check_command shellcheck
   check_command shfmt
   check_command ruff
-  check_command basedpyright
+  check_command ty
   check_command yamllint
   check_command djlint
   check_command check-jsonschema
@@ -107,6 +107,7 @@ if [[ "$profile" == dev ]]; then
     "${LATEXINDENT_VERSION}, ${LATEXINDENT_RELEASE_DATE}" \
     "latexindent ${LATEXINDENT_VERSION}, ${LATEXINDENT_RELEASE_DATE}"
   check_version ruff "ruff ${RUFF_VERSION}" "ruff ${RUFF_VERSION}"
+  check_version ty "ty ${TY_VERSION}" "ty ${TY_VERSION}"
   check_version shfmt "v${SHFMT_VERSION}" "shfmt ${SHFMT_VERSION}"
   check_version shellcheck "version: ${SHELLCHECK_VERSION}" "ShellCheck ${SHELLCHECK_VERSION}"
   check_version elan "elan ${ELAN_VERSION}" "elan ${ELAN_VERSION}"
@@ -116,7 +117,7 @@ if [[ "$profile" == dev ]]; then
   check_version jekyll "jekyll ${JEKYLL_VERSION}" "Jekyll ${JEKYLL_VERSION}"
   check_version bundle "${BUNDLER_VERSION}" "Bundler ${BUNDLER_VERSION}"
 
-  for package in playwright hypothesis coverage basedpyright yamllint djlint check-jsonschema; do
+  for package in playwright hypothesis coverage ty yamllint djlint check-jsonschema; do
     normalized_package="${package//-/_}"
     version_key="${normalized_package^^}_VERSION"
     installed_version="$("$PYTHON" -c 'import importlib.metadata, sys; print(importlib.metadata.version(sys.argv[1]))' "$package")"

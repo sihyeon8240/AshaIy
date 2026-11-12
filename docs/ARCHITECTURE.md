@@ -141,7 +141,7 @@ glob exclusions belong in `config/ignore-patterns.yml`.
 | Runtime readers | Shell/Python tools and image jobs read canonical configuration directly when execution can supply the value. |
 | Complete generated files | Toolchain pins, CI requirements, exclusion lists, and publication version macros remain committed outputs for tools that consume those file formats directly. |
 | Mixed editor/container files | Synchronization owns the image, cache volume mounts, extension lists, book choices, and configured editor fields; remaining user-maintained settings and unrelated mounts are preserved. |
-| Mixed TOML files | Synchronization owns the Lean dependency revision and Ruff target version; package metadata, Lean options, and lint policy remain hand-maintained. |
+| Mixed TOML files | Synchronization owns the Lean dependency revision and Python versions for Ruff and ty; package metadata, Lean options, and check policy remain hand-maintained. |
 
 Preserve hand-maintained fields in mixed consumers; do not replace these files
 with complete generated templates. Synchronization validates the full update set

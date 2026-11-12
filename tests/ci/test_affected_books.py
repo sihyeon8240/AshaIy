@@ -11,6 +11,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import cast
 from unittest import mock
 
 import yaml
@@ -232,7 +233,8 @@ class AffectedBookTests(unittest.TestCase):
 
         previous = deepcopy(self.manifest)
         current = deepcopy(previous)
-        current["books"][0]["site"] = True
+        books = cast(list[dict[str, object]], current["books"])
+        books[0]["site"] = True
         with (
             mock.patch.object(affected, "load_manifest", return_value=current),
             mock.patch.object(affected, "dependencies", side_effect=lambda slug: self.deps[slug]),

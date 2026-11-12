@@ -408,6 +408,12 @@ The development Python remains on the 3.14 series and uses its latest reviewed
 patch release. Check wheel availability before changing that series; Python
 dependencies retain the binary-wheel requirement, without runtime build tools.
 
+Python type checks use the pinned Rust-based `ty` binary. `check_quality.py`
+selects both `scripts/` and `tests/`, the active interpreter, and the shared
+`config/pyproject.toml`; warnings fail alongside errors. The Python target follows
+`config/toolchain.env`. No Rust compiler or separate Node runtime is needed for
+type checking in development or CI images.
+
 After changing Lean, configuration generation rotates its Dev Container cache
 volume name. Initialize the new volume with `ashaiy lean prepare`, then verify
 the environment and run the complete suites. The reviewed image pin follows

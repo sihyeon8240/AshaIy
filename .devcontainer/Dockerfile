@@ -152,7 +152,7 @@ RUN set -a && . /tmp/python.env && set +a \
     "playwright==${PLAYWRIGHT_VERSION}" \
     "hypothesis==${HYPOTHESIS_VERSION}" \
     "coverage==${COVERAGE_VERSION}" \
-    "basedpyright==${BASEDPYRIGHT_VERSION}" \
+    "ty==${TY_VERSION}" \
     "yamllint==${YAMLLINT_VERSION}" \
     "djlint==${DJLINT_VERSION}" \
     "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}"

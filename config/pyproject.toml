@@ -23,8 +23,10 @@ skip_empty = true
 [tool.coverage.html]
 directory = "${ASHAIY_TEST_ROOT?}/.cache/coverage/html"
 
-[tool.basedpyright]
-include = ["../scripts", "../tests"]
-extraPaths = [".."]
-typeCheckingMode = "basic"
-pythonVersion = "3.14"
+[tool.ty.environment]
+python-version = "3.14"
+extra-paths = [".."]
+
+[tool.ty.terminal]
+error-on-warning = true
+output-format = "concise"

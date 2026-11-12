@@ -9,8 +9,10 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import cast
 
 import yaml
+from yaml.error import Mark
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -104,6 +106,9 @@ def check_remote_tags(selected: list[str], manifest: dict) -> None:
 
 
 def release_edits(text: str, node: yaml.MappingNode, version: str) -> list[tuple]:
+    # Composed YAML nodes retain their source positions for targeted edits.
+    node_start = cast(Mark, node.start_mark).index
+    node_end = cast(Mark, node.end_mark).index
     fields = {key.value: value for key, value in node.value}
     updates = {"version": version, "release": "true"}
     edits = []
@@ -113,15 +118,15 @@ def release_edits(text: str, node: yaml.MappingNode, version: str) -> list[tuple
         if value is None:
             missing.append((name, replacement))
         else:
-            if not node.start_mark.index <= value.start_mark.index < node.end_mark.index:
+            if not node_start <= value.start_mark.index < node_end:
                 raise ValueError(f"release field '{name}' must not be a YAML alias")
             edits.append((value.start_mark.index, value.end_mark.index, replacement))
 
     if not missing:
         return edits
     if node.flow_style:
-        position = node.end_mark.index - 1
-        tokens = list(yaml.scan(text[node.start_mark.index : node.end_mark.index]))
+        position = node_end - 1
+        tokens = list(yaml.scan(text[node_start:node_end]))
         trailing_comma = isinstance(tokens[-3], yaml.tokens.FlowEntryToken)
         separator = " " if trailing_comma or not node.value else ", "
         addition = separator + ", ".join(f"{name}: {value}" for name, value in missing)

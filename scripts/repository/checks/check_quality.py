@@ -73,11 +73,14 @@ def main() -> int:
                 read_json(ROOT / path)
         status = run(
             ROOT,
-            "basedpyright",
+            "ty",
+            "check",
             "--project",
-            "config/pyproject.toml",
-            "--pythonpath",
+            "config",
+            "--python",
             sys.executable,
+            "scripts",
+            "tests",
         )
         if status:
             return status
