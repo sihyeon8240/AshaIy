@@ -2,6 +2,9 @@
 
 Use the pinned development image and run the suite with `ashaiy test`; output
 is buffered and shown only for failed tests, including in coverage mode.
+Module output is spooled to temporary files and consumed in deterministic order;
+only a bounded number of jobs are queued. Large successful logs do not remain
+in parent-process memory.
 Tests follow the functional packages under `scripts/`: `books`, `ci`, `cli`,
 `latex`, `lean`, `release`, `repository`, `site`, and `toolchain`.
 The larger areas also mirror `repository/{checks,config,formatting}/` and
