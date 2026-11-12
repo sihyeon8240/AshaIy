@@ -212,7 +212,16 @@ class ImpactPlanTests(unittest.TestCase):
         selections = dict(line.split("=", 1) for line in result.stdout.splitlines())
         self.assertEqual(
             set(selections),
-            {"lean", "image_changed", "structured", "site_changed", "snapshot_changed"},
+            {
+                "lean",
+                "image_changed",
+                "structured",
+                "site_changed",
+                "snapshot_changed",
+                "toolchain_checks",
+                "rendering_tests",
+                "site_tests",
+            },
         )
         self.assertEqual(set(selections.values()), {"false"})
 

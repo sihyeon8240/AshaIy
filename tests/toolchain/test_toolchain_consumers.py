@@ -35,7 +35,15 @@ class ToolchainConsumerTests(unittest.TestCase):
         ):
             with self.subTest(event=event, ref=ref):
                 self.assertEqual(
-                    condition_allows(main["if"], {"github.event_name": event, "github.ref": ref}),
+                    condition_allows(
+                        main["if"],
+                        {
+                            "github.event_name": event,
+                            "github.ref": ref,
+                            "needs.source.result": "success",
+                            "needs.lean.result": "success",
+                        },
+                    ),
                     expected,
                 )
         self.assertIn("main-image", jobs["prepare-image"]["needs"])

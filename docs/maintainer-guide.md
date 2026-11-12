@@ -156,6 +156,12 @@ the same book and image. Only successful main pushes save Lean and PDF caches;
 PRs restore them. Python and Mathlib download directories are not separately
 restored by Actions.
 
+Lean dependency keys also include the normalized reachable Mathlib import set.
+`ashaiy lean prepare` fills that set after an exact or compatible prefix restore;
+proof edits without import changes reuse the same dependency archive. Lean
+compilation runs independently of general source checks and remains part of the
+required source gate. Image publication still waits for both checks.
+
 Formatter caches use implementation and configuration inputs. CI prunes obsolete
 generations with `python3 scripts/latex/format_tex.py --check --prune-cache` before
 saving. Use pruning locally only without concurrent formatter runs.

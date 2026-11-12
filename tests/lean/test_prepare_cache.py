@@ -19,6 +19,20 @@ def elf_header(machine: int) -> bytes:
 
 
 class PrepareCacheTests(unittest.TestCase):
+    def test_cache_fingerprint_follows_reachable_imports_without_tracking_proof_edits(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "lean/Textbooks").mkdir(parents=True)
+            (root / "lean/Textbooks.lean").write_text("import Textbooks.Topic\n")
+            source = root / "lean/Textbooks/Topic.lean"
+            source.write_text("import Mathlib.One\n/- import Mathlib.Unused -/\ndef value := 1\n")
+            original = CACHE.import_fingerprint(root)
+            source.write_text("import Mathlib.One\nimport Mathlib.One\ndef value := 2\n")
+            (root / "lean/Textbooks/Unreachable.lean").write_text("import Mathlib.Other\n")
+            self.assertEqual(CACHE.import_fingerprint(root), original)
+            source.write_text("import Mathlib.One\nimport Mathlib.Two\n")
+            self.assertNotEqual(CACHE.import_fingerprint(root), original)
+
     def test_prepares_only_import_closure_and_repairs_restored_native_tool(self):
         for stale_trace in (False, True):
             with self.subTest(stale_trace=stale_trace), tempfile.TemporaryDirectory() as temporary:

@@ -68,7 +68,7 @@ class ImageCandidateTests(unittest.TestCase):
             job["permissions"],
             {"contents": "read", "actions": "read", "packages": "read"},
         )
-        self.assertIn("needs.source.outputs.image_changed == 'true'", job["if"])
+        self.assertIn("needs.plan.outputs.image_changed == 'true'", job["if"])
         gate = workflow["jobs"]["check"]
         self.assertIn("image-validation", gate["needs"])
         for image_result in ("success", "skipped", "failure", "cancelled"):
@@ -80,6 +80,8 @@ class ImageCandidateTests(unittest.TestCase):
                         "SOURCE_RESULT": "success",
                         "LATEX_RESULT": "success",
                         "IMAGE_RESULT": image_result,
+                        "LEAN_RESULT": "success",
+                        "LEAN_REQUIRED": "true",
                     },
                     capture_output=True,
                     text=True,
