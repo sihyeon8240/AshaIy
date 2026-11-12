@@ -160,7 +160,7 @@ class ReleaseRetryTests(unittest.TestCase):
                 self.assertEqual((directory / self.pdf_name).read_bytes(), self.pdf)
                 command.assert_any_call("git", "merge-base", "--is-ancestor", self.source, "origin/main")
                 api.assert_any_call("repos/owner/repo/actions/runs/42/attempts/1")
-                collection.assert_any_call("repos/owner/repo/actions/runs/42/attempts/1/jobs", "jobs")
+                collection.assert_any_call("repos/owner/repo/actions/runs/42/attempts/1/jobs", "jobs", fetch=api)
                 self.assertFalse(any("build_book" in str(call) for call in command.call_args_list))
 
     def test_wrong_version_or_unmerged_source_cannot_download(self):
