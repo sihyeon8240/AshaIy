@@ -29,23 +29,30 @@ def seconds(start: str | None, end: str | None) -> float | None:
 
 
 def summarize(run: dict, jobs: list[dict], artifacts: list[dict]) -> dict:
-    records = [
-        {
-            "name": job["name"],
-            "conclusion": job.get("conclusion"),
-            "runner_seconds": seconds(job.get("started_at"), job.get("completed_at")),
-            "start_delay_seconds": seconds(run.get("created_at"), job.get("started_at")),
-        }
-        for job in jobs
-    ]
-    completed = [job["completed_at"] for job in jobs if job.get("completed_at")]
+    started = run["run_started_at"]
+    records = []
+    for job in jobs:
+        skipped = job.get("conclusion") == "skipped"
+        # Skipped jobs never acquire a runner and may have reversed synthetic timestamps.
+        records.append(
+            {
+                "name": job["name"],
+                "conclusion": job.get("conclusion"),
+                "runner_seconds": 0 if skipped else seconds(job.get("started_at"), job.get("completed_at")),
+                "start_delay_seconds": None if skipped else seconds(started, job.get("started_at")),
+                "queued_seconds": None if skipped else seconds(job.get("created_at"), job.get("started_at")),
+            }
+        )
+    completed = [job["completed_at"] for job in jobs if job.get("completed_at") and job.get("conclusion") != "skipped"]
     return {
         "run_id": run["id"],
         "attempt": run["run_attempt"],
         "event": run["event"],
         "revision": run["head_sha"],
         "conclusion": run.get("conclusion"),
-        "observed_wall_seconds": seconds(run.get("created_at"), max(completed) if completed else None),
+        "run_created_at": run["created_at"],
+        "attempt_started_at": started,
+        "observed_wall_seconds": seconds(started, max(completed) if completed else None),
         "runner_seconds": sum(item["runner_seconds"] or 0 for item in records),
         "incomplete_jobs": sum(item["runner_seconds"] is None for item in records),
         "artifact_bytes": sum(item["size_in_bytes"] for item in artifacts),
@@ -69,7 +76,9 @@ def main() -> int:
         for identifier in arguments.run_id:
             endpoint = f"repos/{arguments.repository}/actions/runs/{identifier}"
             run = api(endpoint)
-            jobs = collection(f"{endpoint}/attempts/{run['run_attempt']}/jobs", "jobs")
+            attempt = f"{endpoint}/attempts/{run['run_attempt']}"
+            run = api(attempt)
+            jobs = collection(f"{attempt}/jobs", "jobs")
             artifacts = collection(f"{endpoint}/artifacts", "artifacts")
             records.append(summarize(run, jobs, artifacts))
         try:
@@ -81,8 +90,10 @@ def main() -> int:
             "repository": arguments.repository,
             "notes": [
                 "Runner seconds are observed job durations, not billed minutes.",
+                "Wall time starts at the selected attempt's run_started_at, excluding gaps before reruns.",
                 "Start delay includes dependency waiting and provisioning, not queueing alone.",
-                "Artifact bytes are stored archive sizes; cache usage is a repository-wide snapshot.",
+                "Queue time is reported only where job creation timestamps are available.",
+                "Artifact bytes cover the run's retained archives across attempts; cache usage is repository-wide.",
                 "Use repeated runs per change category before changing grouping or retention.",
             ],
             "runs": records,

@@ -445,8 +445,11 @@ python3 scripts/toolchain/dependencies.py
 ```
 
 The first report includes all job pages, observed runner/wall seconds, incomplete
-jobs, stored artifact bytes and repository cache usage. Group runs by change
-category and collect repeated samples before changing grouping or retention.
+jobs, stored artifact bytes and repository cache usage. Wall time starts at the
+selected attempt, excluding gaps before reruns. Queue time is available only for
+jobs with creation timestamps; retained artifacts can span multiple attempts.
+Group runs by change category and collect repeated samples before changing
+grouping or retention.
 The second reports upstream releases without editing pins; unavailable lookups
 remain explicit. The monthly **Report toolchain updates** workflow retains this
 report as an artifact and never creates commits, PRs or publication changes.

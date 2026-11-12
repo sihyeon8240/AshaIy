@@ -220,7 +220,16 @@ def main() -> int:
                             arguments.output.parent / f"format-{jobs}-{state}.log",
                             env=env,
                         )
-                        cases.append({"name": "format", "jobs": jobs, "cache": state, "samples": [sample]})
+                        cache_bytes = sum(path.stat().st_size for path in cache.rglob("*") if path.is_file())
+                        cases.append(
+                            {
+                                "name": "format",
+                                "jobs": jobs,
+                                "cache": state,
+                                "cache_bytes": cache_bytes,
+                                "samples": [sample],
+                            }
+                        )
         arguments.output.write_text(json.dumps(result, indent=2) + "\n")
         print(f"Saved benchmark measurements: {arguments.output}")
     except (OSError, ValueError, subprocess.SubprocessError) as error:
