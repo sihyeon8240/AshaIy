@@ -37,6 +37,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+          filter: blob:none
       - name: Load trusted repository configuration
         id: config
         run: ./scripts/repository/config/export_config.sh
