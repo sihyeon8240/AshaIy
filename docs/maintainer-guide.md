@@ -130,8 +130,10 @@ PDF rebuilds, so the workflow and its source scripts remain compatible.
 
 Pages uses the immutable `snapshot_sha` and its recorded source. Deployment jobs
 queue; guards preserved before loading that source check for supersession before
-rendering and immediately before deployment. The artifact checker validates
-rendered links and PDF bytes before upload. Remote/ref failures stop deployment:
+rendering and immediately before deployment. Previews, browser fixtures, and deployment share the production Jekyll renderer.
+Pages uses the source revision's pinned development image and rejects a Jekyll
+version mismatch; its renderer is preserved before checking out older snapshots.
+The artifact checker validates rendered links and PDF bytes before upload. Remote/ref failures stop deployment:
 restore access or repair the ref, then retry. Main and the snapshot ref are not
 locked as one transaction. Versioned release packages are independent.
 
@@ -171,7 +173,8 @@ saving. Use pruning locally only without concurrent formatter runs.
 PDF reuse, image candidates, and release retries share bounded, file-based
 downloads in [`github_artifacts.py`](../scripts/ci/github_artifacts.py): progress,
 disk-space, size, timeout/retry, provenance, and GitHub digest checks. Domain
-modules validate their own archive contents.
+modules validate their own archive contents. Shared collection queries follow
+pages within time and page budgets, rejecting duplicate identities.
 
 After a merge, each affected PDF job first looks for a successful `build.yml`
 PR run, or an exact-pin dispatch, for the merged PR's head in this repository.

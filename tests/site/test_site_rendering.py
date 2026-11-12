@@ -19,6 +19,7 @@ import yaml
 from playwright.sync_api import sync_playwright
 
 from scripts.site.check_site_output import check as check_site_output
+from scripts.site.render_site import render
 from tests.site.test_site_generation import site_generator
 from tests.support.fixtures import copy_file
 
@@ -115,25 +116,17 @@ class SiteRenderingTests(unittest.TestCase):
     @classmethod
     def build(cls, source: Path, destination: Path, *, preview_config: bool = True) -> None:
         assert JEKYLL is not None
-        result = subprocess.run(
-            [
+        try:
+            render(
                 JEKYLL,
-                "build",
-                "--source",
-                str(source),
-                "--destination",
-                str(destination),
-                "--config",
-                (f"{source / '_config.yml'},{cls.config}" if preview_config else str(source / "_config.yml")),
-                "--disable-disk-cache",
-            ],
-            cwd=cls.workspace,
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-        if result.returncode:
-            raise AssertionError(result.stdout + result.stderr)
+                source,
+                destination,
+                config=f"{source / '_config.yml'},{cls.config}" if preview_config else str(source / "_config.yml"),
+                cwd=cls.workspace,
+                capture_output=True,
+            )
+        except subprocess.CalledProcessError as error:
+            raise AssertionError(error.stdout + error.stderr) from error
 
     def page(self, path: str) -> RenderedPage:
         return RenderedPage((self.destination / path).read_text(encoding="utf-8"))

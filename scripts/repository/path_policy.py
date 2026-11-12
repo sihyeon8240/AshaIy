@@ -31,6 +31,7 @@ IMAGE_PIPELINE = {
 }
 
 SITE_FILES = {
+    "scripts/site/render_site.py",
     "scripts/site/check_site_output.py",
     ".github/workflows/pages.yml",
     "scripts/site/site_pages.py",
