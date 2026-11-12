@@ -98,7 +98,6 @@ def run_tests(directory: str, pattern: str, *, jobs: int | None = None, root: Pa
         with closing(iter_parallel(selected, execute, jobs=count)) as results:
             for module, status, log in results:
                 actual = None
-                skip_lines = []
                 with log.open(encoding="utf-8", errors="replace") as output:
                     for line in output:
                         match = re.match(r"Ran (\d+) tests? in ", line)
@@ -107,8 +106,6 @@ def run_tests(directory: str, pattern: str, *, jobs: int | None = None, root: Pa
                         match = re.search(r"\bskipped=(\d+)", line)
                         if match:
                             skipped += int(match[1])
-                        if " ... skipped " in line:
-                            skip_lines.append(line.rstrip())
                 complete = actual == modules[module]
                 if status or not complete:
                     failed += 1
@@ -118,8 +115,10 @@ def run_tests(directory: str, pattern: str, *, jobs: int | None = None, root: Pa
                     if not complete:
                         print(f"Test count differs from discovery: expected {modules[module]}.", file=sys.stderr)
                 else:
-                    for line in skip_lines:
-                        print(line)
+                    with log.open(encoding="utf-8", errors="replace") as output:
+                        for line in output:
+                            if " ... skipped " in line:
+                                print(line.rstrip())
                 log.unlink()
     print(
         f"Ran {sum(modules.values())} tests in {time.monotonic() - started:.3f}s "
