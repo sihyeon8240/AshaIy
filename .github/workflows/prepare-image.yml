@@ -24,12 +24,22 @@ on:
       artifact:
         description: Run-local AMD64 image artifact when registry publication is disabled
         value: ${{ jobs.image.outputs.artifact }}
+      pdf_image:
+        description: Tested PDF registry or run-local image reference
+        value: ${{ jobs.pdf-image.outputs.image }}
+      pdf_digest:
+        description: PDF index digest or run-local image ID
+        value: ${{ jobs.pdf-image.outputs.digest }}
+      pdf_artifact:
+        description: Optional run-local PDF image artifact
+        value: ${{ jobs.pdf-image.outputs.artifact }}
 jobs:
   inputs:
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
+      pdf_tag: ${{ steps.tag.outputs.pdf_tag }}
     steps:
       - name: Checkout image inputs
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -41,11 +51,22 @@ jobs:
           input_hash="$(python3 scripts/toolchain/images/image_policy.py hash)"
           echo "RELEASE_TAG=texlive-${input_hash}" >> "$GITHUB_ENV"
           echo "tag=texlive-${input_hash}" >> "$GITHUB_OUTPUT"
+          pdf_hash="$(python3 scripts/toolchain/images/image_policy.py hash --target pdf)"
+          echo "pdf_tag=texlive-${pdf_hash}" >> "$GITHUB_OUTPUT"
   image:
     needs: inputs
     uses: ./.github/workflows/build-toolchain.yml
     with:
       ref: ${{ inputs.ref }}
       tag: ${{ needs.inputs.outputs.tag }}
+      validate_existing: ${{ inputs.validate_existing }}
+      refresh_cache: ${{ inputs.refresh_cache }}
+  pdf-image:
+    needs: inputs
+    uses: ./.github/workflows/build-toolchain.yml
+    with:
+      ref: ${{ inputs.ref }}
+      tag: ${{ needs.inputs.outputs.pdf_tag }}
+      target: pdf
       validate_existing: ${{ inputs.validate_existing }}
       refresh_cache: ${{ inputs.refresh_cache }}

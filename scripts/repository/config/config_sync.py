@@ -74,6 +74,7 @@ def rendered_toolchain_groups(root: Path, toolchain: dict[str, str]) -> dict[Pat
     groups = {
         "tools": ("ELAN_", "RUFF_", "SHFMT_", "LATEXINDENT_", "SHELLCHECK_", "GH_"),
         "texlive": ("TEXLIVE_",),
+        "pdf": ("TEXLIVE_", "PYTHON_", "PYYAML_"),
         "lean": ("LEAN_",),
         "python": (
             "PYYAML_",

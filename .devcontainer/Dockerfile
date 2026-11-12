@@ -63,18 +63,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl libfontconfig1 perl xz-utils \
   && rm -rf /var/lib/apt/lists/*
 COPY --chmod=0644 .devcontainer/generated/texlive.env /tmp/texlive.env
+COPY --chmod=0644 config/texlive.profile config/texlive-packages.txt /tmp/
 RUN set -a && . /tmp/texlive.env && set +a \
   && repository="https://texlive.info/tlnet-archive/${TEXLIVE_ARCHIVE_DATE}/tlnet" \
   && curl -fsSL -o /tmp/install-tl.tgz "$repository/install-tl-unx.tar.gz" \
   && echo "${TEXLIVE_INSTALLER_SHA256}  /tmp/install-tl.tgz" | sha256sum --check - \
   && mkdir /tmp/install-tl \
   && tar -xzf /tmp/install-tl.tgz -C /tmp/install-tl --strip-components=1 \
-  && printf '%s\n' 'selected_scheme scheme-full' 'instopt_letter 0' \
-    'tlpdbopt_autobackup 0' 'tlpdbopt_desktop_integration 0' \
-    'tlpdbopt_file_assocs 0' 'tlpdbopt_install_docfiles 0' \
-    'tlpdbopt_install_srcfiles 0' > /tmp/install-tl/profile \
+  && cp /tmp/texlive.profile /tmp/install-tl/profile \
+  && printf 'TEXDIR /usr/local/texlive/%s\n' "$TEXLIVE_YEAR" >> /tmp/install-tl/profile \
   && TEXLIVE_INSTALL_NO_CONTEXT_CACHE=1 TEXLIVE_INSTALL_NO_WELCOME=1 \
     perl /tmp/install-tl/install-tl -profile /tmp/install-tl/profile -repository "$repository" \
+  && tex_bin="$(find "/usr/local/texlive/${TEXLIVE_YEAR}/bin" -mindepth 1 -maxdepth 1 -type d)" \
+  && export PATH="$tex_bin:$PATH" \
+  && xargs -r tlmgr --repository "$repository" install < /tmp/texlive-packages.txt \
+  && TEXMFCACHE="/usr/local/texlive/${TEXLIVE_YEAR}/texmf-var" \
+    "$tex_bin/luaotfload-tool" --update --force \
   && rm -rf /tmp/install-tl /tmp/install-tl.tgz "/usr/local/texlive/${TEXLIVE_YEAR}"/*.log
 
 FROM debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2 AS ruby-tools
@@ -86,25 +90,74 @@ COPY --chmod=0644 .devcontainer/generated/ruby.env /tmp/ruby.env
 RUN set -a && . /tmp/ruby.env && set +a \
   && gem install --no-document "bundler:${BUNDLER_VERSION}" "jekyll:${JEKYLL_VERSION}"
 
-FROM python:3.14.10-slim-trixie@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f
-LABEL org.opencontainers.image.description="Development and CI toolchain for AshaIy mathematics textbooks, including TeX Live, Lean, and Python."
-ENV DEBIAN_FRONTEND=noninteractive
+FROM debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2 AS lean-toolchain
 ENV ELAN_HOME=/usr/local/elan
+ENV PATH="/usr/local/elan/bin:${PATH}"
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
+  && rm -rf /var/lib/apt/lists/*
+COPY --from=tool-downloader --chmod=0755 /out/bin/elan-init /usr/local/bin/elan-init
+COPY --chmod=0644 .devcontainer/generated/lean.env /tmp/lean.env
+RUN set -a && . /tmp/lean.env && set +a \
+  && /usr/local/bin/elan-init -y --no-modify-path --default-toolchain none \
+  && rm /usr/local/bin/elan-init \
+  && elan toolchain install "$LEAN_TOOLCHAIN" \
+  && elan default "$LEAN_TOOLCHAIN"
+
+FROM python:3.14.10-slim-trixie@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f AS pdf
+LABEL org.opencontainers.image.description="PDF build toolchain for AshaIy mathematics textbooks, including TeX Live and Python."
+ENV DEBIAN_FRONTEND=noninteractive
 ENV ASHAIY_ROOT=/workspace
-ENV PATH="/usr/local/elan/bin:/usr/local/bin:/usr/local/texlive/2026/bin/x86_64-linux:/usr/local/texlive/2026/bin/aarch64-linux:${PATH}"
+ENV PATH="/usr/local/texlive/2026/bin/x86_64-linux:/usr/local/texlive/2026/bin/aarch64-linux:${PATH}"
 WORKDIR /workspace
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    bash ca-certificates chromium curl ghostscript \
-    git git-man jq less locales man-db nano openssh-client perl \
-    poppler-utils ripgrep ruby tree tzdata xz-utils zsh \
+    bash ca-certificates curl ghostscript git locales perl poppler-utils util-linux xz-utils \
   && echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen \
   && locale-gen \
   && rm -rf /var/lib/apt/lists/*
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
+ENV TZ=Etc/UTC
+COPY --chmod=0644 .devcontainer/generated/pdf.env /tmp/python.env
+RUN set -a && . /tmp/python.env && set +a \
+  && python3 -m pip install --disable-pip-version-check --no-cache-dir --only-binary=:all: \
+    "PyYAML==${PYYAML_VERSION}"
+COPY --from=texlive /usr/local/texlive /usr/local/texlive
+COPY --chmod=0755 scripts/ashaiy_launcher.sh /usr/local/bin/ashaiy
+COPY --chmod=0644 .devcontainer/generated/pdf.env /workspace/config/toolchain.env
+COPY --chmod=0755 scripts/toolchain/check_toolchain.sh /workspace/scripts/toolchain/check_toolchain.sh
+RUN set -a && . /workspace/config/toolchain.env && set +a \
+  && lualatex --version | head -n1 | grep -F "TeX Live ${TEXLIVE_YEAR}" \
+  && ./scripts/toolchain/check_toolchain.sh pdf
+ENTRYPOINT []
+CMD ["/bin/bash"]
+
+FROM pdf AS dev
+LABEL org.opencontainers.image.description="Development and CI toolchain for AshaIy mathematics textbooks, including TeX Live, Lean, and Python."
+ENV ELAN_HOME=/usr/local/elan
+ENV PATH="/usr/local/elan/bin:${PATH}"
 ENV SHELL=/bin/zsh
 ENV EDITOR=nano
-ENV TZ=Etc/UTC
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium git-man jq less man-db nano openssh-client ripgrep ruby tree zsh \
+  && rm -rf /var/lib/apt/lists/*
+COPY --from=lean-toolchain /usr/local/elan /usr/local/elan
+COPY --chmod=0644 config/toolchain.env /workspace/config/toolchain.env
+COPY --from=ruby-tools /var/lib/gems /var/lib/gems
+COPY --from=ruby-tools /usr/local/bin/ /usr/local/bin/
+COPY --chmod=0644 .devcontainer/generated/python.env /tmp/python.env
+RUN set -a && . /tmp/python.env && set +a \
+  && python3 -m pip install \
+    --disable-pip-version-check --no-cache-dir --only-binary=:all: \
+    "PyYAML==${PYYAML_VERSION}" \
+    "playwright==${PLAYWRIGHT_VERSION}" \
+    "hypothesis==${HYPOTHESIS_VERSION}" \
+    "coverage==${COVERAGE_VERSION}" \
+    "basedpyright==${BASEDPYRIGHT_VERSION}" \
+    "yamllint==${YAMLLINT_VERSION}" \
+    "djlint==${DJLINT_VERSION}" \
+    "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}"
+COPY --from=tool-downloader --chmod=0755 /out/bin/ruff /out/bin/shfmt \
+    /out/bin/latexindent /out/bin/shellcheck /out/bin/gh /usr/local/bin/
 ARG BASEDEVCONTAINER_SHELL_COMMIT=08ecc2ae6dcda53eb59a7edd8246682f3e0a4238
 ARG OH_MY_ZSH_COMMIT=6010fb6260f359e71d99ba25f05f9215809b3ed2
 ARG POWERLEVEL10K_COMMIT=433bb250037d1baf479adf06ce78b3a338c574a4
@@ -130,35 +183,5 @@ RUN curl -fsSL -o /root/.zshrc \
   && rm -rf /root/.oh-my-zsh/.git \
       /root/.oh-my-zsh/custom/themes/powerlevel10k/.git \
   && usermod --shell /bin/zsh root
-COPY --from=tool-downloader --chmod=0755 /out/bin/elan-init /usr/local/bin/elan-init
-COPY --chmod=0644 .devcontainer/generated/lean.env /tmp/lean.env
-RUN set -a && . /tmp/lean.env && set +a \
-  && /usr/local/bin/elan-init -y --no-modify-path --default-toolchain none \
-  && rm /usr/local/bin/elan-init \
-  && elan toolchain install "$LEAN_TOOLCHAIN" \
-  && elan default "$LEAN_TOOLCHAIN"
-COPY --from=ruby-tools /var/lib/gems /var/lib/gems
-COPY --from=ruby-tools /usr/local/bin/ /usr/local/bin/
-COPY --chmod=0644 .devcontainer/generated/python.env /tmp/python.env
-RUN set -a && . /tmp/python.env && set +a \
-  && python3 -m pip install \
-    --disable-pip-version-check --no-cache-dir --only-binary=:all: \
-    "PyYAML==${PYYAML_VERSION}" \
-    "playwright==${PLAYWRIGHT_VERSION}" \
-    "hypothesis==${HYPOTHESIS_VERSION}" \
-    "coverage==${COVERAGE_VERSION}" \
-    "basedpyright==${BASEDPYRIGHT_VERSION}" \
-    "yamllint==${YAMLLINT_VERSION}" \
-    "djlint==${DJLINT_VERSION}" \
-    "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}"
-COPY --from=tool-downloader --chmod=0755 /out/bin/ruff /out/bin/shfmt \
-    /out/bin/latexindent /out/bin/shellcheck /out/bin/gh /usr/local/bin/
-COPY --from=texlive /usr/local/texlive /usr/local/texlive
-COPY --chmod=0755 scripts/ashaiy_launcher.sh /usr/local/bin/ashaiy
-COPY --chmod=0644 config/toolchain.env /workspace/config/toolchain.env
-COPY --chmod=0755 scripts/toolchain/check_toolchain.sh /workspace/scripts/toolchain/check_toolchain.sh
-RUN set -a && . /workspace/config/toolchain.env && set +a \
-  && lualatex --version | head -n1 | grep -F "TeX Live ${TEXLIVE_YEAR}" \
-  && ./scripts/toolchain/check_toolchain.sh
-ENTRYPOINT []
+RUN ./scripts/toolchain/check_toolchain.sh
 CMD ["/bin/zsh"]

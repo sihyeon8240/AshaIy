@@ -90,6 +90,9 @@ class ToolchainConsumerTests(unittest.TestCase):
                         "PREPARED_IMAGE": image,
                         "PREPARED_DIGEST": digest,
                         "PREPARED_ARTIFACT": artifact,
+                        "PREPARED_PDF_IMAGE": image + "-pdf",
+                        "PREPARED_PDF_DIGEST": "b" * 64,
+                        "PREPARED_PDF_ARTIFACT": "pdf-" + artifact if artifact else "",
                     },
                     capture_output=True,
                     text=True,
@@ -98,7 +101,9 @@ class ToolchainConsumerTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(
                     output.read_text(),
-                    f"image={image}\ndigest={digest}\nartifact={artifact}\n",
+                    f"image={image}\ndigest={digest}\nartifact={artifact}\n"
+                    f"pdf_image={image}-pdf\npdf_digest={'b' * 64}\n"
+                    f"pdf_artifact={'pdf-' + artifact if artifact else ''}\n",
                 )
 
     def test_consumers_receive_candidate_identity_and_skip_registry_pdf_recording(self):
@@ -110,9 +115,10 @@ class ToolchainConsumerTests(unittest.TestCase):
                 if step.get("uses") != "./.github/actions/run-toolchain":
                     continue
                 for key in ("image", "digest", "artifact"):
+                    output = "pdf_" + key if name == "book" else key
                     self.assertEqual(
                         step["with"][key],
-                        "${{ needs.prepare-image.outputs." + key + " }}",
+                        "${{ needs.prepare-image.outputs." + output + " }}",
                     )
             self.assertEqual(job["permissions"]["packages"], "read")
         for step in jobs["book"]["steps"]:
@@ -120,7 +126,7 @@ class ToolchainConsumerTests(unittest.TestCase):
                 "Record the verified build",
                 "Upload verified build for reuse after merge",
             ):
-                self.assertIn("needs.prepare-image.outputs.artifact == ''", step["if"])
+                self.assertIn("needs.prepare-image.outputs.pdf_artifact == ''", step["if"])
 
     def test_local_images_run_without_a_registry_pull(self):
         action = yaml.safe_load((ROOT / ".github/actions/run-toolchain/action.yml").read_text())

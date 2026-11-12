@@ -5,6 +5,8 @@
     ".devcontainer/Dockerfile",
     ".devcontainer/Dockerfile.dockerignore",
     "config/toolchain.env",
+    "config/texlive.profile",
+    "config/texlive-packages.txt",
     "scripts/toolchain/check_toolchain.sh",
     "config/image-build.json",
     "scripts/ashaiy_launcher.sh",
@@ -12,6 +14,7 @@
     ".devcontainer/generated/texlive.env",
     ".devcontainer/generated/lean.env",
     ".devcontainer/generated/python.env",
+    ".devcontainer/generated/pdf.env",
     ".devcontainer/generated/ruby.env"
   ],
   "platforms": [

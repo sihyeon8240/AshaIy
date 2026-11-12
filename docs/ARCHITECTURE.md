@@ -102,6 +102,8 @@ config/toolchain.env       -> Docker, CI Python, Lean, and Python tooling consum
 config/container-image.txt -> local and devcontainer image consumers
 config/ignore-patterns.yml -> Git, Docker, tree, and VS Code exclusion consumers
 config/image-build.json    -> image input detection, tag hashing, build matrix, and index checks
+config/texlive.profile     -> minimal TeX Live installation policy
+config/texlive-packages.txt -> TeX runtime packages and resolved dependencies
 config/authoring.json      -> CLI/editor shell formatting and unittest discovery
 config/validation-patterns.json -> Python validation and synchronized shell/schema expressions
 config/books.yml           -> VS Code task and GitHub issue-form book choices

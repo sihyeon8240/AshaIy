@@ -312,6 +312,15 @@ the independently deployed PR validator and trusted main publisher. Keep it stab
 when either side is updated first; a policy-version bump alone cannot teach an
 older publisher a different serialization algorithm.
 
+Preparation supplies separate `dev` and `pdf` indexes and run-local artifacts.
+Book builds, incremental keys, and verified PDF records use the PDF image;
+formatting and browser checks use the development image. Only development images
+participate in the existing PR pin promotion and mutable `latest` aliases.
+PDF tags project the `texlive` and `pdf` Docker stages and their COPY inputs,
+including generated `pdf.env`; development-only pins and shell changes therefore
+retain the PDF image. Unknown stage dependencies or mounts conservatively use
+the complete input transcript. Development tag serialization remains unchanged.
+
 Docker `COPY --chmod` fixes executable and data permissions in the recipe. Checkout
 mode bits therefore do not affect the image; permission-policy changes modify the
 Dockerfile bytes and its content tag. The hash command rejects symlinks, unhashed
@@ -385,6 +394,15 @@ stage, with only gems and their launchers copied into the runtime image.
 Their versions are checked against `config/toolchain.env`, and
 Playwright uses installed Chromium. The reviewed image digest pins the installed
 set; rebuilding can pick up newer Debian package revisions.
+
+The `pdf` final target contains the TeX runtime, Python/PyYAML, and PDF build and
+inspection tools. `dev` adds Lean, formatters, static checks, Ruby/Jekyll,
+Chromium, and authoring conveniences. Both share the pinned TeX installation
+declared by `config/texlive.profile` and `config/texlive-packages.txt`; update the
+package list when new source or fixture requirements appear. The image prepares
+its Lua font database once. Build a local PDF target with
+`IMAGE_TARGET=pdf IMAGE=ashaiy-pdf:local ./scripts/toolchain/images/build_image.sh`.
+The Dev Container continues to use the reviewed development pin.
 
 The development Python remains on the 3.14 series and uses its latest reviewed
 patch release. Check wheel availability before changing that series; Python

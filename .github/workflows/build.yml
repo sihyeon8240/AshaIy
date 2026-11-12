@@ -339,6 +339,9 @@ jobs:
       image: ${{ steps.image.outputs.image }}
       digest: ${{ steps.image.outputs.digest }}
       artifact: ${{ steps.image.outputs.artifact }}
+      pdf_image: ${{ steps.image.outputs.pdf_image }}
+      pdf_digest: ${{ steps.image.outputs.pdf_digest }}
+      pdf_artifact: ${{ steps.image.outputs.pdf_artifact }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Load repository configuration
@@ -367,12 +370,19 @@ jobs:
           PREPARED_IMAGE: ${{ needs.image-validation.outputs.image || needs.main-image.outputs.image }}
           PREPARED_DIGEST: ${{ needs.image-validation.outputs.digest || needs.main-image.outputs.digest }}
           PREPARED_ARTIFACT: ${{ needs.image-validation.outputs.artifact || needs.main-image.outputs.artifact }}
+          PREPARED_PDF_IMAGE: ${{ needs.image-validation.outputs.pdf_image || needs.main-image.outputs.pdf_image }}
+          PREPARED_PDF_DIGEST: ${{ needs.image-validation.outputs.pdf_digest || needs.main-image.outputs.pdf_digest }}
+          PREPARED_PDF_ARTIFACT: ${{ needs.image-validation.outputs.pdf_artifact || needs.main-image.outputs.pdf_artifact }}
         run: |
           if [[ -n "$PREPARED_IMAGE" ]]; then
+            [[ -n "$PREPARED_PDF_IMAGE" && -n "$PREPARED_PDF_DIGEST" ]]
             {
               echo "image=$PREPARED_IMAGE"
               echo "digest=$PREPARED_DIGEST"
               echo "artifact=$PREPARED_ARTIFACT"
+              echo "pdf_image=$PREPARED_PDF_IMAGE"
+              echo "pdf_digest=$PREPARED_PDF_DIGEST"
+              echo "pdf_artifact=$PREPARED_PDF_ARTIFACT"
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -380,6 +390,16 @@ jobs:
           input_hash="$(python3 scripts/toolchain/images/image_policy.py hash)"
           tag="${IMAGE_NAME}:texlive-${input_hash}"
           IMAGE_REF="$tag" REQUIRE_IMAGE=true ./scripts/toolchain/images/check_image_tag.sh
+          pdf_hash="$(python3 scripts/toolchain/images/image_policy.py hash --target pdf)"
+          pdf_output="$(mktemp)"
+          trap 'rm -f -- "$pdf_output"' EXIT
+          GITHUB_OUTPUT="$pdf_output" IMAGE_REF="${IMAGE_NAME}:texlive-${pdf_hash}" \
+            REQUIRE_IMAGE=true ./scripts/toolchain/images/check_image_tag.sh
+          while IFS='=' read -r key value; do
+            case "$key" in
+              image|digest) echo "pdf_${key}=$value" >> "$GITHUB_OUTPUT" ;;
+            esac
+          done < "$pdf_output"
   plan:
     runs-on: ubuntu-26.04
     timeout-minutes: 10
@@ -476,7 +496,7 @@ jobs:
       - name: Identify the build inputs
         id: inputs
         env:
-          DIGEST: ${{ needs.prepare-image.outputs.digest }}
+          DIGEST: ${{ needs.prepare-image.outputs.pdf_digest }}
           BOOK: ${{ matrix.book }}
         run: |
           mkdir -p "build/$BOOK"
@@ -487,19 +507,19 @@ jobs:
           echo "sources=$sources" >> "$GITHUB_OUTPUT"
           echo "image=$DIGEST" >> "$GITHUB_OUTPUT"
       - name: Download PDF validation results from the candidate image job
-        if: needs.prepare-image.outputs.artifact != ''
+        if: needs.prepare-image.outputs.pdf_artifact != ''
         continue-on-error: true
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          name: candidate-pdfs
+          name: candidate-pdfs-pdf
           path: build/candidate-pdfs
       - name: Reuse a verified PDF
         id: reuse
-        if: github.event_name == 'push' || needs.prepare-image.outputs.artifact != ''
+        if: github.event_name == 'push' || needs.prepare-image.outputs.pdf_artifact != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          IMAGE: ${{ needs.prepare-image.outputs.image }}
-          CANDIDATE_ID: ${{ needs.prepare-image.outputs.artifact != '' && needs.prepare-image.outputs.digest || '' }}
+          IMAGE: ${{ needs.prepare-image.outputs.pdf_image }}
+          CANDIDATE_ID: ${{ needs.prepare-image.outputs.pdf_artifact != '' && needs.prepare-image.outputs.pdf_digest || '' }}
           BOOK: ${{ matrix.book }}
         run: |
           if [[ -n "$CANDIDATE_ID" ]]; then
@@ -536,9 +556,9 @@ jobs:
         if: steps.reuse.outputs.reused != 'true'
         uses: ./.github/actions/run-toolchain
         with:
-          image: ${{ needs.prepare-image.outputs.image }}
-          digest: ${{ needs.prepare-image.outputs.digest }}
-          artifact: ${{ needs.prepare-image.outputs.artifact }}
+          image: ${{ needs.prepare-image.outputs.pdf_image }}
+          digest: ${{ needs.prepare-image.outputs.pdf_digest }}
+          artifact: ${{ needs.prepare-image.outputs.pdf_artifact }}
           token: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.token || '' }}
           metrics-book: ${{ matrix.book }}
           run: |
@@ -565,9 +585,9 @@ jobs:
         if: github.event_name == 'push' && contains(fromJSON(needs.plan.outputs.release_matrix).book, matrix.book)
         uses: ./.github/actions/run-toolchain
         with:
-          image: ${{ needs.prepare-image.outputs.image }}
-          digest: ${{ needs.prepare-image.outputs.digest }}
-          artifact: ${{ needs.prepare-image.outputs.artifact }}
+          image: ${{ needs.prepare-image.outputs.pdf_image }}
+          digest: ${{ needs.prepare-image.outputs.pdf_digest }}
+          artifact: ${{ needs.prepare-image.outputs.pdf_artifact }}
           token: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.token || '' }}
           run: ./scripts/release/package_book.sh "${{ matrix.book }}" "build/release/${{ matrix.book }}"
       - name: Record the original release package identity
@@ -585,17 +605,17 @@ jobs:
           retention-days: 90
       - name: Record the verified build
         if: >-
-          needs.prepare-image.outputs.artifact == '' &&
+          needs.prepare-image.outputs.pdf_artifact == '' &&
           (github.event_name == 'pull_request' ||
           (github.event_name == 'workflow_dispatch' && inputs.expected_sha != ''))
         env:
           VALIDATION_SHA: ${{ inputs.expected_sha }}
-          IMAGE: ${{ needs.prepare-image.outputs.image }}
+          IMAGE: ${{ needs.prepare-image.outputs.pdf_image }}
           BOOK: ${{ matrix.book }}
         run: python3 scripts/ci/verified_build.py record --book "$BOOK" --image "$IMAGE"
       - name: Upload verified build for reuse after merge
         if: >-
-          needs.prepare-image.outputs.artifact == '' &&
+          needs.prepare-image.outputs.pdf_artifact == '' &&
           (github.event_name == 'pull_request' ||
           (github.event_name == 'workflow_dispatch' && inputs.expected_sha != ''))
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

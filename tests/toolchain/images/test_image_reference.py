@@ -236,18 +236,19 @@ class ConfigurationTests(unittest.TestCase):
     def test_tool_versions_only_change_their_installation_group(self) -> None:
         toolchain = CONFIG.load_toolchain()
         original = SYNC.rendered_toolchain_groups(ROOT, toolchain)
-        for key, group in (
-            ("RUFF_VERSION", "tools"),
-            ("PYYAML_VERSION", "python"),
-            ("GH_VERSION", "tools"),
-            ("TEXLIVE_ARCHIVE_DATE", "texlive"),
-            ("LEAN_TOOLCHAIN", "lean"),
+        for key, groups in (
+            ("RUFF_VERSION", ("tools",)),
+            ("PYYAML_VERSION", ("pdf", "python")),
+            ("PYTHON_VERSION", ("pdf",)),
+            ("GH_VERSION", ("tools",)),
+            ("TEXLIVE_ARCHIVE_DATE", ("texlive", "pdf")),
+            ("LEAN_TOOLCHAIN", ("lean",)),
         ):
             with self.subTest(key=key):
                 changed = SYNC.rendered_toolchain_groups(ROOT, {**toolchain, key: "changed"})
                 self.assertEqual(
-                    [path for path in original if original[path] != changed[path]],
-                    [ROOT / ".devcontainer/generated" / f"{group}.env"],
+                    {path for path in original if original[path] != changed[path]},
+                    {ROOT / ".devcontainer/generated" / f"{group}.env" for group in groups},
                 )
 
     def test_invalid_image_policy_is_rejected(self) -> None:

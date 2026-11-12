@@ -381,9 +381,14 @@ fi
     def test_run_local_image_selection_does_not_access_the_registry(self):
         workflow = yaml.safe_load((ROOT / ".github/workflows/build-toolchain.yml").read_text())
         script = next(step["run"] for step in workflow["jobs"]["publish"]["steps"] if step.get("id") == "image")
-        for digest, success in (("sha256:" + "a" * 64, True), ("invalid", False)):
+        for target, digest, success in (
+            ("dev", "sha256:" + "a" * 64, True),
+            ("pdf", "sha256:" + "a" * 64, True),
+            ("dev", "invalid", False),
+            ("pdf", "invalid", False),
+        ):
             with (
-                self.subTest(digest=digest),
+                self.subTest(target=target, digest=digest),
                 tempfile.TemporaryDirectory() as temporary,
             ):
                 root = Path(temporary)
@@ -403,6 +408,7 @@ fi
                         "GITHUB_RUN_ID": "123",
                         "GITHUB_RUN_ATTEMPT": "2",
                         "IMAGE_NAME": "ghcr.io/example/toolchain",
+                        "IMAGE_TARGET": target,
                     },
                     capture_output=True,
                     text=True,
@@ -413,7 +419,8 @@ fi
                 if success:
                     self.assertEqual(
                         output.read_text(),
-                        f"digest={'a' * 64}\nimage=ghcr.io/example/toolchain:build-123-2-amd64\n",
+                        f"digest={'a' * 64}\nimage=ghcr.io/example/toolchain:build-123-2-"
+                        f"{'pdf-' if target == 'pdf' else ''}amd64\n",
                     )
                 else:
                     self.assertFalse(output.exists())

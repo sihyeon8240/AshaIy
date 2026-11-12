@@ -15,6 +15,73 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class ImagePolicyTests(unittest.TestCase):
+    def test_pdf_and_development_targets_bind_distinct_input_identities(self) -> None:
+        command = [
+            sys.executable,
+            str(self.root / "scripts/toolchain/images/image_policy.py"),
+            "hash",
+            "--target",
+            "pdf",
+        ]
+        first = subprocess.check_output(command, cwd=self.root, text=True).strip()
+        self.assertNotEqual(first, self.output("hash"))
+        (self.root / "input.bin").write_bytes(b"changed")
+        self.assertNotEqual(first, subprocess.check_output(command, cwd=self.root, text=True).strip())
+
+    def test_pdf_key_ignores_development_inputs_and_keeps_unknown_dependencies(self) -> None:
+        directory = self.root / ".devcontainer"
+        directory.mkdir()
+        (directory / "Dockerfile.dockerignore").write_text("build/\n")
+        (self.root / "pdf.env").write_text("PDF=1\n")
+        (self.root / "dev.env").write_text("DEV=1\n")
+        base = "example.invalid/base@sha256:" + "a" * 64
+        recipe = (
+            f"FROM {base} AS texlive\nCOPY --chmod=0644 input.bin /input\n"
+            f"FROM {base} AS pdf\nCOPY --from=texlive /input /input\n"
+            "COPY --chmod=0644 pdf.env /config\n"
+            "FROM pdf AS dev\nCOPY --chmod=0644 dev.env /config\n"
+        )
+        dockerfile = directory / "Dockerfile"
+        dockerfile.write_text(recipe)
+        self.config["inputs"].extend(
+            [
+                ".devcontainer/Dockerfile",
+                ".devcontainer/Dockerfile.dockerignore",
+                "pdf.env",
+                "dev.env",
+            ]
+        )
+        self.save()
+        command = [
+            sys.executable,
+            str(self.root / "scripts/toolchain/images/image_policy.py"),
+            "hash",
+            "--target",
+            "pdf",
+        ]
+
+        def pdf_hash():
+            return subprocess.check_output(command, cwd=self.root, text=True).strip()
+
+        original = pdf_hash()
+        development = self.output("hash")
+        (self.root / "dev.env").write_text("DEV=2\n")
+        dockerfile.write_text(recipe + "RUN echo development\n")
+        self.assertEqual(pdf_hash(), original)
+        self.assertNotEqual(self.output("hash"), development)
+        (self.root / "pdf.env").write_text("PDF=2\n")
+        self.assertNotEqual(pdf_hash(), original)
+        dockerfile.write_text(
+            recipe.replace(
+                f"FROM {base} AS pdf\n",
+                f"FROM {base} AS extra\nCOPY --chmod=0644 dev.env /extra\n"
+                f"FROM {base} AS pdf\nCOPY --from=extra /extra /extra\n",
+            )
+        )
+        unknown = pdf_hash()
+        (self.root / "dev.env").write_text("DEV=3\n")
+        self.assertNotEqual(pdf_hash(), unknown)
+
     def test_published_tag_transcript_is_stable_across_deployed_readers(self) -> None:
         self.assertEqual(self.output("hash"), "7a9072be13e2")
 
