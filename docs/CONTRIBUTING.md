@@ -58,6 +58,29 @@ additional empty line at the end. Keep blank lines empty; the repository-wide
 EditorConfig settings remove trailing whitespace except in Markdown, where
 trailing spaces may encode hard line breaks.
 
+## Code readability
+
+Follow EditorConfig and the configured formatters: four spaces for Python and
+two by default, with file-specific exceptions. Use `ashaiy format`; keep one
+final LF and no trailing whitespace except intentional Markdown hard breaks.
+Separate logical steps, wrap at meaningful boundaries, use descriptive names
+and straightforward conditions, and prefer early returns when they reduce nesting.
+Expand multi-step one-liners. Extract helpers for repeated logic or distinct
+responsibilities, not merely to shorten functions.
+
+Comments explain non-obvious reasons, constraints and invariants; detailed
+guidance belongs in docs. Avoid decorative or document-like comment blocks.
+Apply the same standards to tests and embedded scripts while preserving
+malformed fixtures and whitespace-sensitive literals. Refactors preserve
+behavior, diagnostics and interfaces. Check TeX, Lean, YAML, shell and templates
+for parsing, quoting, typesetting and output changes; keep displayed Lean aligned
+with checked source. Separate formatting-only changes from structural refactors.
+
+Test core contracts and significant regressions: manifest semantics, generation,
+build selection, proof correspondence, source preservation and safe publication.
+Do not add tests simply because logic was added, or repeat trivial dispatchers,
+preferences and configuration already checked by broader behavior or tools.
+
 ## Change classification and validation
 
 ### Change categories

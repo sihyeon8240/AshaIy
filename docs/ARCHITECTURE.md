@@ -99,6 +99,8 @@ documented in [LaTeX macros](macros.md).
 
 ```text
 config/toolchain.env       -> Docker, CI Python, Lean, and Python tooling consumers
+config/python-dependencies.txt -> reviewed Python closure and CI requirements
+config/Gemfile.lock        -> frozen Ruby dependency resolution
 config/container-image.txt -> local and devcontainer image consumers
 config/ignore-patterns.yml -> Git, Docker, tree, and VS Code exclusion consumers
 config/image-build.json    -> image input detection, tag hashing, build matrix, and index checks
