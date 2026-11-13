@@ -79,6 +79,37 @@ References: \cref{enum-definition,shared-theorem,independent-problem}.
 \end{theorem}
 
 \clearpage
+\begin{example}[Spaced list\recordpos{spaced-heading}]
+  \begin{itemize}[topsep=10pt, partopsep=6pt, itemsep=2pt]
+    \item \recordpos{spaced-first} An initial list with custom spacing.
+    \item Another item.
+  \end{itemize}
+\end{example}
+
+\begin{example}[Spaced prose\recordpos{spaced-prose-heading}]
+  Prose before a list with the same spacing.
+  \begin{itemize}[topsep=10pt, partopsep=6pt, itemsep=2pt]
+    \item \recordpos{spaced-prose-first} A list following prose.
+    \item Another item.
+  \end{itemize}
+\end{example}
+
+\begin{example}[Compact list\recordpos{compact-heading}]
+  \begin{itemize}[nosep]
+    \item \recordpos{compact-first} An explicitly compact initial list.
+    \item Another item.
+  \end{itemize}
+\end{example}
+
+\begin{example}[Compact prose\recordpos{compact-prose-heading}]
+  Prose before a compact list.
+  \begin{itemize}[nosep]
+    \item \recordpos{compact-prose-first} A compact list following prose.
+    \item Another item.
+  \end{itemize}
+\end{example}
+
+\clearpage
 Before the boundary.\par
 \vspace*{\dimexpr\textheight-3\baselineskip\relax}
 \begin{definition}[Boundary\recordpos{boundary-heading}]

@@ -96,6 +96,14 @@ class CodeFontTests(unittest.TestCase):
             first = positions[f"{kind}-first"]
             self.assertEqual(heading[2], first[2], kind)
             self.assertGreater(heading[1], first[1], kind)
+        for heading, first, prose_heading, prose_first in (
+            ("enum-heading", "enum-first", "prose-heading", "later-first"),
+            ("spaced-heading", "spaced-first", "spaced-prose-heading", "spaced-prose-first"),
+            ("compact-heading", "compact-first", "compact-prose-heading", "compact-prose-first"),
+        ):
+            initial_gap = positions[heading][1] - positions[first][1]
+            prose_gap = positions[prose_heading][1] - positions[prose_first][1]
+            self.assertAlmostEqual(initial_gap, prose_gap, delta=100, msg=heading)
         self.assertEqual(positions["prose-heading"][1:], positions["prose-body"][1:])
         self.assertEqual(positions["qed"][2], positions["proof-second"][2])
         labels = dict(re.findall(r"\\newlabel\{([^}]+)\}\{\{([^}]+)\}", aux.read_text()))
