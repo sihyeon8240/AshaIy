@@ -119,6 +119,11 @@ sequence. Problem uses a separate section-scoped sequence. Solution and remark
 are unnumbered; proof is the standard `amsthm` environment. Use `ax` as the
 label type for numbered axioms.
 
+A leading `enumerate`, `itemize`, or `description` starts below the theorem or
+proof heading; ordinary prose still follows its heading on the same line.
+Declare environments and layout policies through the shared
+[theorem manifest](theorems.md), then run `ashaiy theorems generate`.
+
 For formalized results, preserve the environment kind in the Lean docstring
 under [declaration documentation](formalization.md#declaration-documentation).
 A printed axiom must use explicit assumptions or a checked result, never a new

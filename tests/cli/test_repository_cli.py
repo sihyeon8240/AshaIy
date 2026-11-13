@@ -33,6 +33,7 @@ class ContentsCommandTests(unittest.TestCase):
         shutil.copytree(ROOT / "common/templates", self.root / "common/templates")
         (self.root / "common/styles").mkdir()
         shutil.copyfile(ROOT / "common/styles/macros.yml", self.root / "common/styles/macros.yml")
+        shutil.copyfile(ROOT / "common/styles/theorems.yml", self.root / "common/styles/theorems.yml")
         shutil.copytree(ROOT / "config/generated", self.root / "config/generated")
         write_yaml(
             self.root / "config/books.yml",

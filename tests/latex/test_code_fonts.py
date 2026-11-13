@@ -76,6 +76,34 @@ class CodeFontTests(unittest.TestCase):
         )
         self.render("mathematics-layout", output)
 
+    def test_theorem_initial_lists_align_and_keep_prose_counters_and_qed(self) -> None:
+        output = ROOT / "build/theorem-lists"
+        aux = self.render("theorem-lists", output)
+        positions = {
+            name: (int(x), int(y), int(page))
+            for name, x, y, page in re.findall(
+                r"([a-z-]+):(\d+):(\d+):(\d+)", (output / "theorem-lists.positions").read_text()
+            )
+        }
+        for kind in ("enum", "proof", "description", "later", "nested", "outside"):
+            first = positions[f"{kind}-first"]
+            second = positions[f"{kind}-second"]
+            self.assertAlmostEqual(first[0], second[0], delta=100)
+            self.assertEqual(first[2], second[2])
+            self.assertGreater(first[1], second[1])
+        for kind in ("enum", "proof", "description", "boundary"):
+            heading = positions[f"{kind}-heading"]
+            first = positions[f"{kind}-first"]
+            self.assertEqual(heading[2], first[2], kind)
+            self.assertGreater(heading[1], first[1], kind)
+        self.assertEqual(positions["prose-heading"][1:], positions["prose-body"][1:])
+        self.assertEqual(positions["qed"][2], positions["proof-second"][2])
+        labels = dict(re.findall(r"\\newlabel\{([^}]+)\}\{\{([^}]+)\}", aux.read_text()))
+        self.assertEqual(labels["enum-definition"], "0.1.1")
+        self.assertEqual(labels["shared-theorem"], "0.1.3")
+        self.assertEqual(labels["independent-problem"], "0.1.1")
+        self.assertEqual(labels["reset-theorem"], "0.2.1")
+
     def test_glyphs_in_regular_italic_bold_and_bold_italic(self) -> None:
         self.render("lean-fonts", ROOT / "build/font-check")
 

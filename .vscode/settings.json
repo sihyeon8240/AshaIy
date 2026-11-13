@@ -159,6 +159,9 @@
     "./config/schemas/proofs.schema.json": [
       "/books/*/chapters/*/proofs.yml",
       "/books/*/appendices/*/proofs.yml"
+    ],
+    "./config/schemas/theorems.schema.json": [
+      "/common/styles/theorems.yml"
     ]
   },
   "ruff.configuration": "${workspaceFolder}/config/pyproject.toml",

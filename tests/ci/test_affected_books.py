@@ -122,6 +122,20 @@ class AffectedBookTests(unittest.TestCase):
                     ["alpha", "beta"],
                 )
 
+    def test_shared_declaration_manifests_are_build_inputs(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "books/alpha/book.tex"
+            source.parent.mkdir(parents=True)
+            source.write_text("Book source.\n")
+            for name in ("macros.yml", "theorems.yml"):
+                path = root / "common/styles" / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("schema_version: 1\n")
+            with mock.patch.object(affected, "ROOT", root):
+                dependencies = affected.dependencies("alpha")
+            self.assertTrue({"common/styles/macros.yml", "common/styles/theorems.yml"} <= dependencies)
+
     def test_ci_only_helpers_select_no_books(self):
         for path in (
             "scripts/release/snapshot_base.sh",

@@ -38,10 +38,12 @@ Validation and formatting:
 Generated content:
   macros {generate|check} [--book BOOK]
       Generate macro packages from shared and book-owned YAML declarations.
+  theorems {generate|check}
+      Generate shared theorem environments and layout policies from YAML.
   contents {generate|check} [--book BOOK] [--scope chapters|sections|all]
       Generate LaTeX assembly from manifests, or check it without writing.
   generated {generate|check} [--book BOOK]
-      Process macro packages, Lean aggregation, LaTeX assembly, and site pages.
+      Process macro/theorem packages, Lean aggregation, LaTeX assembly, and site pages.
   config {generate|check}
       Synchronize shared configuration, or report stale generated settings.
 
@@ -104,16 +106,22 @@ ACTION_HELP = {
         "new": "Create a textbook scaffold and register it in config/books.yml.",
         "release": ("Prepare a release version and generated assembly for review; publication follows merge and CI."),
     },
+    "theorems": {
+        "generate": "Generate shared theorem declarations and layout policies from theorems.yml.",
+        "check": "Validate theorem declarations and report stale packages without writing.",
+    },
     "contents": {
         "generate": "Generate book.tex and chapter/appendix index.tex from contents manifests.",
         "check": "Compare LaTeX assembly with the manifests without writing files.",
     },
     "generated": {
         "generate": (
-            "Generate macro packages, Lean aggregation, LaTeX assembly, and site pages; "
+            "Generate macro/theorem packages, Lean aggregation, LaTeX assembly, and site pages; "
             "site-disabled books skip the site step."
         ),
-        "check": ("Check macro packages, Lean aggregation, LaTeX assembly, and site pages without writing files."),
+        "check": (
+            "Check macro/theorem packages, Lean aggregation, LaTeX assembly, and site pages without writing files."
+        ),
     },
     "config": {
         "generate": (
@@ -286,11 +294,11 @@ def build_parser() -> argparse.ArgumentParser:
     book_option(books["release"], required=True)
     books["release"].add_argument("--version", required=True, help="release version to prepare for review")
 
-    for name in ("macros", "contents", "generated", "config"):
+    for name in ("macros", "theorems", "contents", "generated", "config"):
         actions = command(name, f"generate or check {name}", ("generate", "check"))
         for action, target in actions.items():
             target.set_defaults(check=action == "check")
-            if name != "config":
+            if name not in {"config", "theorems"}:
                 book_option(target)
             if name == "contents":
                 target.add_argument(
@@ -302,6 +310,8 @@ def build_parser() -> argparse.ArgumentParser:
                 target.set_defaults(run=run_contents_task)
             elif name == "generated":
                 target.set_defaults(run=run_generated)
+            elif name == "theorems":
+                target.set_defaults(run=run_theorems)
             elif name == "macros":
                 target.set_defaults(run=run_macros)
 
@@ -457,6 +467,12 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     except KeyboardInterrupt:
         return 130
+
+
+def run_theorems(arguments: argparse.Namespace) -> int:
+    from scripts.latex.theorem_generation import generate
+
+    return generate(check=arguments.check)
 
 
 def run_macros(arguments: argparse.Namespace) -> int:

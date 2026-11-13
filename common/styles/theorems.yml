@@ -1,0 +1,76 @@
+schema_version: 1
+
+defaults:
+  space_after: bigskip
+  break_before_initial_list: true
+
+list_environments: [enumerate, itemize, description]
+
+environments:
+  theorem:
+    kind: theorem
+    title: Theorem
+    style: plain
+    counter: {within: section}
+    cref: {singular: theorem, plural: theorems}
+  lemma:
+    kind: theorem
+    title: Lemma
+    style: plain
+    counter: {shared: theorem}
+    cref: {singular: lemma, plural: lemmas}
+  proposition:
+    kind: theorem
+    title: Proposition
+    style: plain
+    counter: {shared: theorem}
+    cref: {singular: proposition, plural: propositions}
+  corollary:
+    kind: theorem
+    title: Corollary
+    style: plain
+    counter: {shared: theorem}
+    cref: {singular: corollary, plural: corollaries}
+  axiom:
+    kind: theorem
+    title: Axiom
+    style: definition
+    counter: {shared: theorem}
+    cref: {singular: axiom, plural: axioms}
+  definition:
+    kind: theorem
+    title: Definition
+    style: definition
+    counter: {shared: theorem}
+    cref: {singular: definition, plural: definitions}
+  example:
+    kind: theorem
+    title: Example
+    style: definition
+    counter: {shared: theorem}
+    cref: {singular: example, plural: examples}
+  exercise:
+    kind: theorem
+    title: Exercise
+    style: definition
+    counter: {shared: theorem}
+    cref: {singular: exercise, plural: exercises}
+  problem:
+    kind: theorem
+    title: Problem
+    style: definition
+    counter: {within: section}
+    cref: {singular: problem, plural: problems}
+  solution:
+    kind: theorem
+    title: Solution
+    style: definition
+    counter: null
+  remark:
+    kind: theorem
+    title: Remark
+    style: remark
+    counter: null
+  proof:
+    kind: provided
+    provider: amsthm

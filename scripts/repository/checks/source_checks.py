@@ -16,7 +16,7 @@ if __package__ in (None, ""):
 
 from scripts.books import contents_generation
 from scripts.books.book_manifest import load_manifest, manifest_warnings
-from scripts.latex import label_checks, macro_generation
+from scripts.latex import label_checks, macro_generation, theorem_generation
 from scripts.lean import lean_generation, proof_links
 from scripts.repository.checks import architecture_checks, documentation_checks
 from scripts.repository.config.config_sync import synchronize
@@ -45,6 +45,8 @@ def check_repository_files() -> None:
         "common/styles/macros.yml",
         "common/styles/generated-common-macros.sty",
         "common/styles/theorems.sty",
+        "common/styles/theorems.yml",
+        "common/styles/generated-theorems.sty",
         "scripts/latex/build_book.sh",
         "scripts/repository/checks/check_actions.sh",
         "scripts/lean/check_lean.sh",
@@ -101,6 +103,8 @@ def check_sources(*, defer: str | None = None) -> int:
             print(f"warning: {warning}", file=sys.stderr)
         print("config/books.yml is valid")
 
+        if theorem_generation.generate(check=True):
+            return 1
         if macro_generation.generate(check=True):
             return 1
         if contents_generation.generate("all", check=True):

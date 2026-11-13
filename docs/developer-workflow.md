@@ -14,6 +14,7 @@ and recovery.
 | Check repository structure | `ashaiy check source` |
 | Run automation tests | `ashaiy test` |
 | Check Lean proofs and linked displays | `ashaiy lean check` |
+| Refresh shared theorem declarations and policies | `ashaiy theorems generate` |
 | Refresh generated sources | `ashaiy generated generate` |
 | Refresh canonical configuration consumers | `ashaiy config generate` |
 | Preview the site | `ashaiy site serve` |
@@ -139,13 +140,14 @@ ambiguous selectors fail before execution. Without `--book`:
 | Contents and Lean aggregation generation | All registered books |
 | Site generation | `site: true` books |
 
-`generated generate` runs macros, Lean aggregation, contents, then site generation;
-`generated check` checks those outputs without writing. `--book` selects a book
-but still refreshes shared macros and the Lean root. A site-disabled book skips
-the site step; explicit `site generate --book` requires a site-enabled book.
+`generated generate` runs theorems, macros, Lean aggregation, contents, then site
+generation; `generated check` checks those outputs without writing. `--book` selects
+a book but still refreshes shared macros, theorems, and the Lean root. A site-disabled
+book skips the site step; explicit `site generate --book` requires a site-enabled book.
 Generation and full checks stop at the first failure; earlier generation stages
-may already have written files. See [macro declarations](macros.md#generation-and-formatting)
-and [contents assembly](writing-guide.md#contents-manifests-and-metadata) for focused commands.
+may already have written files. See [theorem declarations](theorems.md#generation-and-validation),
+[macro declarations](macros.md#generation-and-formatting), and
+[contents assembly](writing-guide.md#contents-manifests-and-metadata) for focused commands.
 
 Bulk builds accept `--jobs`, overriding `BOOK_BUILD_JOBS`; the default is at most
 four workers, bounded by CPU and book counts. Output is grouped by book and all
@@ -384,7 +386,7 @@ LaTeX formatting preserves manual breaks, relative Lean indentation, and literal
 code; long tokens may exceed the wrapping target. TeX parsing is heuristic, so
 inspect the result. The [writing guide](writing-guide.md#braces-in-command-arguments-and-scripts)
 owns brace normalization and preservation rules; [LaTeX macros](macros.md#generation-and-formatting)
-owns manifest signatures and editor behavior. Generate changed macros before formatting.
+owns manifest signatures and editor behavior. Generate changed macro and theorem manifests before formatting.
 
 Every target requires one final LF. `format all` normalizes all nonempty tracked
 text files; binary and untracked files are excluded. EditorConfig preserves

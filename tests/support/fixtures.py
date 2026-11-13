@@ -138,6 +138,8 @@ def copy_script(source: Path, destination: Path) -> None:
             "latex/command_specs.py",
             "latex/macro_manifest.py",
             "latex/macro_generation.py",
+            "latex/theorem_manifest.py",
+            "latex/theorem_generation.py",
             "books/book_manifest.py",
             "repository/source_reads.py",
             "repository/file_updates.py",
@@ -152,6 +154,8 @@ def copy_script(source: Path, destination: Path) -> None:
             "latex/command_specs.py",
             "latex/macro_manifest.py",
             "latex/macro_generation.py",
+            "latex/theorem_manifest.py",
+            "latex/theorem_generation.py",
             "books/book_manifest.py",
             "repository/source_reads.py",
             "repository/file_updates.py",
@@ -164,5 +168,7 @@ def copy_script(source: Path, destination: Path) -> None:
         for name in (
             "common/styles/macros.yml",
             "common/styles/generated-common-macros.sty",
+            "common/styles/theorems.yml",
+            "common/styles/generated-theorems.sty",
         ):
             copy_file(REPOSITORY / name, fixture_root / name)

@@ -21,11 +21,14 @@ if __package__ in (None, ""):
 from scripts.latex.latex_scan import source_spans, without_comments_and_literals
 from scripts.latex.macro_generation import MacroRegistry, MacroRepository
 from scripts.latex.normalize_braces import normalize_braces
+from scripts.latex.theorem_generation import GENERATED, MANIFEST, checked_manifest
+from scripts.latex.theorem_manifest import TheoremManifest
 from scripts.lean.lean_source import ignored_spans
 from scripts.repository.config.validation_patterns import validation_pattern
 from scripts.repository.file_updates import observe_source, source_updates, write_updates
 from scripts.repository.formatting.normalize_eof import normalized_bytes
 from scripts.repository.processes import ProcessRunner, run_parallel, worker_count
+from scripts.repository.source_reads import read_text
 
 ROOT = Path(__file__).resolve().parents[2]
 LEAN_BLOCK = re.compile(
@@ -57,6 +60,7 @@ def format_file(
     *,
     source: Path | None = None,
     registry: MacroRegistry | None = None,
+    theorems: TheoremManifest | None = None,
     output: Callable[[list[str]], bytes] = subprocess.check_output,
 ) -> bytes:
     if not file.is_file():
@@ -65,7 +69,9 @@ def format_file(
     logical_source = file if source is None else source
     if registry is None:
         registry = MacroRepository(ROOT).for_source(logical_source)
-    if logical_source.resolve() in registry.updates:
+    if theorems is None:
+        theorems = checked_manifest(ROOT)
+    if logical_source.resolve() in registry.updates or logical_source.resolve() == ROOT / GENERATED:
         return file.read_bytes()
     source_text = normalize_braces(file.read_text(encoding="utf-8"), registry.commands)
     protected: dict[str, str] = {}
@@ -96,10 +102,8 @@ def format_file(
     result = normalized_bytes(normalize_lean_indentation(result), collapse=True)
     text = result.decode()
     clean = without_comments_and_literals(text)
-    labels = re.compile(
-        r"(\\begin\{(?:theorem|lemma|proposition|corollary|definition|axiom|"
-        r"example|exercise|problem)\})[ \t]*\n[ \t]*(\\label\{[^}\n]+\})"
-    )
+    names = "|".join(re.escape(name) for name in theorems.numbered_environments)
+    labels = re.compile(r"(\\begin\{(?:" + names + r")\})[ \t]*\n[ \t]*(\\label\{[^}\n]+\})")
     for match in reversed(list(labels.finditer(clean))):
         if text[match.end(1) : match.start(2)].isspace():
             text = text[: match.end(1)] + " " + text[match.start(2) :]
@@ -141,6 +145,8 @@ def cache_directory(root: Path) -> Path:
         "latex/command_specs.py",
         "latex/macro_manifest.py",
         "latex/macro_generation.py",
+        "latex/theorem_manifest.py",
+        "latex/theorem_generation.py",
         "repository/source_reads.py",
         "repository/processes.py",
         "books/book_manifest.py",
@@ -149,6 +155,7 @@ def cache_directory(root: Path) -> Path:
     ):
         digest.update((ROOT / "scripts" / name).read_bytes())
     digest.update((ROOT / "config/latexindent.yaml").read_bytes())
+    digest.update(read_text(root / MANIFEST).encode())
     version = subprocess.check_output(["latexindent", "--version"]).splitlines()[0]
     digest.update(version)
     cache = Path(os.environ.get("FORMAT_TEX_CACHE_DIR", root / ".cache/latexindent")) / digest.hexdigest()
@@ -175,13 +182,16 @@ def format_sources(root: Path, *, check: bool, file: Path | None, prune: bool = 
         print("error: latexindent is required", file=sys.stderr)
         return 127
     with source_updates(root, check=check):
+        theorems = checked_manifest(root)
         repository = MacroRepository(root)
         registries = {path: repository.for_source(root / path) for path in files}
         cache = cache_directory(root)
         with (cache.parent / ".format.lock").open("a+b") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
             cache.mkdir(parents=True, exist_ok=True)
-            return format_selected(root, files, registries, cache, check=check, prune=prune, jobs=jobs)
+            return format_selected(
+                root, files, registries, cache, theorems=theorems, check=check, prune=prune, jobs=jobs
+            )
 
 
 def format_selected(
@@ -190,6 +200,7 @@ def format_selected(
     registries: dict[Path, MacroRegistry],
     cache: Path,
     *,
+    theorems: TheoremManifest,
     check: bool,
     prune: bool,
     jobs: int | None,
@@ -213,7 +224,7 @@ def format_selected(
 
     def format_target(target, runner: ProcessRunner) -> bytes:
         path, _, _ = target
-        return format_file(path, registry=registries[path], output=runner.check_output)
+        return format_file(path, registry=registries[path], theorems=theorems, output=runner.check_output)
 
     formatted_files = run_parallel(pending, format_target, jobs=jobs) if pending else []
     updates = {}

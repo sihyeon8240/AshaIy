@@ -17,7 +17,8 @@ from urllib.parse import unquote, urlsplit
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from scripts.latex.latex_scan import without_comments
+from scripts.latex.theorem_generation import MANIFEST
+from scripts.latex.theorem_manifest import load_theorems
 from scripts.repository.source_reads import read_text
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -111,12 +112,8 @@ def environment_errors(root: Path) -> list[str]:
     match = re.search(r"The public environments are (.*?)\. Use", section, re.S)
     if not match:
         return ["writing guide is missing its public environment list"]
-    documented = set(re.findall(r"`([a-z]+)`", match[1]))
-    style = without_comments((root / "common/styles/theorems.sty").read_text(encoding="utf-8"))
-    implemented = set(re.findall(r"\\newtheorem\*?\{([^}]+)\}", style))
-    # proof is supplied by amsthm, not a repository newtheorem declaration.
-    if re.search(r"\\RequirePackage(?:\[[^]]*\])?\{amsthm\}", style):
-        implemented.add("proof")
+    documented = set(re.findall(r"`([a-z][a-z0-9]*\*?)`", match[1]))
+    implemented = set(load_theorems(root / MANIFEST).environments)
     errors = []
     for name in sorted(documented - implemented):
         errors.append(f"documented environment is undefined: {name}")

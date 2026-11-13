@@ -13,6 +13,7 @@ walkthroughs in commits and code.
 | [Automation design decisions](build-design.md) | Pattern tradeoffs, measured alternatives, atomicity, build identity, and scaling criteria. |
 | [Contributing](CONTRIBUTING.md) | Change boundaries, required validation, rights, and commit conventions. |
 | [Textbook writing](writing-guide.md) | LaTeX authoring and the presentation of mathematical prose and Lean code. |
+| [Theorem environments](theorems.md) | Shared theorem declarations, counters, references, and list layout policies. |
 | [LaTeX macros](macros.md) | Macro declarations, generated packages, and formatting signatures. |
 | [Lean formalization](formalization.md) | Proof safety, prerequisites, Lean layout, proof links, and source correspondence. |
 | [Editor support](editors.md) | VS Code integration, terminal editing, LSP and SyncTeX path boundaries. |

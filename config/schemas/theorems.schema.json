@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Shared theorem environments",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "defaults",
+    "list_environments",
+    "environments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "space_after",
+        "break_before_initial_list"
+      ],
+      "properties": {
+        "space_after": {
+          "enum": [
+            "none",
+            "bigskip"
+          ]
+        },
+        "break_before_initial_list": {
+          "type": "boolean"
+        }
+      }
+    },
+    "list_environments": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "enumerate",
+          "itemize",
+          "description"
+        ]
+      }
+    },
+    "environments": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9]*\\*?$"
+      },
+      "properties": {
+        "proof": {
+          "$ref": "#/$defs/provided"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/theorem"
+      }
+    }
+  },
+  "$defs": {
+    "theorem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "title",
+        "style",
+        "counter"
+      ],
+      "properties": {
+        "space_after": {
+          "enum": [
+            "none",
+            "bigskip"
+          ]
+        },
+        "break_before_initial_list": {
+          "type": "boolean"
+        },
+        "kind": {
+          "const": "theorem"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\r\\n]+$"
+        },
+        "style": {
+          "enum": [
+            "plain",
+            "definition",
+            "remark"
+          ]
+        },
+        "counter": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "within"
+              ],
+              "properties": {
+                "within": {
+                  "enum": [
+                    "chapter",
+                    "section"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "shared"
+              ],
+              "properties": {
+                "shared": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9]*\\*?$"
+                }
+              }
+            }
+          ]
+        },
+        "cref": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "singular",
+            "plural"
+          ],
+          "properties": {
+            "singular": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\r\\n]+$"
+            },
+            "plural": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\r\\n]+$"
+            }
+          }
+        }
+      }
+    },
+    "provided": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "provider"
+      ],
+      "properties": {
+        "space_after": {
+          "enum": [
+            "none",
+            "bigskip"
+          ]
+        },
+        "break_before_initial_list": {
+          "type": "boolean"
+        },
+        "kind": {
+          "const": "provided"
+        },
+        "provider": {
+          "const": "amsthm"
+        }
+      }
+    }
+  }
+}
