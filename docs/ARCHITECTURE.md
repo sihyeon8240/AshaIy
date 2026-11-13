@@ -95,6 +95,16 @@ macros. Generated `book.tex` conditionally loads its book-local package.
 The loader, supported declaration kinds, scopes, and validation contract are
 documented in [LaTeX macros](macros.md).
 
+## Theorem declarations
+
+`common/styles/theorems.yml` owns shared theorem declarations, counters, reference
+names, and per-environment spacing policies. `ashaiy theorems generate` renders
+`common/styles/generated-theorems.sty`; commit both together. The hand-maintained
+`theorems.sty` loads dependencies and implements the conditional list-heading
+behavior before loading that generated package. Environment inventories in
+formatting and documentation checks read the same manifest. Lean proof coverage
+uses its independent mathematical policy. See [theorem environments](theorems.md).
+
 ## Shared runtime configuration
 
 ```text
@@ -198,6 +208,7 @@ Ignored site pages derive from the registry and proof coverage.
 | Complete `books/<slug>/book.tex` and chapter/appendix `index.tex` | Contents generator, from manifests and shared templates | Commit; never edit by hand |
 | Lean root and book aggregation modules | Lean generator, from the book registry, contents, and topic manifests | Commit; never edit by hand |
 | `common/styles/generated-common-macros.sty` and book-local `styles/generated-book-macros.sty` | `ashaiy macros generate`, from shared and book-local `macros.yml` | Commit with manifests; never edit by hand |
+| `common/styles/generated-theorems.sty` | `ashaiy theorems generate`, from shared `theorems.yml` | Commit with its manifest |
 | Synchronized toolchain, image, and exclusion consumers | `ashaiy config generate`, from `config/` | Commit with the canonical configuration |
 | `site/_data/books.json` and `site/books/*.html` | `ashaiy site generate`, from the registry and proof coverage; JSON owns projected data and HTML files own routing | Ignored; regenerate before local site builds |
 | PDFs, LaTeX logs, proof-link probes, verified-build metadata | `build/` | Ignored; never commit |

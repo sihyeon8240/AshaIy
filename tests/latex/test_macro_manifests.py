@@ -343,6 +343,45 @@ class MacroManifestTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual([source.read_bytes() for source in sources], originals)
 
+    @unittest.skipUnless(shutil.which("latexindent"), "latexindent is required")
+    def test_theorem_registry_controls_labels_cache_and_generated_bytes(self) -> None:
+        from scripts.latex.theorem_generation import GENERATED, MANIFEST, generate
+        from scripts.repository.source_reads import field_mapping, read_yaml
+
+        self.prepare_formatter()
+        source = self.root / "books/alpha/claim.tex"
+        source.write_text("\\begin{claim}\n\\label{alpha:claim}\nText.\n\\end{claim}\n")
+        initial = self.run_format("--file", str(source))
+        self.assertEqual(initial.returncode, 0, initial.stderr)
+        cached = self.run_format("--file", str(source), "--check")
+        self.assertIn("1 cached", cached.stdout)
+        manifest = field_mapping(read_yaml(self.root / MANIFEST), "theorem fixture")
+        manifest["environments"]["claim"] = {
+            "kind": "theorem",
+            "title": "Claim",
+            "style": "plain",
+            "counter": {"shared": "theorem"},
+        }
+        write_yaml(self.root / MANIFEST, manifest)
+        original = source.read_bytes()
+        stale = self.run_format("--file", str(source))
+        self.assertNotEqual(stale.returncode, 0)
+        self.assertIn("ashaiy theorems generate", stale.stderr)
+        self.assertEqual(source.read_bytes(), original)
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(generate(root=self.root), 0)
+        changed = self.run_format("--file", str(source), "--check")
+        self.assertEqual(changed.returncode, 1, changed.stderr)
+        self.assertEqual(source.read_bytes(), original)
+        formatted = self.run_format("--file", str(source))
+        self.assertEqual(formatted.returncode, 0, formatted.stderr)
+        self.assertIn(r"\begin{claim} \label{alpha:claim}", source.read_text())
+        package = self.root / GENERATED
+        original_package = package.read_bytes()
+        unchanged = self.run_format("--file", str(package))
+        self.assertEqual(unchanged.returncode, 0, unchanged.stderr)
+        self.assertEqual(package.read_bytes(), original_package)
+
     def test_cli_generation_checks_selected_book_without_rewriting_others(self) -> None:
         shutil.copytree(
             ROOT / "scripts",

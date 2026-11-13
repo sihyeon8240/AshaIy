@@ -1,0 +1,90 @@
+\documentclass[oneside]{book}
+\usepackage{core}
+\usepackage{theorems}
+
+\newwrite\positions
+\immediate\openout\positions=\jobname.positions
+\newcommand{\recordpos}[1]{%
+  \leavevmode\savepos
+  \write\positions{#1:\the\lastxpos:\the\lastypos:\thepage}%
+}
+\let\originalqed\qedsymbol
+\renewcommand{\qedsymbol}{\recordpos{qed}\originalqed}
+
+\begin{document}
+\section{Lists}
+\begin{definition}[Optional title\recordpos{enum-heading}]
+  \label{enum-definition}
+  \begin{enumerate}[label=(\roman*)]
+    \item \recordpos{enum-first} First item.
+    \item \recordpos{enum-second} Second item.
+  \end{enumerate}
+\end{definition}
+
+\begin{definition}[Prose\recordpos{prose-heading}]
+  \recordpos{prose-body}Ordinary prose follows its heading.
+  \begin{enumerate}
+    \item \recordpos{later-first} A later list.
+    \item \recordpos{later-second} Another item.
+  \end{enumerate}
+\end{definition}
+
+\begin{proof}[Custom proof\recordpos{proof-heading}]
+  \begin{itemize}
+    \item \recordpos{proof-first} First proof item.
+    \item \recordpos{proof-second} Second proof item.
+  \end{itemize}
+\end{proof}
+
+\begin{theorem}[Description\recordpos{description-heading}]
+  \label{shared-theorem}
+  \begin{description}
+    \item[Term] \recordpos{description-first} First description.
+    \item[Term] \recordpos{description-second} Second description.
+  \end{description}
+\end{theorem}
+
+\begin{remark}
+  An unnumbered remark.
+\end{remark}
+\begin{solution}
+  An unnumbered solution.
+\end{solution}
+\begin{problem} \label{independent-problem}An independent counter.
+\end{problem}
+
+\clearpage
+\begin{definition}
+  \begin{enumerate}
+    \item
+          \begin{enumerate}
+            \item \recordpos{nested-first} Nested first item.
+            \item \recordpos{nested-second} Nested second item.
+          \end{enumerate}
+    \item Outer final item.
+  \end{enumerate}
+\end{definition}
+
+\begin{enumerate}
+  \item
+        \begin{enumerate}
+          \item \recordpos{outside-first} Outside first item.
+          \item \recordpos{outside-second} Outside second item.
+        \end{enumerate}
+\end{enumerate}
+
+References: \cref{enum-definition,shared-theorem,independent-problem}.
+\section{Reset}
+\begin{theorem} \label{reset-theorem}A reset counter.
+\end{theorem}
+
+\clearpage
+Before the boundary.\par
+\vspace*{\dimexpr\textheight-3\baselineskip\relax}
+\begin{definition}[Boundary\recordpos{boundary-heading}]
+  \begin{enumerate}
+    \item \recordpos{boundary-first} First item at a page boundary.
+    \item Final item.
+  \end{enumerate}
+\end{definition}
+\end{document}

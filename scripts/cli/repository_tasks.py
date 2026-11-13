@@ -78,11 +78,12 @@ def build_books(
 
 def generate(*, book: str | None = None, check: bool = False) -> StageResult:
     from scripts.books import contents_generation
-    from scripts.latex import macro_generation
+    from scripts.latex import macro_generation, theorem_generation
     from scripts.lean import lean_generation
     from scripts.site import site_pages
 
     stages = (
+        Stage("theorems", lambda: theorem_generation.generate(check=check)),
         Stage("macros", lambda: macro_generation.generate(book=book, check=check)),
         Stage("lean-assembly", lambda: lean_generation.generate(book=book, check=check)),
         Stage(

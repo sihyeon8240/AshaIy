@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from scripts.repository.checks import documentation_checks as docs
+from tests.support.fixtures import write_yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -39,11 +40,18 @@ class DocumentationTests(unittest.TestCase):
             (root / "docs/writing-guide.md").write_text(
                 "### Theorem environments\n\nThe public environments are `theorem`, `exercise`, and `proof`. Use them.\n"
             )
-            (root / "common/styles/theorems.sty").write_text(
-                "\\RequirePackage{amsthm}\n"
-                "\\newtheorem{theorem}{Theorem}\n"
-                "\\newtheorem*{remark}{Remark}\n"
-                "% \\newtheorem{exercise}{Exercise}\n"
+            write_yaml(
+                root / "common/styles/theorems.yml",
+                {
+                    "schema_version": 1,
+                    "defaults": {"space_after": "bigskip", "break_before_initial_list": True},
+                    "list_environments": [],
+                    "environments": {
+                        "theorem": {"kind": "theorem", "title": "Theorem", "style": "plain", "counter": None},
+                        "remark": {"kind": "theorem", "title": "Remark", "style": "remark", "counter": None},
+                        "proof": {"kind": "provided", "provider": "amsthm"},
+                    },
+                },
             )
             self.assertEqual(
                 docs.environment_errors(root),

@@ -122,8 +122,10 @@ def dependencies(slug: str) -> set[str]:
         for match in TEX_REF.finditer(text):
             pending.extend(_resolve_tex(match["reference"], source, match["command"]))
     book_dir = ROOT / "books" / slug
-    if (ROOT / "common/styles/macros.yml").is_file():
-        seen.add((ROOT / "common/styles/macros.yml").resolve())
+    for name in ("macros.yml", "theorems.yml"):
+        manifest = ROOT / "common/styles" / name
+        if manifest.is_file():
+            seen.add(manifest.resolve())
     seen.update(path.resolve() for path in book_dir.rglob("*") if path.is_file())
     return {path.relative_to(ROOT).as_posix() for path in seen if path.is_relative_to(ROOT)}
 
