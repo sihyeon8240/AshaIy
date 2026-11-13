@@ -10,9 +10,18 @@
 \newcommand*{\textbook@breakbeforelist}[1]{%
   \@ifundefined{textbook@listhead@\@currenvir}{}{%
     \if@inlabel
-      \leavevmode\par\nobreak
-      % Keep the first item with its heading; scope this state inside the list.
-      \AddToHookNext{env/#1/begin}{\@nobreaktrue}%
+      % Let the list end this paragraph so it uses the same topsep as after prose.
+      \leavevmode
+      \AddToHookNext{env/#1/begin}{%
+        \@nobreaktrue
+        % The kernel's no-break item normally suppresses topsep after headings. Keep the page-break protection while
+        % retaining the list's own spacing.
+        \def\@nbitem{%
+          \nobreak
+          \addvspace\@topsep
+          \addvspace{-\parskip}%
+        }%
+      }%
     \fi
   }%
 }

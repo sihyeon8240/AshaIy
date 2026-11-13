@@ -75,10 +75,13 @@ The policies are independent. `list_environments` uniquely selects any of
 `enumerate`, `itemize`, and `description`; an empty list disables list hooks.
 Before a selected list starts, the runtime checks its immediate parent and
 whether the theorem or proof heading is still pending. It flushes only that
-heading with `\leavevmode\par` and keeps it with the first item across page
-breaks. The no-break state is scoped inside the list. Ordinary prose, lists
-following prose, nested lists, and lists outside managed environments retain
-their existing behavior.
+heading with `\leavevmode`; the list then ends the heading paragraph, just as
+it ends preceding prose. This preserves the list's native `topsep`, including
+explicit spacing options and `nosep`, instead of adding a fixed gap. The heading
+stays with the first item across page breaks; both the no-break state and its
+spacing adjustment are scoped inside that list. Ordinary prose, lists following
+prose, nested lists, and lists outside managed environments retain their existing
+behavior.
 Lists inside intervening wrapper environments are outside this direct-parent
 policy. Keep a theorem's `\label` immediately after its opening declaration.
 
