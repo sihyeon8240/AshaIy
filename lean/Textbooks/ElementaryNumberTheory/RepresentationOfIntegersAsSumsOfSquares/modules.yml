@@ -1,0 +1,14 @@
+schema_version: 1
+
+modules:
+  - Thue
+  - TwoSquarePrimes
+  - TwoSquareUniqueness
+  - TwoSquareFactorization
+  - DifferenceSquares
+  - ThreeSquares
+  - FourSquareIdentity
+  - FourSquareDescent
+  - FourSquares
+  - Waring
+  - LeastSquares
