@@ -99,6 +99,20 @@ class SingleFileFormattingTests(unittest.TestCase):
                     )
                     self.assertEqual(editor.stdout, path.read_text())
 
+    @unittest.skipUnless(shutil.which("latexindent"), "latexindent is required")
+    def test_theorem_implementation_changes_invalidate_formatter_success(self) -> None:
+        source = self.root / "draft.tex"
+        source.write_text("A fact.\n")
+        self.assertEqual(self.run_format("tex", str(source), check=True).returncode, 0)
+        cached = self.run_format("tex", str(source), check=True)
+        self.assertIn("(1 cached)", cached.stdout)
+        implementation = self.root / "scripts/latex/theorem_generation.py"
+        implementation.write_text(implementation.read_text() + "\n# Changed formatter dependency.\n")
+        checked = self.run_format("tex", str(source), check=True)
+        self.assertEqual(checked.returncode, 0, checked.stderr)
+        self.assertIn("(0 cached)", checked.stdout)
+        self.assertEqual(source.read_text(), "A fact.\n")
+
     def test_invalid_paths_are_rejected_without_modifying_files(self) -> None:
         (self.root / ".gitignore").write_text("ignored.*\n")
         for language, suffix in [("py", ".py"), ("sh", ".sh"), ("tex", ".tex")]:

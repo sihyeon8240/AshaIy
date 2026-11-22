@@ -133,6 +133,7 @@ def copy_script(source: Path, destination: Path) -> None:
     copy_validation_configuration(fixture_root)
     companions = {
         "format_tex.py": (
+            "latex/format_cache.py",
             "repository/formatting/normalize_eof.py",
             "latex/latex_scan.py",
             "latex/normalize_braces.py",
@@ -148,6 +149,7 @@ def copy_script(source: Path, destination: Path) -> None:
             "latex/format_tex_file.sh",
         ),
         "format_tex_file.sh": (
+            "latex/format_cache.py",
             "latex/format_tex.py",
             "repository/formatting/normalize_eof.py",
             "latex/latex_scan.py",

@@ -169,6 +169,9 @@ Formatter caches use implementation and configuration inputs. CI prunes obsolete
 generations with `python3 scripts/latex/format_tex.py --check --prune-cache` before
 saving. Use pruning locally only without concurrent formatter runs.
 [Cache cleanup](developer-workflow.md#cleaning-outputs-and-caches) lists local paths.
+`scripts/latex/format_cache.py` owns the fingerprint inputs used by both local
+formatting and CI, including theorem implementations and policy. Changes that
+need no toolchain checks also skip formatter-cache restore and save.
 
 PDF reuse, image candidates, and release retries share bounded, file-based
 downloads in [`github_artifacts.py`](../scripts/ci/github_artifacts.py): progress,

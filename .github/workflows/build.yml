@@ -225,34 +225,21 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Compute LaTeX formatting cache keys
+        if: needs.plan.outputs.toolchain_checks == 'true'
         id: latex-cache
         env:
-          FORMATTER_HASH: >-
-            ${{ hashFiles(
-              'scripts/latex/format_tex.py',
-              'scripts/repository/formatting/normalize_eof.py',
-              'scripts/latex/latex_scan.py',
-              'scripts/latex/normalize_braces.py',
-              'scripts/latex/command_specs.py',
-              'scripts/latex/macro_manifest.py',
-              'scripts/latex/macro_generation.py',
-              'scripts/books/book_manifest.py',
-              'scripts/repository/source_reads.py',
-              'scripts/repository/processes.py',
-              'scripts/lean/lean_source.py',
-              'scripts/latex/format_tex_file.sh',
-              'config/latexindent.yaml'
-            ) }}
           SOURCES_HASH: ${{ hashFiles('**/*.tex', '**/*.sty', '**/macros.yml', 'config/books.yml') }}
         run: |
           source config/toolchain.env
           tools="${PYTHON_VERSION}-${PYYAML_VERSION}-${LATEXINDENT_VERSION}-${LATEXINDENT_SHA256_AMD64}"
-          prefix="latexindent-v3-${RUNNER_OS}-${RUNNER_ARCH}-${tools}-${FORMATTER_HASH}"
+          formatter="$(python3 scripts/latex/format_cache.py)"
+          prefix="latexindent-v4-${RUNNER_OS}-${RUNNER_ARCH}-${tools}-${formatter}"
           {
             echo "key=$prefix-$SOURCES_HASH"
             echo "prefix=$prefix-"
           } >> "$GITHUB_OUTPUT"
       - name: Restore LaTeX formatting checks
+        if: needs.plan.outputs.toolchain_checks == 'true'
         id: latex-format-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -286,6 +273,7 @@ jobs:
           if-no-files-found: ignore
       - name: Save LaTeX formatting checks
         if: >-
+          needs.plan.outputs.toolchain_checks == 'true' &&
           github.event_name == 'push' && github.ref == 'refs/heads/main' &&
           steps.latex-format-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
