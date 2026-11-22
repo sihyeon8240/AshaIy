@@ -144,8 +144,16 @@ ambiguous selectors fail before execution. Without `--book`:
 generation; `generated check` checks those outputs without writing. `--book` selects
 a book but still refreshes shared macros, theorems, and the Lean root. A site-disabled
 book skips the site step; explicit `site generate --book` requires a site-enabled book.
-Generation and full checks stop at the first failure; earlier generation stages
-may already have written files. See [theorem declarations](theorems.md#generation-and-validation),
+Generation stops at the first failure; earlier generation stages may already
+have written files. Full checks overlap source/format checks with Lean, group
+their output in that order, and build PDFs only after both succeed. The first
+reported failure cancels the other check group and preserves its exit status.
+`ashaiy check all --strict --jobs 1` runs stages serially. The default worker
+budget is at most four, bounded by CPU availability; TeX formatting reserves
+one worker while Lean is active. Lake retains its own internal scheduling.
+`--jobs N` also overrides bulk PDF workers, which run after the check groups.
+Generation and writing format commands retain their ordered execution.
+See [theorem declarations](theorems.md#generation-and-validation),
 [macro declarations](macros.md#generation-and-formatting), and
 [contents assembly](writing-guide.md#contents-manifests-and-metadata) for focused commands.
 

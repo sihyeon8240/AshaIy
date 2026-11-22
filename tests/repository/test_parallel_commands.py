@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import json
+import os
 import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from contextlib import closing
 from pathlib import Path
 
+from scripts.repository.benchmark import tree_rss
 from scripts.repository.processes import ProcessRunner, iter_parallel
 from scripts.repository.test_runner import run_tests
 from tests.support.fixtures import stop_process_group
@@ -20,6 +23,48 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class ParallelCommandsTests(unittest.TestCase):
+    @unittest.skipUnless(Path("/proc/self/status").exists(), "Linux process accounting is required")
+    def test_memory_measurement_includes_children_started_by_worker_threads(self) -> None:
+        ready = threading.Event()
+        finished = threading.Event()
+        processes = []
+
+        def execute():
+            with subprocess.Popen(
+                [
+                    sys.executable,
+                    "-c",
+                    "import sys; data = bytearray(33554432); print('ready', flush=True); sys.stdin.read()",
+                ],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+            ) as process:
+                processes.append(process)
+                assert process.stdout is not None
+                process.stdout.readline()
+                ready.set()
+                finished.wait(timeout=10)
+                process.communicate(input=b"done", timeout=5)
+
+        thread = threading.Thread(target=execute)
+        thread.start()
+        try:
+            self.assertTrue(ready.wait(timeout=5), "child did not start")
+
+            def rss(pid):
+                return next(
+                    int(line.split()[1])
+                    for line in Path(f"/proc/{pid}/status").read_text().splitlines()
+                    if line.startswith("VmRSS:")
+                )
+
+            expected = rss(os.getpid()) + rss(processes[0].pid)
+            self.assertGreaterEqual(tree_rss(os.getpid()), expected - 4096)
+        finally:
+            finished.set()
+            thread.join(timeout=10)
+        self.assertFalse(thread.is_alive())
+
     def test_worker_temporary_bytecode_is_removed_after_the_suite(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

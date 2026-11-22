@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 from collections.abc import Callable
-from contextlib import nullcontext
+from contextlib import closing, nullcontext
 from pathlib import Path
 
 from scripts.cli.task_stages import Stage, StageResult, run_stages
 from scripts.repository.file_updates import source_updates
+from scripts.repository.processes import ProcessRunner, iter_parallel, worker_count
+from scripts.repository.python_cache import temporary_directory
 from scripts.repository.source_reads import reuse_source_reads
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -103,24 +106,25 @@ def generate(*, book: str | None = None, check: bool = False) -> StageResult:
         return run_stages(stages)
 
 
-def check_all(*, strict: bool = False, root: Path = ROOT) -> StageResult:
+def check_all(*, strict: bool = False, jobs: int | None = None, root: Path = ROOT) -> StageResult:
+    count = worker_count(jobs)
     environment = os.environ.copy()
     if strict:
         environment["CHECK_LOG_STRICT"] = "1"
+    if jobs is not None:
+        environment["BOOK_BUILD_JOBS"] = str(jobs)
 
-    def command(script: str, *arguments: str) -> int:
+    def arguments(script: str, *options: str) -> list[str]:
         prefix = [sys.executable] if script.endswith(".py") else []
-        status = subprocess.run(
-            [*prefix, str(root / "scripts" / script), *arguments],
-            cwd=root,
-            env=environment,
-            check=False,
-        ).returncode
+        return [*prefix, str(root / "scripts" / script), *options]
+
+    def command(script: str, *options: str) -> int:
+        status = subprocess.run(arguments(script, *options), cwd=root, env=environment, check=False).returncode
         return 128 - status if status < 0 else status
 
-    sources, proofs = source_check_stages(command, compile_lean=True)
-    return run_stages(
-        (
+    def stages(command: Callable[..., int]) -> tuple[tuple[Stage, ...], Stage]:
+        sources, proofs = source_check_stages(command, compile_lean=True)
+        return (
             sources,
             Stage(
                 "python-format",
@@ -130,7 +134,10 @@ def check_all(*, strict: bool = False, root: Path = ROOT) -> StageResult:
                 "shell-format",
                 lambda: command("repository/formatting/format_code.py", "sh", "--check"),
             ),
-            Stage("tex-format", lambda: command("latex/format_tex.py", "--check")),
+            Stage(
+                "tex-format",
+                lambda: command("latex/format_tex.py", "--check", "--jobs", str(max(1, count - 1))),
+            ),
             Stage(
                 "source-newlines",
                 lambda: command(
@@ -139,15 +146,46 @@ def check_all(*, strict: bool = False, root: Path = ROOT) -> StageResult:
                     "--exclude-formatted",
                 ),
             ),
-            proofs,
-            Stage("books", lambda: command("latex/build_all.py", "check")),
-        )
-    )
+        ), proofs
+
+    validation, proofs = stages(command)
+    books = Stage("books", lambda: command("latex/build_all.py", "check"))
+    if count == 1:
+        return run_stages((*validation, proofs, books))
+
+    # Only read-only source checks overlap Lean. PDF compilers run after both.
+    completed = []
+    with temporary_directory(prefix="check-logs-") as temporary:
+
+        def execute(group: str, runner: ProcessRunner):
+            log = temporary / f"{group}.log"
+            with log.open("wb") as output:
+
+                def check(script: str, *options: str) -> int:
+                    status = runner.run(
+                        arguments(script, *options), cwd=root, env=environment, output=output
+                    ).returncode
+                    return 128 - status if status < 0 else status
+
+                validation, proofs = stages(check)
+                result = run_stages(validation if group == "source" else (proofs,))
+            return result, log
+
+        with closing(iter_parallel(("source", "lean"), execute, jobs=2)) as results:
+            for result, log in results:
+                with log.open(encoding="utf-8", errors="replace") as output:
+                    shutil.copyfileobj(output, sys.stdout)
+                sys.stdout.flush()
+                completed.extend(result.completed)
+                if result.returncode:
+                    return StageResult(tuple(completed), result.failed, result.returncode)
+    result = run_stages((books,))
+    return StageResult((*completed, *result.completed), result.failed, result.returncode)
 
 
-def check_repository(scope: str, *, strict: bool = False) -> int:
+def check_repository(scope: str, *, strict: bool = False, jobs: int | None = None) -> int:
     if scope == "all":
-        return check_all(strict=strict).returncode
+        return check_all(strict=strict, jobs=jobs).returncode
 
     commands = {
         "source": (str(ROOT / "scripts/repository/checks/check_repository.sh"),),

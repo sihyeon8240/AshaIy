@@ -26,7 +26,7 @@ OVERVIEW = """Books:
 Validation and formatting:
   check {source|manifest|proof-links|docs}
       Run a focused source, registry, proof-index, or documentation check.
-  check all [--strict]
+  check all [--strict] [--jobs N]
       Check sources, formatting, Lean, and PDFs for check-enabled textbooks.
   lean {prepare|build|check}
       Prepare dependencies or build Lean; check also verifies proof declarations.
@@ -327,6 +327,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="treat PDF log warnings as errors; valid only with all",
     )
+    checks.add_argument(
+        "--jobs",
+        type=positive_integer,
+        metavar="N",
+        help="formatter/build worker budget (default: at most 4); 1 runs stages serially; valid only with all",
+    )
     checks.set_defaults(run=run_checks)
 
     formatting = command("format", "format source files or check formatting")
@@ -541,8 +547,11 @@ def run_checks(arguments: argparse.Namespace) -> int:
     if arguments.strict and arguments.scope != "all":
         print("error: strict is only valid for the full check", file=sys.stderr)
         return 2
+    if arguments.jobs is not None and arguments.scope != "all":
+        print("error: --jobs is only valid for the full check", file=sys.stderr)
+        return 2
 
-    return check_repository(arguments.scope, strict=arguments.strict)
+    return check_repository(arguments.scope, strict=arguments.strict, jobs=arguments.jobs)
 
 
 def run_plan(arguments: argparse.Namespace) -> int:
