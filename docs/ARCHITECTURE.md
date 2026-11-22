@@ -301,6 +301,10 @@ TeX Live installation steps. These committed inputs isolate Docker cache
 invalidation; the independent TeX Live stage is reused across other tool updates.
 Register generated image inputs in `config/image-build.json`.
 
+The development image installs its Python closure before copying Lean, Ruby,
+and binary tools. The complete runtime toolchain configuration is copied before
+the final checks and inventory, preserving Python layers across unrelated pins.
+
 `config/container-image.txt` owns the local container pin. CI image selection,
 publication, and pinning follow [image operations](maintainer-guide.md#multi-platform-toolchain-images).
 

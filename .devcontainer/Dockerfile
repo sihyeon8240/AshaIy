@@ -145,16 +145,15 @@ ENV EDITOR=nano
 RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium git-man jq less man-db nano openssh-client ripgrep ruby tree zsh \
   && rm -rf /var/lib/apt/lists/*
-COPY --from=lean-toolchain /usr/local/elan /usr/local/elan
-COPY --chmod=0644 config/toolchain.env /workspace/config/toolchain.env
-COPY --from=ruby-tools /var/lib/gems /var/lib/gems
-COPY --from=ruby-tools /usr/local/bin/ /usr/local/bin/
 COPY --chmod=0644 .devcontainer/generated/python.env /tmp/python.env
 COPY --chmod=0644 .github/requirements-ci.txt /tmp/requirements-ci.txt
 RUN set -a && . /tmp/python.env && set +a \
   && python3 -m pip install \
     --disable-pip-version-check --no-cache-dir --only-binary=:all: \
     --requirement /tmp/requirements-ci.txt
+COPY --from=lean-toolchain /usr/local/elan /usr/local/elan
+COPY --from=ruby-tools /var/lib/gems /var/lib/gems
+COPY --from=ruby-tools /usr/local/bin/ /usr/local/bin/
 COPY --from=tool-downloader --chmod=0755 /out/bin/ruff /out/bin/shfmt \
     /out/bin/latexindent /out/bin/shellcheck /out/bin/gh /usr/local/bin/
 ARG BASEDEVCONTAINER_SHELL_COMMIT=08ecc2ae6dcda53eb59a7edd8246682f3e0a4238
@@ -182,6 +181,7 @@ RUN curl -fsSL -o /root/.zshrc \
   && rm -rf /root/.oh-my-zsh/.git \
       /root/.oh-my-zsh/custom/themes/powerlevel10k/.git \
   && usermod --shell /bin/zsh root
+COPY --chmod=0644 config/toolchain.env /workspace/config/toolchain.env
 RUN ./scripts/toolchain/check_toolchain.sh
 RUN python3 /usr/local/bin/ashaiy-inventory.py --output /usr/local/share/ashaiy/inventory.json
 CMD ["/bin/zsh"]
