@@ -308,6 +308,7 @@ Container after changing its synchronized configuration.
 | `ashaiy clean source` | Disposable source-tree auxiliary files, formatter logs, editor/patch backups, and interrupted manifest-write files |
 | `ashaiy clean build` | CLI and VS Code build output |
 | `ashaiy clean cache --scope <scope>` | The selected repository-local cache below |
+| `ashaiy clean cache --scope py --stale` | Bytecode for vanished temporary directories, retaining live and shared caches |
 
 | Scope | Default location |
 |---|---|
@@ -328,6 +329,12 @@ Mounted cache roots are retained after their contents are removed; ordinary
 cache directories are removed. Cleanup does not delete Docker volumes or old
 host caches hidden underneath their mounts.
 Avoid cleanup while tools are running.
+
+Use `ashaiy clean cache --scope py --stale --dry-run` to inspect stale temporary
+bytecode first. This only examines the default repository Python cache under the
+current temporary-directory path; it preserves override paths and symlinks to
+other directories. Test workers use an invocation-owned temporary directory and
+remove its bytecode when they finish, including interrupted runs.
 
 The CLI and containers set Python and Mathlib cache paths. For direct commands
 in a host shell, set these before starting Python or Lake:

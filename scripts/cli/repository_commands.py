@@ -112,6 +112,17 @@ def image_command(arguments: argparse.Namespace) -> int:
 
 def clean_command(arguments: argparse.Namespace) -> int:
     action = arguments.action
+    if action == "cache":
+        if arguments.stale:
+            if arguments.scope != "py":
+                print("error: --stale requires --scope py", file=sys.stderr)
+                return 2
+            from scripts.repository.python_cache import prune
+
+            return prune(dry_run=arguments.dry_run)
+        if arguments.dry_run:
+            print("error: --dry-run requires --stale", file=sys.stderr)
+            return 2
     script = {
         "build": "repository/clean.sh",
         "source": "repository/clean_artifacts.sh",

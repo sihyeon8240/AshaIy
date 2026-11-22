@@ -69,6 +69,7 @@ Environment and maintenance:
       Remove PDF/editor build output or disposable source artifacts.
   clean cache --scope {lake|mathlib|tex|ruff|py|coverage|hypothesis|all}
       Remove only the selected tool caches.
+      Add --stale [--dry-run] with --scope py to prune vanished temporary paths.
   report
       Print an informational repository health report.
   tree
@@ -403,6 +404,14 @@ def build_parser() -> argparse.ArgumentParser:
             "all",
         ),
         help="cache to remove; all selects every supported tool cache",
+    )
+    clean["cache"].add_argument(
+        "--stale",
+        action="store_true",
+        help="remove only bytecode for vanished temporary directories; requires --scope py",
+    )
+    clean["cache"].add_argument(
+        "--dry-run", action="store_true", help="list removals without writing; requires --stale"
     )
     tests = command("test", "run the repository test suite")
     tests.add_argument("--coverage", action="store_true", help="measure Python branch coverage")

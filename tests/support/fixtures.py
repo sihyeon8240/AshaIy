@@ -109,6 +109,7 @@ def copy_validation_configuration(root: Path) -> None:
         "scripts/repository/config/json_config.py",
         "scripts/repository/file_updates.py",
         "scripts/repository/processes.py",
+        "scripts/repository/python_cache.py",
         "scripts/repository/path_policy.py",
         "config/validation-patterns.json",
     ):

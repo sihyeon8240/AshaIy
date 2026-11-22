@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import signal
 import subprocess
 import sys
@@ -19,6 +20,30 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class ParallelCommandsTests(unittest.TestCase):
+    def test_worker_temporary_bytecode_is_removed_after_the_suite(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            package = root / "bytecode_cases"
+            package.mkdir()
+            (package / "__init__.py").touch()
+            (package / "test_cache.py").write_text(
+                "import json, py_compile, tempfile, unittest\nfrom pathlib import Path\n"
+                "class Example(unittest.TestCase):\n"
+                "    def test_temporary_import(self):\n"
+                "        with tempfile.TemporaryDirectory() as directory:\n"
+                "            source = Path(directory) / 'fixture.py'\n"
+                "            source.write_text('value = 1\\n')\n"
+                "            cache = py_compile.compile(str(source), doraise=True)\n"
+                "            Path('cache-path.json').write_text(json.dumps(cache))\n"
+                "            self.assertTrue(Path(cache).is_file())\n"
+            )
+            original_path = sys.path[:]
+            self.addCleanup(setattr, sys, "path", original_path)
+            self.assertEqual(run_tests(str(package), "test_*.py", jobs=2, root=root), 0)
+            cache = Path(json.loads((root / "cache-path.json").read_text()))
+            self.assertIn("test-logs-", str(cache))
+            self.assertFalse(cache.exists())
+
     def test_bounded_submission_preserves_order_and_accepts_none_items(self) -> None:
         submitted = []
 

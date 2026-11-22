@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import os
 import re
 import shutil
 import signal
 import sys
-import tempfile
 import time
 import unittest
 from contextlib import closing
@@ -18,6 +18,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from scripts.repository.processes import ProcessRunner, iter_parallel, worker_count
+from scripts.repository.python_cache import temporary_directory
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -84,13 +85,16 @@ def run_tests(directory: str, pattern: str, *, jobs: int | None = None, root: Pa
     started = time.monotonic()
 
     failed = skipped = 0
-    with tempfile.TemporaryDirectory(prefix="test-logs-") as temporary:
+    with temporary_directory(prefix="test-logs-") as temporary:
 
         def execute(module: str, runner: ProcessRunner):
             log = Path(temporary) / f"{module}.log"
             with log.open("wb") as output:
                 result = runner.run(
-                    [sys.executable, str(Path(__file__).resolve()), "--module", module], cwd=root, output=output
+                    [sys.executable, str(Path(__file__).resolve()), "--module", module],
+                    cwd=root,
+                    env={**os.environ, "TMPDIR": str(temporary)},
+                    output=output,
                 )
             return module, result.returncode, log
 
