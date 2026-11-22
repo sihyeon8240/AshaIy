@@ -19,6 +19,28 @@ def elf_header(machine: int) -> bytes:
 
 
 class PrepareCacheTests(unittest.TestCase):
+    def test_existing_artifacts_are_checked_offline_and_misses_download_normally(self):
+        for status in (0, 3):
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                (root / "lean").mkdir()
+                (root / "lean/Textbooks.lean").write_text("import Mathlib.One\nimport Mathlib.Two\n")
+                calls = []
+
+                def execute(command, **options):
+                    calls.append(command)
+                    if "--no-build" in command:
+                        self.assertIn("--no-cache", command)
+                        self.assertEqual(command[-2:], ["+Mathlib.One:leanArts", "+Mathlib.Two:leanArts"])
+                        return subprocess.CompletedProcess(command, status)
+                    self.assertEqual(command[:4], ["lake", "exe", "cache", "get"])
+                    return subprocess.CompletedProcess(command, 0)
+
+                with patch.object(CACHE.subprocess, "run", side_effect=execute):
+                    CACHE.prepare(root, prefer_existing=True)
+                self.assertEqual(len(calls), 1 if status == 0 else 2)
+                self.assertEqual((root / "lean/Textbooks.lean").read_text(), "import Mathlib.One\nimport Mathlib.Two\n")
+
     def test_cache_fingerprint_follows_reachable_imports_without_tracking_proof_edits(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

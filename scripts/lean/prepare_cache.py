@@ -76,12 +76,24 @@ def repair_native_executables(root: Path) -> None:
             raise ValueError(f"rebuilt executable still does not target {expected}: {path}")
 
 
-def prepare(root: Path = ROOT) -> None:
+def prepare(root: Path = ROOT, *, prefer_existing: bool = False) -> None:
     modules = project_mathlib_imports(root)
     if not modules:
         print("No Mathlib imports to prepare.")
         return
     repair_native_executables(root)
+    if prefer_existing:
+        result = subprocess.run(
+            ["lake", "--no-cache", "--no-build", "build", *(f"+{module}:leanArts" for module in modules)],
+            cwd=root / "lean",
+            env={**os.environ, "MATHLIB_NO_CACHE_ON_UPDATE": "1"},
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+        if result.returncode == 0:
+            print("Imported Lean artifacts are up to date; no downloads needed.", flush=True)
+            return
     print(f"Preparing cache for {len(modules)} direct Mathlib import(s).", flush=True)
     subprocess.run(
         ["lake", "exe", "cache", "get", *modules],
@@ -98,12 +110,17 @@ def main() -> int:
     parser.add_argument(
         "--import-hash", action="store_true", help="print the normalized direct-import cache fingerprint"
     )
+    parser.add_argument(
+        "--prefer-existing",
+        action="store_true",
+        help="check imported build traces before downloading missing artifacts",
+    )
     arguments = parser.parse_args()
     try:
         if arguments.import_hash:
             print(import_fingerprint())
         else:
-            prepare()
+            prepare(prefer_existing=arguments.prefer_existing)
     except subprocess.CalledProcessError as error:
         return error.returncode
     except (OSError, ValueError) as error:

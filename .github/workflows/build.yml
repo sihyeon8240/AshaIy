@@ -57,13 +57,6 @@ jobs:
           python-version: ${{ steps.config.outputs.python }}
           cache: pip
           cache-dependency-path: .github/requirements-ci.txt
-      - name: Install repository check dependencies
-        run: |
-          if ! command -v rg >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install --no-install-recommends --yes ripgrep
-          fi
-          command -v rg
       - run: >-
           python3 -m pip install --disable-pip-version-check
           --requirement .github/requirements-ci.txt
@@ -109,9 +102,7 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: ${{ steps.config.outputs.python }}
-          cache: pip
-          cache-dependency-path: .github/requirements-ci.txt
-      - run: python3 -m pip install --disable-pip-version-check --constraint .github/requirements-ci.txt PyYAML
+      - run: python3 -m pip install --disable-pip-version-check --no-cache-dir --constraint .github/requirements-ci.txt PyYAML
       - name: Compute Lean cache keys
         if: needs.plan.outputs.lean == 'true'
         id: lean-cache
@@ -163,7 +154,12 @@ jobs:
           use-mathlib-cache: false
       - name: Prepare only imported Mathlib dependencies
         if: needs.plan.outputs.lean == 'true'
-        run: ./scripts/ashaiy lean prepare
+        run: |
+          options=()
+          if [[ "${{ steps.lean-dependencies.outputs.cache-hit }}" == true ]]; then
+            options+=(--prefer-existing)
+          fi
+          ./scripts/ashaiy lean prepare "${options[@]}"
       - name: Compile proofs and check declaration correspondence
         run: ./scripts/ashaiy lean check
       # PRs can restore main's caches without creating PR-scoped copies.
@@ -333,19 +329,27 @@ jobs:
       pdf_image: ${{ steps.image.outputs.pdf_image }}
       pdf_digest: ${{ steps.image.outputs.pdf_digest }}
       pdf_artifact: ${{ steps.image.outputs.pdf_artifact }}
+    env:
+      PREPARED_IMAGE: ${{ needs.image-validation.outputs.image || needs.main-image.outputs.image }}
+      PREPARED_DIGEST: ${{ needs.image-validation.outputs.digest || needs.main-image.outputs.digest }}
+      PREPARED_ARTIFACT: ${{ needs.image-validation.outputs.artifact || needs.main-image.outputs.artifact }}
+      PREPARED_PDF_IMAGE: ${{ needs.image-validation.outputs.pdf_image || needs.main-image.outputs.pdf_image }}
+      PREPARED_PDF_DIGEST: ${{ needs.image-validation.outputs.pdf_digest || needs.main-image.outputs.pdf_digest }}
+      PREPARED_PDF_ARTIFACT: ${{ needs.image-validation.outputs.pdf_artifact || needs.main-image.outputs.pdf_artifact }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Load repository configuration
+        if: env.PREPARED_IMAGE == ''
         id: config
         run: ./scripts/repository/config/export_config.sh
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        if: env.PREPARED_IMAGE == ''
         with:
           python-version: ${{ steps.config.outputs.python }}
-          cache: pip
-          cache-dependency-path: .github/requirements-ci.txt
-      - run: >-
+      - if: env.PREPARED_IMAGE == ''
+        run: >-
           python3 -m pip install --disable-pip-version-check
-          --constraint .github/requirements-ci.txt PyYAML
+          --no-cache-dir --constraint .github/requirements-ci.txt PyYAML
       - name: Authenticate image lookup for same-repository runs
         if: >-
           needs.image-validation.result == 'skipped' && needs.main-image.result == 'skipped' &&
@@ -357,13 +361,6 @@ jobs:
           password: ${{ github.token }}
       - name: Select the prepared or published image
         id: image
-        env:
-          PREPARED_IMAGE: ${{ needs.image-validation.outputs.image || needs.main-image.outputs.image }}
-          PREPARED_DIGEST: ${{ needs.image-validation.outputs.digest || needs.main-image.outputs.digest }}
-          PREPARED_ARTIFACT: ${{ needs.image-validation.outputs.artifact || needs.main-image.outputs.artifact }}
-          PREPARED_PDF_IMAGE: ${{ needs.image-validation.outputs.pdf_image || needs.main-image.outputs.pdf_image }}
-          PREPARED_PDF_DIGEST: ${{ needs.image-validation.outputs.pdf_digest || needs.main-image.outputs.pdf_digest }}
-          PREPARED_PDF_ARTIFACT: ${{ needs.image-validation.outputs.pdf_artifact || needs.main-image.outputs.pdf_artifact }}
         run: |
           if [[ -n "$PREPARED_IMAGE" ]]; then
             [[ -n "$PREPARED_PDF_IMAGE" && -n "$PREPARED_PDF_DIGEST" ]]
@@ -418,11 +415,9 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: ${{ steps.config.outputs.python }}
-          cache: pip
-          cache-dependency-path: .github/requirements-ci.txt
       - run: >-
           python3 -m pip install --disable-pip-version-check
-          --constraint .github/requirements-ci.txt PyYAML
+          --no-cache-dir --constraint .github/requirements-ci.txt PyYAML
       - name: Classify changed files
         id: changes
         env:

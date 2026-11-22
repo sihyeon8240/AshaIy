@@ -48,6 +48,10 @@ Preparation follows `Textbooks` imports and downloads only their direct Mathlib
 imports and transitive dependencies. It uses the pinned Lake manifest without
 updating dependency versions, then rebuilds supported native cache tools for the
 current architecture. Rerun it after dependency updates or cache cleanup.
+`ashaiy lean prepare --prefer-existing` first asks Lake to check imported artifact
+traces without building or downloading. It falls back to normal preparation when
+outputs are missing or stale. Native executable checks still run; preparation
+does not replace `ashaiy lean check`.
 
 After editing canonical configuration, run `ashaiy config generate` and
 `ashaiy config check`, then commit the synchronized consumers.

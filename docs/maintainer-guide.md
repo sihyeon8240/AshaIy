@@ -159,9 +159,18 @@ the same book and image. Only successful main pushes save Lean and PDF caches;
 PRs restore them. Python and Mathlib download directories are not separately
 restored by Actions.
 
+The source job caches the full Python check dependency download set. Jobs that
+only need PyYAML install it with `.github/requirements-ci.txt` constraints and
+skip that large cache. Prepared image outputs also bypass Python installation
+in the image selection job; its existing source and image-validation gates stay
+in force.
+
 Lean dependency keys also include the normalized reachable Mathlib import set.
 `ashaiy lean prepare` fills that set after an exact or compatible prefix restore;
 proof edits without import changes reuse the same dependency archive. Lean
+preparation uses `--prefer-existing` after an exact dependency-cache restore:
+Lake checks imported artifact traces offline before deciding whether to download.
+Cache hits alone never count as proof validation. Lean
 compilation runs independently of general source checks and remains part of the
 required source gate. Image publication still waits for both checks.
 

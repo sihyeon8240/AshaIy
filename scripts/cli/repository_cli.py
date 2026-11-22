@@ -355,7 +355,10 @@ def build_parser() -> argparse.ArgumentParser:
     formatting.set_defaults(run=run_format)
     formatting.add_argument("--jobs", type=positive_integer, metavar="N", help="maximum parallel TeX formatters")
 
-    command("lean", "prepare dependencies, build, or verify Lean", ("prepare", "build", "check"))
+    lean = command("lean", "prepare dependencies, build, or verify Lean", ("prepare", "build", "check"))
+    lean["prepare"].add_argument(
+        "--prefer-existing", action="store_true", help="check imported build traces before downloading artifacts"
+    )
     doctor = command("doctor", "diagnose environment or textbooks", ("env", "book"))
     book_option(doctor["book"])
     site = command(

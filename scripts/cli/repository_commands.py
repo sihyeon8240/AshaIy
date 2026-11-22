@@ -60,7 +60,7 @@ def lean_command(arguments: argparse.Namespace) -> int:
     if status:
         return status
     if action == "prepare":
-        return run("lean/prepare_cache.py")
+        return run("lean/prepare_cache.py", *(["--prefer-existing"] if arguments.prefer_existing else []))
     return subprocess.run(["lake", "build"], cwd=ROOT / "lean", check=False).returncode
 
 
