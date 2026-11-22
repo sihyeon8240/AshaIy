@@ -8,13 +8,7 @@ groups:
     - build
     - vscode-build
     - lean/.lake
-  vscode-search-paths:
-    - build/**
-    - vscode-build/**
-    - .cache/**
-    - .hypothesis/**
-    - lean/.lake/**
-  vscode-watcher-paths:
+  vscode-cache-paths:
     - '**/build/**'
     - '**/vscode-build/**'
     - '**/.cache/**'
@@ -89,10 +83,8 @@ profiles:
     - temporary
   cleanup-prune:
     - cleanup-prune-paths
-  vscode-search:
-    - vscode-search-paths
-  vscode-watcher:
-    - vscode-watcher-paths
+  vscode-cache:
+    - vscode-cache-paths
   git:
     - git-paths
     - latex

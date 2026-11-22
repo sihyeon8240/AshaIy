@@ -109,13 +109,6 @@
     "-ci",
     "-sr"
   ],
-  "search.exclude": {
-    "build/**": true,
-    "vscode-build/**": true,
-    ".cache/**": true,
-    ".hypothesis/**": true,
-    "lean/.lake/**": true
-  },
   "python.testing.unittestEnabled": true,
   "python.testing.pytestEnabled": false,
   "python.testing.cwd": "${workspaceFolder}",
@@ -184,5 +177,42 @@
       ],
       "url": "./config/schemas/validation-patterns.schema.json"
     }
+  ],
+  "python.analysis.include": [
+    "scripts",
+    "tests"
+  ],
+  "shellcheck.executablePath": "shellcheck",
+  "shellcheck.useWorkspaceRootAsCwd": true,
+  "shellcheck.customArgs": [
+    "--severity=error"
+  ],
+  "search.useIgnoreFiles": true,
+  "explorer.excludeGitIgnore": true,
+  "latex-workshop.latex.search.rootFiles.exclude": [
+    "**/build/**",
+    "**/vscode-build/**",
+    "**/.cache/**",
+    "**/.hypothesis/**",
+    "**/lean/.lake/**"
+  ],
+  "python.analysis.exclude": [
+    "**/build/**",
+    "**/vscode-build/**",
+    "**/.cache/**",
+    "**/.hypothesis/**",
+    "**/lean/.lake/**",
+    "**/node_modules/**",
+    "**/__pycache__/**",
+    "**/.git/**",
+    "**/.venv/**",
+    "**/venv/**"
+  ],
+  "python.testing.autoTestDiscoverOnSavePattern": "tests/**/*.py",
+  "latex-workshop.latex.search.rootFiles.include": [
+    "books/mathematical-analysis/book.tex",
+    "books/elementary-number-theory/book.tex",
+    "books/linear-algebra/book.tex",
+    "common/templates/artwork.tex"
   ]
 }

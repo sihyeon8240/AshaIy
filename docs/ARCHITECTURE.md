@@ -156,6 +156,12 @@ glob exclusions belong in `config/ignore-patterns.yml`.
 | Mixed editor/container files | Synchronization owns the image, cache volume mounts, extension lists, book choices, and configured editor fields; remaining user-maintained settings and unrelated mounts are preserved. |
 | Mixed TOML files | Synchronization owns the Lean dependency revision and Python versions for Ruff and ty; package metadata, Lean options, and check policy remain hand-maintained. |
 
+VS Code search and Explorer use Git ignore files. The `vscode-cache` exclusion
+profile owns watcher, Pylance exclusion, and Workshop root-search globs; these
+are VS Code settings, not a portable exclusion format. Book metadata owns the
+Workshop root candidates and authoring configuration owns test rediscovery paths.
+Editors retain the shared CLI formatter policy through their own adapters.
+
 Preserve hand-maintained fields in mixed consumers; do not replace these files
 with complete generated templates. Synchronization validates the full update set
 before writing. Source mutations hold an invocation-scoped, reentrant lock under

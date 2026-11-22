@@ -200,6 +200,11 @@ def rendered_consumers(root: Path = ROOT, *, image: str | None = None) -> dict[P
         "-p",
         authoring["test_pattern"],
     ]
+    settings["python.testing.autoTestDiscoverOnSavePattern"] = f"{authoring['test_directory']}/**/*.py"
+    settings["latex-workshop.latex.search.rootFiles.include"] = [
+        *(f"books/{book['slug']}/book.tex" for book in books),
+        "common/templates/artwork.tex",
+    ]
     ignore_updates[settings_path] = json.dumps(settings, indent=2) + "\n"
     return {
         **ignore_updates,

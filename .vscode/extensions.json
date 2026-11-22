@@ -8,6 +8,7 @@
     "charliermarsh.ruff",
     "editorconfig.editorconfig",
     "redhat.vscode-yaml",
-    "mkhl.shfmt"
+    "mkhl.shfmt",
+    "timonwong.shellcheck"
   ]
 }
