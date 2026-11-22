@@ -5,6 +5,10 @@ is buffered and shown only for failed tests, including in coverage mode.
 Module output is spooled to temporary files and consumed in deterministic order;
 only a bounded number of jobs are queued. Large successful logs do not remain
 in parent-process memory.
+Worker temporary files live under one invocation-owned directory. Its bytecode
+is removed with the scratch files after workers have stopped; the shared Python
+cache remains reusable. Coverage and retained failure traces keep their documented
+repository paths.
 Tests follow the functional packages under `scripts/`: `books`, `ci`, `cli`,
 `latex`, `lean`, `release`, `repository`, `site`, and `toolchain`.
 The larger areas also mirror `repository/{checks,config,formatting}/` and

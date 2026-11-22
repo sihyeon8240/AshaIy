@@ -26,14 +26,22 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def tree_rss(pid: int) -> int:
     pending = [pid]
+    visited = set()
     total = 0
     while pending:
         process = pending.pop()
+        if process in visited:
+            continue
+        visited.add(process)
         try:
             status = Path(f"/proc/{process}/status").read_text()
             total += next((int(line.split()[1]) for line in status.splitlines() if line.startswith("VmRSS:")), 0)
-            children = Path(f"/proc/{process}/task/{process}/children").read_text()
-            pending.extend(int(child) for child in children.split())
+            for task in Path(f"/proc/{process}/task").iterdir():
+                try:
+                    children = (task / "children").read_text()
+                except OSError:
+                    continue
+                pending.extend(int(child) for child in children.split())
         except OSError, ProcessLookupError:
             continue
     return total

@@ -10,10 +10,6 @@ if [[ $# -gt 1 || ($# -eq 1 && "$1" != --defer-proof-links && "$1" != --defer-le
   exit 2
 fi
 
-if ! command -v rg > /dev/null 2>&1; then
-  echo "error: required command 'rg' (ripgrep) was not found in PATH" >&2
-  exit 127
-fi
 if ! command -v shellcheck > /dev/null 2>&1; then
   echo "error: required command 'shellcheck' was not found in PATH" >&2
   exit 127

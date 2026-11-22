@@ -33,6 +33,8 @@ class FullCheckTests(unittest.TestCase):
                 "cli/task_stages.py",
                 "repository/source_reads.py",
                 "repository/file_updates.py",
+                "repository/processes.py",
+                "repository/python_cache.py",
             ):
                 copy_file(ROOT / "scripts" / name, scripts / name)
             for name in ("lean/check_lean.sh", "repository/checks/check_repository.sh"):
@@ -104,6 +106,8 @@ class FullCheckTests(unittest.TestCase):
                 "cli/task_stages.py",
                 "repository/source_reads.py",
                 "repository/file_updates.py",
+                "repository/processes.py",
+                "repository/python_cache.py",
             ):
                 copy_file(ROOT / "scripts" / name, scripts / name)
             names = [
@@ -164,12 +168,17 @@ class FullCheckTests(unittest.TestCase):
                     )
                     self.assertEqual(result.returncode, status, result.stderr)
                     calls = capture.read_text().splitlines()
-                    self.assertEqual(calls[0], "check_repository.sh --defer-lean")
+                    self.assertIn("check_repository.sh --defer-lean", calls)
+                    self.assertLess(
+                        calls.index("check_repository.sh --defer-lean"), calls.index("format_code.py py --check")
+                    )
                     self.assertIn("format_code.py py --check", calls)
                     self.assertIn("format_code.py sh --check", calls)
                     self.assertIn("normalize_eof.py --check --exclude-formatted", calls)
                     self.assertEqual(calls.count("check_lean.sh "), 1)
                     self.assertEqual("build_all.py check" in calls, status == 0)
+                    if status == 0:
+                        self.assertEqual(calls[-1], "build_all.py check")
                     environments = Path(f"{capture}.environment").read_text().splitlines()
                     for environment in environments:
                         name, strict_flag, manifest_flag = environment.split()

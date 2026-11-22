@@ -18,17 +18,17 @@ from typing import cast
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from scripts.latex.format_cache import fingerprint as formatter_fingerprint
 from scripts.latex.latex_scan import source_spans, without_comments_and_literals
 from scripts.latex.macro_generation import MacroRegistry, MacroRepository
 from scripts.latex.normalize_braces import normalize_braces
-from scripts.latex.theorem_generation import GENERATED, MANIFEST, checked_manifest
+from scripts.latex.theorem_generation import GENERATED, checked_manifest
 from scripts.latex.theorem_manifest import TheoremManifest
 from scripts.lean.lean_source import ignored_spans
 from scripts.repository.config.validation_patterns import validation_pattern
 from scripts.repository.file_updates import observe_source, source_updates, write_updates
 from scripts.repository.formatting.normalize_eof import normalized_bytes
 from scripts.repository.processes import ProcessRunner, run_parallel, worker_count
-from scripts.repository.source_reads import read_text
 
 ROOT = Path(__file__).resolve().parents[2]
 LEAN_BLOCK = re.compile(
@@ -135,27 +135,7 @@ def selected_files(root: Path, file: Path | None) -> list[Path]:
 
 
 def cache_directory(root: Path) -> Path:
-    digest = hashlib.sha256()
-    # Include implementations and wrappers so any formatting change invalidates checks.
-    for name in (
-        "latex/format_tex.py",
-        "repository/formatting/normalize_eof.py",
-        "latex/latex_scan.py",
-        "latex/normalize_braces.py",
-        "latex/command_specs.py",
-        "latex/macro_manifest.py",
-        "latex/macro_generation.py",
-        "latex/theorem_manifest.py",
-        "latex/theorem_generation.py",
-        "repository/source_reads.py",
-        "repository/processes.py",
-        "books/book_manifest.py",
-        "lean/lean_source.py",
-        "latex/format_tex_file.sh",
-    ):
-        digest.update((ROOT / "scripts" / name).read_bytes())
-    digest.update((ROOT / "config/latexindent.yaml").read_bytes())
-    digest.update(read_text(root / MANIFEST).encode())
+    digest = hashlib.sha256(formatter_fingerprint(root, observe=observe_source).encode())
     version = subprocess.check_output(["latexindent", "--version"]).splitlines()[0]
     digest.update(version)
     cache = Path(os.environ.get("FORMAT_TEX_CACHE_DIR", root / ".cache/latexindent")) / digest.hexdigest()

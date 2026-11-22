@@ -14,10 +14,6 @@ from scripts.repository.source_reads import read_yaml
 
 PATTERN = re.compile(r"[A-Za-z0-9_.*?/~+-]+")
 HEADER = "# Generated from config/ignore-patterns.yml; do not edit.\n"
-EDITOR_PROFILES = {
-    "vscode-search": "search.exclude",
-    "vscode-watcher": "files.watcherExclude",
-}
 
 
 def load_patterns(path: Path) -> dict[str, list[str]]:
@@ -42,7 +38,7 @@ def load_patterns(path: Path) -> dict[str, list[str]]:
         "tree",
         "cleanup-files",
         "cleanup-prune",
-        *EDITOR_PROFILES,
+        "vscode-cache",
     }:
         raise ValueError(f"{path}: unexpected consumer profiles")
     for name, patterns in groups.items():
@@ -78,8 +74,21 @@ def rendered_ignore_consumers(root: Path) -> dict[Path, str]:
     patterns = load_patterns(root / "config/ignore-patterns.yml")
     settings_path = root / ".vscode/settings.json"
     settings = read_json(settings_path)
-    for profile, key in EDITOR_PROFILES.items():
-        settings[key] = dict.fromkeys(patterns[profile], True)
+    # Search uses the repository Git ignore policy instead of a second path list.
+    settings.pop("search.exclude", None)
+    settings["search.useIgnoreFiles"] = True
+    settings["explorer.excludeGitIgnore"] = True
+    caches = patterns["vscode-cache"]
+    settings["files.watcherExclude"] = dict.fromkeys(caches, True)
+    settings["latex-workshop.latex.search.rootFiles.exclude"] = caches
+    settings["python.analysis.exclude"] = [
+        *caches,
+        "**/node_modules/**",
+        "**/__pycache__/**",
+        "**/.git/**",
+        "**/.venv/**",
+        "**/venv/**",
+    ]
 
     return {
         root / "config/generated/cleanup-files.txt": "\n".join(patterns["cleanup-files"]) + "\n",

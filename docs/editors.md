@@ -13,10 +13,24 @@ Use **Run Build Task** for a book, **Run Test Task** for automation, and
 LaTeX Workshop previews into `vscode-build/`; CLI PDFs live in `build/<slug>/`.
 Choose Workshop's strict recipe for repository log validation.
 
-Formatting on save uses Ruff, the repository TeX wrapper, and shfmt.
+Formatting on save uses Ruff, the repository TeX wrapper, and shfmt with the
+same configuration as `ashaiy format`. Keep explicit-save Ruff fixes and import
+organization enabled so Python saves match CLI formatting. The TeX wrapper
+retains the original source path for book-local macros and protects Lean literals.
 Problems matchers link Lean, TeX, shell, and repository diagnostics to sources.
-Test Explorer uses unittest discovery. Generated caches are excluded from
-search and file watching.
+ShellCheck uses the container executable and the source gate's error severity.
+Test Explorer uses unittest discovery; automatic rediscovery watches `tests/`
+rather than every Python edit. Use **Test: Refresh Tests** after changing a test
+dependency outside that directory.
+
+Search and Explorer follow `.gitignore`. Keep **Use Exclude Settings and Ignore
+Files** enabled in the Search view; the toggle can bypass workspace exclusions.
+File watchers, Pylance analysis, and LaTeX Workshop root discovery have separate
+settings. Configuration synchronization excludes caches from those consumers
+and limits Workshop root candidates to registered books and the artwork source.
+Pylance's initial analysis is restricted to `scripts/` and `tests/`.
+PDFs remain accessible through Workshop or an explicit file path when Explorer
+hides ignored output. These exclusions use VS Code's own configuration syntax.
 
 Pylance supplies interactive Python analysis; CI uses ty. These are different
 analyzers. Select the container interpreter and use `ashaiy check source` for
@@ -36,6 +50,12 @@ Use the [terminal setup](developer-workflow.md#terminal-containers) to install
 the Dev Container CLI without VS Code. No second native TeX or Lean installation
 is required. Container logs go to stderr, leaving command stdout available for
 editor integrations. Keep build output and caches at their designated paths.
+
+Use `.editorconfig`, `config/pyproject.toml`, and the public format commands as
+the authoring policy. An editor's save hook should run the same formatter with
+the same options, including Ruff's safe fixes before formatting. Shell options
+come from `config/authoring.json`. Search and language-server exclusions remain
+editor-specific; configure them using that editor's documented syntax.
 
 For a terminal editor's TeX formatter, send input through
 `scripts/latex/format_tex.py --stdout <temporary-file> --source <original-file>`
@@ -69,3 +89,8 @@ a book-owned source path, and container Lean LSP initialization/completion
 capabilities and error URI/range reporting. Native GUI extensions, host LSP
 URI translation, viewer inverse search and assistive technologies require their
 own integration review.
+
+VS Code extension downloads and obsolete extension versions belong to the editor,
+not repository cache cleanup. Review them through the remote Extensions view and
+reload after updates. Do not remove active extension directories while the editor
+is running; rebuilding a container also discards its unmounted editor state.

@@ -48,6 +48,10 @@ Preparation follows `Textbooks` imports and downloads only their direct Mathlib
 imports and transitive dependencies. It uses the pinned Lake manifest without
 updating dependency versions, then rebuilds supported native cache tools for the
 current architecture. Rerun it after dependency updates or cache cleanup.
+`ashaiy lean prepare --prefer-existing` first asks Lake to check imported artifact
+traces without building or downloading. It falls back to normal preparation when
+outputs are missing or stale. Native executable checks still run; preparation
+does not replace `ashaiy lean check`.
 
 After editing canonical configuration, run `ashaiy config generate` and
 `ashaiy config check`, then commit the synchronized consumers.
@@ -144,8 +148,16 @@ ambiguous selectors fail before execution. Without `--book`:
 generation; `generated check` checks those outputs without writing. `--book` selects
 a book but still refreshes shared macros, theorems, and the Lean root. A site-disabled
 book skips the site step; explicit `site generate --book` requires a site-enabled book.
-Generation and full checks stop at the first failure; earlier generation stages
-may already have written files. See [theorem declarations](theorems.md#generation-and-validation),
+Generation stops at the first failure; earlier generation stages may already
+have written files. Full checks overlap source/format checks with Lean, group
+their output in that order, and build PDFs only after both succeed. The first
+reported failure cancels the other check group and preserves its exit status.
+`ashaiy check all --strict --jobs 1` runs stages serially. The default worker
+budget is at most four, bounded by CPU availability; TeX formatting reserves
+one worker while Lean is active. Lake retains its own internal scheduling.
+`--jobs N` also overrides bulk PDF workers, which run after the check groups.
+Generation and writing format commands retain their ordered execution.
+See [theorem declarations](theorems.md#generation-and-validation),
 [macro declarations](macros.md#generation-and-formatting), and
 [contents assembly](writing-guide.md#contents-manifests-and-metadata) for focused commands.
 
@@ -308,6 +320,7 @@ Container after changing its synchronized configuration.
 | `ashaiy clean source` | Disposable source-tree auxiliary files, formatter logs, editor/patch backups, and interrupted manifest-write files |
 | `ashaiy clean build` | CLI and VS Code build output |
 | `ashaiy clean cache --scope <scope>` | The selected repository-local cache below |
+| `ashaiy clean cache --scope py --stale` | Bytecode for vanished temporary directories, retaining live and shared caches |
 
 | Scope | Default location |
 |---|---|
@@ -328,6 +341,12 @@ Mounted cache roots are retained after their contents are removed; ordinary
 cache directories are removed. Cleanup does not delete Docker volumes or old
 host caches hidden underneath their mounts.
 Avoid cleanup while tools are running.
+
+Use `ashaiy clean cache --scope py --stale --dry-run` to inspect stale temporary
+bytecode first. This only examines the default repository Python cache under the
+current temporary-directory path; it preserves override paths and symlinks to
+other directories. Test workers use an invocation-owned temporary directory and
+remove its bytecode when they finish, including interrupted runs.
 
 The CLI and containers set Python and Mathlib cache paths. For direct commands
 in a host shell, set these before starting Python or Lake:

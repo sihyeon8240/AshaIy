@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+import json
+import os
 import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from contextlib import closing
 from pathlib import Path
 
+from scripts.repository.benchmark import tree_rss
 from scripts.repository.processes import ProcessRunner, iter_parallel
 from scripts.repository.test_runner import run_tests
 from tests.support.fixtures import stop_process_group
@@ -19,6 +23,72 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class ParallelCommandsTests(unittest.TestCase):
+    @unittest.skipUnless(Path("/proc/self/status").exists(), "Linux process accounting is required")
+    def test_memory_measurement_includes_children_started_by_worker_threads(self) -> None:
+        ready = threading.Event()
+        finished = threading.Event()
+        processes = []
+
+        def execute():
+            with subprocess.Popen(
+                [
+                    sys.executable,
+                    "-c",
+                    "import sys; data = bytearray(33554432); print('ready', flush=True); sys.stdin.read()",
+                ],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+            ) as process:
+                processes.append(process)
+                assert process.stdout is not None
+                process.stdout.readline()
+                ready.set()
+                finished.wait(timeout=10)
+                process.communicate(input=b"done", timeout=5)
+
+        thread = threading.Thread(target=execute)
+        thread.start()
+        try:
+            self.assertTrue(ready.wait(timeout=5), "child did not start")
+
+            def rss(pid):
+                return next(
+                    int(line.split()[1])
+                    for line in Path(f"/proc/{pid}/status").read_text().splitlines()
+                    if line.startswith("VmRSS:")
+                )
+
+            expected = rss(os.getpid()) + rss(processes[0].pid)
+            self.assertGreaterEqual(tree_rss(os.getpid()), expected - 4096)
+        finally:
+            finished.set()
+            thread.join(timeout=10)
+        self.assertFalse(thread.is_alive())
+
+    def test_worker_temporary_bytecode_is_removed_after_the_suite(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            package = root / "bytecode_cases"
+            package.mkdir()
+            (package / "__init__.py").touch()
+            (package / "test_cache.py").write_text(
+                "import json, py_compile, tempfile, unittest\nfrom pathlib import Path\n"
+                "class Example(unittest.TestCase):\n"
+                "    def test_temporary_import(self):\n"
+                "        with tempfile.TemporaryDirectory() as directory:\n"
+                "            source = Path(directory) / 'fixture.py'\n"
+                "            source.write_text('value = 1\\n')\n"
+                "            cache = py_compile.compile(str(source), doraise=True)\n"
+                "            Path('cache-path.json').write_text(json.dumps(cache))\n"
+                "            self.assertTrue(Path(cache).is_file())\n"
+            )
+            original_path = sys.path[:]
+            self.addCleanup(setattr, sys, "path", original_path)
+            self.assertEqual(run_tests(str(package), "test_*.py", jobs=2, root=root), 0)
+            cache = Path(json.loads((root / "cache-path.json").read_text()))
+            self.assertIn("test-logs-", str(cache))
+            self.assertFalse(cache.exists())
+
     def test_bounded_submission_preserves_order_and_accepts_none_items(self) -> None:
         submitted = []
 

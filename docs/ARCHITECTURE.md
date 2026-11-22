@@ -156,6 +156,12 @@ glob exclusions belong in `config/ignore-patterns.yml`.
 | Mixed editor/container files | Synchronization owns the image, cache volume mounts, extension lists, book choices, and configured editor fields; remaining user-maintained settings and unrelated mounts are preserved. |
 | Mixed TOML files | Synchronization owns the Lean dependency revision and Python versions for Ruff and ty; package metadata, Lean options, and check policy remain hand-maintained. |
 
+VS Code search and Explorer use Git ignore files. The `vscode-cache` exclusion
+profile owns watcher, Pylance exclusion, and Workshop root-search globs; these
+are VS Code settings, not a portable exclusion format. Book metadata owns the
+Workshop root candidates and authoring configuration owns test rediscovery paths.
+Editors retain the shared CLI formatter policy through their own adapters.
+
 Preserve hand-maintained fields in mixed consumers; do not replace these files
 with complete generated templates. Synchronization validates the full update set
 before writing. Source mutations hold an invocation-scoped, reentrant lock under
@@ -300,6 +306,10 @@ so validation and source-preserving edits share an unambiguous field owner.
 TeX Live installation steps. These committed inputs isolate Docker cache
 invalidation; the independent TeX Live stage is reused across other tool updates.
 Register generated image inputs in `config/image-build.json`.
+
+The development image installs its Python closure before copying Lean, Ruby,
+and binary tools. The complete runtime toolchain configuration is copied before
+the final checks and inventory, preserving Python layers across unrelated pins.
 
 `config/container-image.txt` owns the local container pin. CI image selection,
 publication, and pinning follow [image operations](maintainer-guide.md#multi-platform-toolchain-images).

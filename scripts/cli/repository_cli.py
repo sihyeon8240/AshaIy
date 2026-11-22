@@ -26,7 +26,7 @@ OVERVIEW = """Books:
 Validation and formatting:
   check {source|manifest|proof-links|docs}
       Run a focused source, registry, proof-index, or documentation check.
-  check all [--strict]
+  check all [--strict] [--jobs N]
       Check sources, formatting, Lean, and PDFs for check-enabled textbooks.
   lean {prepare|build|check}
       Prepare dependencies or build Lean; check also verifies proof declarations.
@@ -69,6 +69,7 @@ Environment and maintenance:
       Remove PDF/editor build output or disposable source artifacts.
   clean cache --scope {lake|mathlib|tex|ruff|py|coverage|hypothesis|all}
       Remove only the selected tool caches.
+      Add --stale [--dry-run] with --scope py to prune vanished temporary paths.
   report
       Print an informational repository health report.
   tree
@@ -326,6 +327,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="treat PDF log warnings as errors; valid only with all",
     )
+    checks.add_argument(
+        "--jobs",
+        type=positive_integer,
+        metavar="N",
+        help="formatter/build worker budget (default: at most 4); 1 runs stages serially; valid only with all",
+    )
     checks.set_defaults(run=run_checks)
 
     formatting = command("format", "format source files or check formatting")
@@ -348,7 +355,10 @@ def build_parser() -> argparse.ArgumentParser:
     formatting.set_defaults(run=run_format)
     formatting.add_argument("--jobs", type=positive_integer, metavar="N", help="maximum parallel TeX formatters")
 
-    command("lean", "prepare dependencies, build, or verify Lean", ("prepare", "build", "check"))
+    lean = command("lean", "prepare dependencies, build, or verify Lean", ("prepare", "build", "check"))
+    lean["prepare"].add_argument(
+        "--prefer-existing", action="store_true", help="check imported build traces before downloading artifacts"
+    )
     doctor = command("doctor", "diagnose environment or textbooks", ("env", "book"))
     book_option(doctor["book"])
     site = command(
@@ -403,6 +413,14 @@ def build_parser() -> argparse.ArgumentParser:
             "all",
         ),
         help="cache to remove; all selects every supported tool cache",
+    )
+    clean["cache"].add_argument(
+        "--stale",
+        action="store_true",
+        help="remove only bytecode for vanished temporary directories; requires --scope py",
+    )
+    clean["cache"].add_argument(
+        "--dry-run", action="store_true", help="list removals without writing; requires --stale"
     )
     tests = command("test", "run the repository test suite")
     tests.add_argument("--coverage", action="store_true", help="measure Python branch coverage")
@@ -532,8 +550,11 @@ def run_checks(arguments: argparse.Namespace) -> int:
     if arguments.strict and arguments.scope != "all":
         print("error: strict is only valid for the full check", file=sys.stderr)
         return 2
+    if arguments.jobs is not None and arguments.scope != "all":
+        print("error: --jobs is only valid for the full check", file=sys.stderr)
+        return 2
 
-    return check_repository(arguments.scope, strict=arguments.strict)
+    return check_repository(arguments.scope, strict=arguments.strict, jobs=arguments.jobs)
 
 
 def run_plan(arguments: argparse.Namespace) -> int:

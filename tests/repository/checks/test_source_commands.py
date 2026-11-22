@@ -52,9 +52,7 @@ class RepositorySourceCheckTests(unittest.TestCase):
             (scripts / "zzz-invalid.sh").write_text("if then\n", encoding="utf-8")
             binary = root / "bin"
             binary.mkdir()
-            for name in ("rg", "shellcheck"):
-                command = binary / name
-                write_executable(command, "#!/bin/sh\nexit 0\n")
+            write_executable(binary / "shellcheck", "#!/bin/sh\nexit 0\n")
             result = subprocess.run(
                 [str(scripts / "repository/checks/check_repository.sh")],
                 cwd=root,

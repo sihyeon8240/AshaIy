@@ -2,19 +2,77 @@
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from scripts.repository import python_cache
 from tests.support.fixtures import copy_file, write_executable
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class CleanCacheTests(unittest.TestCase):
+    def test_stale_pruning_preserves_live_paths_other_caches_and_symlinks(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "temporary"
+            source.mkdir()
+            (source / "live").mkdir()
+            cache = root / ".cache/python" / source.relative_to(source.anchor)
+            stale = cache / "gone/module.pyc"
+            live = cache / "live/module.pyc"
+            shared = root / ".cache/python/usr/shared.pyc"
+            for path in (stale, live, shared):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"bytecode")
+            (cache / "external").symlink_to(shared.parent, target_is_directory=True)
+            with patch.object(python_cache.tempfile, "gettempdir", return_value=str(source)):
+                python_cache.prune(root=root, dry_run=True)
+                self.assertTrue(stale.exists())
+                python_cache.prune(root=root)
+            self.assertFalse(stale.exists())
+            self.assertEqual(live.read_bytes(), b"bytecode")
+            self.assertEqual(shared.read_bytes(), b"bytecode")
+            self.assertTrue((cache / "external").is_symlink())
+
+    def test_stale_pruning_rejects_symlinked_cache_parents(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            external = Path(temporary) / "external"
+            external.mkdir()
+            sentinel = external / "keep"
+            sentinel.write_text("preserved")
+            (root / ".cache").symlink_to(external, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, "refusing symlinked cache path"):
+                python_cache.prune(root=root)
+            self.assertEqual(sentinel.read_text(), "preserved")
+
+    def test_temporary_workspace_cleans_its_bytecode_even_on_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            prefix = Path(temporary) / "bytecode"
+            shared = prefix / "usr/shared.pyc"
+            shared.parent.mkdir(parents=True)
+            shared.write_bytes(b"shared")
+            with (
+                patch.object(sys, "pycache_prefix", str(prefix)),
+                self.assertRaisesRegex(RuntimeError, "interrupted"),
+                python_cache.temporary_directory(prefix="cache-fixture-") as directory,
+            ):
+                bytecode = Path(importlib.util.cache_from_source(str(directory / "module.py")))
+                bytecode.parent.mkdir(parents=True, exist_ok=True)
+                bytecode.write_bytes(b"temporary")
+                raise RuntimeError("interrupted")
+            self.assertFalse(bytecode.exists())
+            self.assertFalse(directory.exists())
+            self.assertEqual(shared.read_bytes(), b"shared")
+
     def run_clean(self, root: Path, scope: str) -> subprocess.CompletedProcess[str]:
         scripts = root / "scripts"
         scripts.mkdir(exist_ok=True)

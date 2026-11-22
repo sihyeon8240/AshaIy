@@ -79,13 +79,11 @@ jobs:
         if: steps.eligible.outputs.current == 'true'
         with:
           python-version: ${{ steps.config.outputs.python }}
-          cache: pip
-          cache-dependency-path: .github/requirements-ci.txt
       - name: Install site generation dependencies
         if: steps.eligible.outputs.current == 'true'
         run: >-
           python3 -m pip install --disable-pip-version-check
-          --requirement .github/requirements-ci.txt
+          --no-cache-dir --constraint .github/requirements-ci.txt PyYAML
       - name: Validate and generate site from config/books.yml
         env:
           SITE_SNAPSHOT_SHA: ${{ steps.source.outputs.snapshot }}
